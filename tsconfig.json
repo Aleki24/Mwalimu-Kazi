@@ -1,0 +1,23 @@
+{
+  "extends": "./tsconfig.base.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "baseUrl": ".",
+    "paths": {
+      "@mwalimu/types": [
+        "packages/types/src/index.ts"
+      ],
+      "@mwalimu/core": [
+        "packages/core/src/index.ts"
+      ]
+    },
+    "types": [
+      "node",
+      "vitest/globals"
+    ]
+  },
+  "include": [
+    "packages/*/src/**/*.ts",
+    "vitest.config.ts"
+  ]
+}

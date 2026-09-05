@@ -1,0 +1,46 @@
+/**
+ * Design tokens — the single source for both the Expo app (via NativeWind) and
+ * the Next.js dashboard (via the Tailwind theme). Values carried over from the
+ * skulbase mobile theme so the two products read as one family.
+ *
+ * `muted` is deliberately the darker slate-600 rather than slate-500: at the
+ * 10-12px sizes this UI is built from, slate-500 reads washed out. The web app's
+ * globals.css made the same correction.
+ */
+
+export const colors = {
+  primary: '#4f46e5',
+  primaryDark: '#4338ca',
+  primarySoft: '#eef2ff',
+
+  background: '#f8fafc',
+  card: '#ffffff',
+  border: '#e2e8f0',
+
+  foreground: '#0f172a',
+  muted: '#475569',
+  mutedFaint: '#64748b',
+  mutedBg: '#f1f5f9',
+
+  success: '#16a34a', successBg: '#dcfce7',
+  danger:  '#dc2626', dangerBg:  '#fee2e2',
+  warning: '#d97706', warningBg: '#fef3c7',
+  info:    '#2563eb', infoBg:    '#dbeafe',
+} as const;
+
+export const spacing = { xs: 4, sm: 8, md: 12, lg: 16, xl: 24 } as const;
+export const radius = { sm: 8, md: 12, lg: 16, xl: 20, pill: 999 } as const;
+
+export const fonts = {
+  display: 'Syne',
+  body: 'Inter',
+  mono: 'JetBrains Mono',
+} as const;
+
+/**
+ * Minimum tappable size in dp. Anything interactive must meet this — filter
+ * chips and icon buttons are the ones that slip below it.
+ */
+export const HIT_TARGET_MIN = 44;
+
+export type ColorToken = keyof typeof colors;
