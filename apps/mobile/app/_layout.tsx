@@ -53,6 +53,7 @@ function RootNavigator() {
         <Stack.Screen name="notifications" options={{ title: 'Notifications' }} />
         <Stack.Screen name="saved" options={{ title: 'Saved' }} />
         <Stack.Screen name="applications" options={{ title: 'Applications' }} />
+        <Stack.Screen name="review/new" options={{ title: 'Write a review' }} />
         <Stack.Screen name="profile" options={{ title: 'Your profile' }} />
       </Stack.Protected>
 

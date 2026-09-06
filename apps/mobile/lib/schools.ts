@@ -34,11 +34,15 @@ const toRatedReview = (row: ReviewRow): RatedReview => ({
 });
 
 export async function fetchSchools(): Promise<readonly SchoolListing[]> {
-  // RLS already hides unapproved reviews, so these counts cannot include them.
+  // `approved` is filtered here, not left to RLS. The policy is
+  // `moderation = 'approved' OR author_id = auth.uid()`, so an author would
+  // otherwise see their own pending review counted in the public average and
+  // wonder why nobody else could see the rating they were looking at.
   const [schools, jobs, reviews] = await Promise.all([
     supabase.from('schools').select('*').order('name'),
     supabase.from('jobs').select('school_id').eq('published', true),
-    supabase.from('school_reviews').select(`school_id, ${REVIEW_SELECT}`),
+    supabase.from('school_reviews').select(`school_id, ${REVIEW_SELECT}`)
+      .eq('moderation', 'approved'),
   ]);
 
   if (schools.error !== null) throw new Error(schools.error.message);
@@ -86,7 +90,9 @@ export async function fetchSchoolBySlug(slug: string, now: Date): Promise<School
       .select('id, title, salary_min, salary_max, closes_at')
       .eq('school_id', school.id).eq('published', true)
       .order('posted_at', { ascending: false }),
+    // Approved only — see fetchSchools above for why this is not left to RLS.
     supabase.from('school_reviews').select(REVIEW_SELECT).eq('school_id', school.id)
+      .eq('moderation', 'approved')
       .order('created_at', { ascending: false }),
   ]);
 

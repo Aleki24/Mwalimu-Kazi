@@ -609,7 +609,16 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      submit_school_review: {
+        Args: {
+          p_body: string
+          p_ratings: Json
+          p_red_flags?: Json
+          p_role_title: string
+          p_school_id: string
+        }
+        Returns: string
+      }
     }
     Enums: {
       application_source: "manual" | "auto_apply"

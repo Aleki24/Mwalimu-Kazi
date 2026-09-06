@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, ScrollView, Text, View } from 'react-native';
-import { Stack, useLocalSearchParams } from 'expo-router';
+import { ActivityIndicator, Pressable, ScrollView, Text, View } from 'react-native';
+import { Link, Stack, useLocalSearchParams } from 'expo-router';
+import Feather from '@expo/vector-icons/Feather';
 import {
   formatClosing, formatLabel, formatSalary, RED_FLAG_LABEL, REVIEW_CATEGORY_LABEL,
 } from '@mwalimu/core';
@@ -19,6 +20,26 @@ function CategoryBar({ label, average }: { label: string; average: number }) {
       </View>
       <Text className="w-6 text-right text-[11.5px] font-medium text-foreground">{average.toFixed(1)}</Text>
     </View>
+  );
+}
+
+/**
+ * Both the "no reviews yet" card and the ratings card need this, and they must
+ * not drift apart — the empty state is the one a first reviewer sees.
+ */
+function ReviewLink({
+  schoolId, schoolName, label,
+}: { schoolId: string; schoolName: string; label: string }) {
+  return (
+    <Link
+      href={{ pathname: '/review/new', params: { schoolId, schoolName } }}
+      asChild
+    >
+      <Pressable accessibilityRole="link" className="mt-3 flex-row items-center gap-1.5">
+        <Feather name="edit-3" size={13} color={colors.primary} />
+        <Text className="text-[12px] font-medium text-primary">{label}</Text>
+      </Pressable>
+    </Link>
   );
 }
 
@@ -128,6 +149,7 @@ export default function SchoolDetailScreen() {
                 <CategoryBar key={c.category} label={REVIEW_CATEGORY_LABEL[c.category]} average={c.average} />
               ))}
             </View>
+            <ReviewLink schoolId={school.id} schoolName={school.name} label="Add your review" />
           </Card>
         ) : (
           <Card className="p-3.5">
@@ -135,6 +157,7 @@ export default function SchoolDetailScreen() {
             <Text className="mt-1 text-[11.5px] leading-4 text-mutedForeground">
               Taught here? A review from verified staff is what makes this page worth reading.
             </Text>
+            <ReviewLink schoolId={school.id} schoolName={school.name} label="Write the first review" />
           </Card>
         )}
 
