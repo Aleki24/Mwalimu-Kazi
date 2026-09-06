@@ -6,22 +6,17 @@ import { colors } from '@mwalimu/ui';
 import { Chip, EmptyState, ErrorBanner, ScreenHeader } from '../../components/ui';
 import { JobCard } from '../../components/job-card';
 import { fetchOpenJobs } from '../../lib/jobs';
-import { DEMO_TEACHER } from '../../lib/demo-teacher';
+import { useTeacher } from '../../lib/auth';
 
-/**
- * Quick filters sit on the screen; the full filter sheet is a separate route.
- * Each is a partial JobFilters merged into the active set, so adding one here
- * needs no new filtering code — `filterJobs` already handles every field.
- */
-const QUICK_FILTERS = [
-  { key: 'mine', label: 'My subjects', patch: { subjects: DEMO_TEACHER.subjects } },
-  { key: 'nearby', label: 'My county', patch: { counties: [DEMO_TEACHER.county] } },
-  { key: 'fulltime', label: 'Full-time', patch: { jobTypes: ['full_time'] } },
-  { key: 'tsc', label: 'TSC roles', patch: { tscOnly: true } },
-] as const satisfies ReadonlyArray<{ key: string; label: string; patch: JobFilters }>;
+interface QuickFilter {
+  readonly key: string;
+  readonly label: string;
+  readonly patch: JobFilters;
+}
 
 export default function JobsScreen() {
   const insets = useSafeAreaInsets();
+  const teacher = useTeacher();
   const [all, setAll] = useState<readonly JobWithSchool[]>([]);
   const [skipped, setSkipped] = useState<readonly string[]>([]);
   const [active, setActive] = useState<ReadonlySet<string>>(new Set());
@@ -45,16 +40,29 @@ export default function JobsScreen() {
 
   useEffect(() => { void load(); }, [load]);
 
+  /**
+   * Two of these read the signed-in teacher, so they are built per render
+   * rather than at module scope. Each is a partial JobFilters merged into the
+   * active set — adding one needs no new filtering code, since `filterJobs`
+   * already handles every field.
+   */
+  const quickFilters: readonly QuickFilter[] = useMemo(() => [
+    { key: 'mine', label: 'My subjects', patch: { subjects: teacher.subjects } },
+    { key: 'nearby', label: 'My county', patch: { counties: [teacher.county] } },
+    { key: 'fulltime', label: 'Full-time', patch: { jobTypes: ['full_time'] } },
+    { key: 'tsc', label: 'TSC roles', patch: { tscOnly: true } },
+  ], [teacher]);
+
   const filters: JobFilters = useMemo(
-    () => QUICK_FILTERS.reduce<JobFilters>(
+    () => quickFilters.reduce<JobFilters>(
       (acc, f) => (active.has(f.key) ? { ...acc, ...f.patch } : acc),
       {},
     ),
-    [active],
+    [active, quickFilters],
   );
 
   const results = useMemo(
-    () => rankJobs(filterJobs(all, filters), DEMO_TEACHER, now),
+    () => rankJobs(filterJobs(all, filters), teacher, now),
     [all, filters, now],
   );
 
@@ -78,7 +86,7 @@ export default function JobsScreen() {
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={{ paddingHorizontal: 16, gap: 8 }}
         >
-          {QUICK_FILTERS.map((f) => (
+          {quickFilters.map((f) => (
             <Pressable key={f.key} onPress={() => toggle(f.key)} accessibilityRole="button">
               <Chip label={f.label} selected={active.has(f.key)} />
             </Pressable>

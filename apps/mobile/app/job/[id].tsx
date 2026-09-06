@@ -9,10 +9,11 @@ import { colors } from '@mwalimu/ui';
 import { Badge, Card, EmptyState, ErrorBanner, SchoolMark } from '../../components/ui';
 import { MatchBreakdown } from '../../components/match-breakdown';
 import { fetchJobById } from '../../lib/jobs';
-import { DEMO_TEACHER } from '../../lib/demo-teacher';
+import { useTeacher } from '../../lib/auth';
 
 export default function JobDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
+  const teacher = useTeacher();
   const [entry, setEntry] = useState<JobWithSchool | null>(null);
   const [match, setMatch] = useState<MatchResult | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -26,7 +27,7 @@ export default function JobDetailScreen() {
         const found = await fetchJobById(id);
         if (cancelled) return;
         setEntry(found);
-        setMatch(found === null ? null : matchScore(found.job, DEMO_TEACHER));
+        setMatch(found === null ? null : matchScore(found.job, teacher));
       } catch (cause) {
         if (!cancelled) setError(cause instanceof Error ? cause.message : 'Could not load this role');
       } finally {

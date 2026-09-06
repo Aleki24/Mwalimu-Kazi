@@ -7,10 +7,11 @@ import { colors } from '@mwalimu/ui';
 import { Card, EmptyState, ErrorBanner, ScreenHeader } from '../../components/ui';
 import { JobCard } from '../../components/job-card';
 import { fetchOpenJobs } from '../../lib/jobs';
-import { DEMO_TEACHER } from '../../lib/demo-teacher';
+import { useTeacher } from '../../lib/auth';
 
 export default function HomeScreen() {
   const insets = useSafeAreaInsets();
+  const teacher = useTeacher();
   const [all, setAll] = useState<readonly JobWithSchool[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -35,7 +36,7 @@ export default function HomeScreen() {
   useEffect(() => { void load(); }, [load]);
 
   const ranked: readonly RankedJob[] = useMemo(
-    () => rankJobs(all, DEMO_TEACHER, now),
+    () => rankJobs(all, teacher, now),
     [all, now],
   );
   const urgent = useMemo(() => closingSoon(all, now), [all, now]);
@@ -43,7 +44,7 @@ export default function HomeScreen() {
 
   return (
     <View className="flex-1 bg-background" style={{ paddingTop: insets.top }}>
-      <ScreenHeader title={`Good morning, ${DEMO_TEACHER.fullName.split(' ')[0]}`} subtitle="Your career dashboard" />
+      <ScreenHeader title={`Good morning, ${teacher.fullName.split(' ')[0]}`} subtitle="Your career dashboard" />
 
       <ScrollView
         contentContainerStyle={{ padding: 16, gap: 12, paddingBottom: 32 }}

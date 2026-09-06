@@ -72,3 +72,15 @@ export const RequirementKind = z.enum([
   'subject', 'qualification', 'experience_years', 'tsc_registration', 'curriculum', 'county',
 ]);
 export type RequirementKind = z.infer<typeof RequirementKind>;
+
+/**
+ * Teaching subjects offered at sign-up. Stored as free slugs on `profiles` and
+ * `jobs` rather than an enum, because schools advertise subjects we have not
+ * anticipated — this list is the picker, not the constraint.
+ */
+export const COMMON_SUBJECTS = [
+  'mathematics', 'english', 'kiswahili', 'physics', 'chemistry', 'biology',
+  'geography', 'history', 'cre', 'ire', 'business-studies', 'agriculture',
+  'computer-studies', 'ict', 'home-science', 'art-and-design', 'music',
+  'physical-education', 'french', 'german', 'primary', 'ecd',
+] as const;
