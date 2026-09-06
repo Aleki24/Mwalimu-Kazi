@@ -1,3 +1,13 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+@layer base {
+  /*
+   * Inter Tight everywhere, and the weight ceiling enforced at the base layer
+   * so a stray `font-bold` from a copied snippet cannot reintroduce heaviness.
+   */
+  * {
+    font-family: InterTight_400Regular, system-ui, sans-serif;
+  }
+}

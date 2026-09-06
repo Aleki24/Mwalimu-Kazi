@@ -1,10 +1,17 @@
+import { useEffect } from 'react';
 import { ActivityIndicator, View } from 'react-native';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
+import * as SplashScreen from 'expo-splash-screen';
+import {
+  InterTight_300Light, InterTight_400Regular, InterTight_500Medium, useFonts,
+} from '@expo-google-fonts/inter-tight';
 import { colors } from '@mwalimu/ui';
 import { AuthProvider, useAuth } from '../lib/auth';
 import '../global.css';
+
+void SplashScreen.preventAutoHideAsync();
 
 /**
  * Route guard.
@@ -13,18 +20,14 @@ import '../global.css';
  * screen is never mounted at all. An effect redirect still renders the
  * protected screen once first, which crashed on `useTeacher()` before the
  * navigation landed.
- *
- * Three states, three exclusive groups — "signed in but no profile row yet" is
- * a real state, not an edge case, because profiles.full_name and county are NOT
- * NULL and cannot be created by trigger.
  */
 function RootNavigator() {
   const { status } = useAuth();
 
   if (status === 'loading') {
     return (
-      <View className="flex-1 items-center justify-center bg-background">
-        <ActivityIndicator color={colors.primary} />
+      <View className="flex-1 items-center justify-center bg-card">
+        <ActivityIndicator color={colors.mutedForeground} />
       </View>
     );
   }
@@ -33,8 +36,12 @@ function RootNavigator() {
     <Stack
       screenOptions={{
         headerStyle: { backgroundColor: colors.card },
-        headerTitleStyle: { color: colors.foreground, fontWeight: '700' },
-        headerTintColor: colors.primary,
+        headerTitleStyle: {
+          color: colors.foreground,
+          fontFamily: 'InterTight_500Medium',
+          fontSize: 16,
+        },
+        headerTintColor: colors.foreground,
         headerShadowVisible: false,
         contentStyle: { backgroundColor: colors.background },
       }}
@@ -43,9 +50,9 @@ function RootNavigator() {
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen name="job/[id]" options={{ title: 'Job' }} />
         <Stack.Screen name="school/[slug]" options={{ title: 'School' }} />
-        <Stack.Screen name="news" options={{ title: 'News & updates' }} />
+        <Stack.Screen name="news" options={{ title: 'News' }} />
         <Stack.Screen name="notifications" options={{ title: 'Notifications' }} />
-        <Stack.Screen name="saved" options={{ title: 'Saved jobs' }} />
+        <Stack.Screen name="saved" options={{ title: 'Saved' }} />
       </Stack.Protected>
 
       <Stack.Protected guard={status === 'needs-onboarding'}>
@@ -61,6 +68,16 @@ function RootNavigator() {
 }
 
 export default function RootLayout() {
+  const [fontsLoaded] = useFonts({
+    InterTight_300Light, InterTight_400Regular, InterTight_500Medium,
+  });
+
+  useEffect(() => {
+    if (fontsLoaded) void SplashScreen.hideAsync();
+  }, [fontsLoaded]);
+
+  if (!fontsLoaded) return null;
+
   return (
     <SafeAreaProvider>
       <StatusBar style="dark" />

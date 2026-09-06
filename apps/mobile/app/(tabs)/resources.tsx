@@ -21,12 +21,10 @@ const KINDS: ReadonlyArray<{ key: Kind | 'all'; label: string }> = [
   { key: 'worksheet', label: 'Worksheets' },
 ];
 
-/** File-type colour, so the list scans by shape as much as by title. */
-const EXT_TONE: Readonly<Record<string, string>> = {
-  pdf: 'bg-dangerBg text-danger',
-  docx: 'bg-infoBg text-info',
-  pptx: 'bg-warningBg text-warning',
-};
+/**
+ * File type is identity, not status. Coloured tiles read as severity — a red
+ * PDF square looked like a warning — so the extension carries it in ink.
+ */
 
 export default function ResourcesScreen() {
   const insets = useSafeAreaInsets();
@@ -70,7 +68,7 @@ export default function ResourcesScreen() {
           value={query}
           onChangeText={setQuery}
           placeholder="Search notes, schemes, past papers…"
-          placeholderTextColor={colors.mutedFaint}
+          placeholderTextColor={colors.mutedForeground}
           className="h-11 rounded-md border border-border bg-background px-3 text-[14px] text-foreground"
         />
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
@@ -83,7 +81,7 @@ export default function ResourcesScreen() {
       </View>
 
       {loading ? (
-        <ActivityIndicator color={colors.primary} className="py-10" />
+        <ActivityIndicator color={colors.mutedForeground} className="py-10" />
       ) : (
         <FlatList
           data={visible}
@@ -92,29 +90,27 @@ export default function ResourcesScreen() {
           ListHeaderComponent={error !== null ? <View className="pt-4"><ErrorBanner message={error} /></View> : null}
           ListEmptyComponent={<EmptyState title="Nothing here yet" body="Try another type or search." />}
           renderItem={({ item }) => {
-            const tone = EXT_TONE[item.file_extension] ?? 'bg-mutedBg text-muted';
-            const [bg, fg] = tone.split(' ') as [string, string];
             return (
               <View className="flex-row items-center gap-3 border-b border-border py-2.5">
-                <View className={`h-10 w-10 items-center justify-center rounded-md ${bg}`}>
-                  <Text className={`text-[9px] font-extrabold ${fg}`}>
+                <View className="h-10 w-10 items-center justify-center rounded-lg bg-secondary">
+                  <Text className="text-[9px] font-medium text-foreground/70">
                     {item.file_extension.toUpperCase()}
                   </Text>
                 </View>
                 <View className="min-w-0 flex-1">
-                  <Text numberOfLines={1} className="text-[12.5px] font-semibold text-foreground">
+                  <Text numberOfLines={1} className="text-[12.5px] font-medium text-foreground">
                     {item.title}
                   </Text>
-                  <Text className="mt-0.5 text-[11px] text-muted">
+                  <Text className="mt-0.5 text-[11px] text-mutedForeground">
                     {formatLabel(item.kind)} · {formatFileSize(item.size_bytes)} · {item.download_count} downloads
                   </Text>
                 </View>
                 <Pressable
                   accessibilityRole="button"
                   accessibilityLabel={`Download ${item.title}`}
-                  className="h-11 w-11 items-center justify-center rounded-full bg-primarySoft"
+                  className="h-11 w-11 items-center justify-center rounded-full bg-wash"
                 >
-                  <Feather name="download" size={17} color={colors.primary} />
+                  <Feather name="download" size={17} color={colors.mutedForeground} />
                 </Pressable>
               </View>
             );

@@ -5,7 +5,7 @@ import Feather from '@expo/vector-icons/Feather';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { closingSoon, rankJobs, type JobWithSchool, type RankedJob } from '@mwalimu/core';
 import { colors } from '@mwalimu/ui';
-import { Card, EmptyState, ErrorBanner, ScreenHeader } from '../../components/ui';
+import { Card, EmptyState, ErrorBanner, NoticeStrip, ScreenHeader } from '../../components/ui';
 import { JobCard } from '../../components/job-card';
 import { fetchOpenJobs } from '../../lib/jobs';
 import { useTeacher } from '../../lib/auth';
@@ -64,23 +64,23 @@ export default function HomeScreen() {
           <RefreshControl
             refreshing={refreshing}
             onRefresh={() => { setRefreshing(true); void load(); }}
-            tintColor={colors.primary}
+            tintColor={colors.mutedForeground}
           />
         }
       >
         {error !== null ? <ErrorBanner message={error} /> : null}
 
         {urgent.length > 0 ? (
-          <View className="flex-row items-center gap-2.5 rounded-md border border-warning bg-warningBg px-3 py-2.5">
-            <Text className="flex-1 text-[12.5px] font-semibold text-warning">
+          <NoticeStrip tone="warning">
+            <Text className="text-sm text-foreground">
               {urgent.length === 1 ? '1 role closes today' : `${urgent.length} roles close today`}
             </Text>
-          </View>
+          </NoticeStrip>
         ) : null}
 
         <Card className="p-3.5">
-          <Text className="text-[13px] font-bold text-foreground">Auto-Apply is off</Text>
-          <Text className="mt-1 text-[11.5px] leading-4 text-muted">
+          <Text className="text-[13px] font-medium text-foreground">Auto-Apply is off</Text>
+          <Text className="mt-1 text-[11.5px] leading-4 text-mutedForeground">
             Set your rules and we will apply to strong matches for you, before the shortlist fills.
           </Text>
         </Card>
@@ -90,8 +90,8 @@ export default function HomeScreen() {
             <Link key={item.href} href={item.href} asChild>
               <Pressable accessibilityRole="button" style={{ width: '31%' }}>
                 <Card className="items-center gap-1.5 px-2 py-3">
-                  <Feather name={item.icon} size={19} color={colors.primary} />
-                  <Text className="text-[11.5px] font-semibold text-foreground">{item.label}</Text>
+                  <Feather name={item.icon} size={19} color={colors.foreground} />
+                  <Text className="text-[11.5px] font-medium text-foreground">{item.label}</Text>
                 </Card>
               </Pressable>
             </Link>
@@ -99,12 +99,12 @@ export default function HomeScreen() {
         </View>
 
         <View className="flex-row items-baseline justify-between">
-          <Text className="text-[15px] font-bold tracking-tight text-foreground">Top matches for you</Text>
-          <Link href="/(tabs)/jobs" className="text-xs font-semibold text-primary">See all</Link>
+          <Text className="text-[15px] font-medium tracking-tight text-foreground">Top matches for you</Text>
+          <Link href="/(tabs)/jobs" className="text-xs font-medium text-foreground">See all</Link>
         </View>
 
         {loading ? (
-          <ActivityIndicator color={colors.primary} className="py-8" />
+          <ActivityIndicator color={colors.mutedForeground} className="py-8" />
         ) : topMatches.length === 0 ? (
           <EmptyState title="No open roles yet" body="New vacancies will appear here as schools post them." />
         ) : (

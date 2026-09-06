@@ -95,7 +95,7 @@ export default function JobsScreen() {
       </View>
 
       {loading ? (
-        <ActivityIndicator color={colors.primary} className="py-10" />
+        <ActivityIndicator color={colors.mutedForeground} className="py-10" />
       ) : (
         <FlatList
           data={results}

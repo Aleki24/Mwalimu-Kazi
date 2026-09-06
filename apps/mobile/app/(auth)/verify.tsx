@@ -58,15 +58,15 @@ export default function VerifyScreen() {
     >
       <ScrollView contentContainerStyle={{ padding: 24, paddingTop: 32, gap: 24 }}>
         <Pressable accessibilityRole="button" onPress={() => router.back()} className="h-11 justify-center">
-          <Text className="text-[15px] font-semibold text-primary">← Change number</Text>
+          <Text className="text-[15px] font-medium text-foreground">← Change number</Text>
         </Pressable>
 
         <View>
-          <Text className="text-2xl font-extrabold tracking-tight text-foreground">
+          <Text className="text-2xl font-medium tracking-tight text-foreground">
             Enter the code
           </Text>
           {/* Showing the number back catches a typo before they sit waiting. */}
-          <Text className="mt-2 text-[15px] text-muted">
+          <Text className="mt-2 text-[15px] text-mutedForeground">
             Sent to {formatPhoneForDisplay(phone ?? '')}
           </Text>
         </View>
@@ -82,17 +82,17 @@ export default function VerifyScreen() {
               if (digits.length === 6) void submit(digits);
             }}
             placeholder="000000"
-            placeholderTextColor={colors.mutedFaint}
+            placeholderTextColor={colors.mutedForeground}
             keyboardType="number-pad"
             autoComplete="sms-otp"
             textContentType="oneTimeCode"
             maxLength={6}
-            className={`h-16 rounded-md border bg-card px-4 text-center text-3xl font-bold tracking-[8px] text-foreground ${
-              error === null ? 'border-border' : 'border-danger'
+            className={`h-16 rounded-md border bg-card px-4 text-center text-3xl font-medium tracking-[8px] text-foreground ${
+              error === null ? 'border-border' : 'border-destructive'
             }`}
           />
-          {error !== null ? <Text className="text-[12.5px] text-danger">{error}</Text> : null}
-          {busy ? <ActivityIndicator color={colors.primary} /> : null}
+          {error !== null ? <Text className="text-[12.5px] text-destructiveForeground">{error}</Text> : null}
+          {busy ? <ActivityIndicator color={colors.mutedForeground} /> : null}
         </View>
 
         <Pressable
@@ -101,7 +101,7 @@ export default function VerifyScreen() {
           onPress={() => void resend()}
           className="h-11 justify-center"
         >
-          <Text className={`text-[14px] font-semibold ${cooldown > 0 ? 'text-muted' : 'text-primary'}`}>
+          <Text className={`text-[14px] font-medium ${cooldown > 0 ? 'text-mutedForeground' : 'text-foreground'}`}>
             {cooldown > 0 ? `Resend code in ${cooldown}s` : 'Resend code'}
           </Text>
         </Pressable>

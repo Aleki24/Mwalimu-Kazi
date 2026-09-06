@@ -3,14 +3,17 @@ import { Pressable, Text, View } from 'react-native';
 import {
   formatClosing, formatLabel, formatPostedAge, formatSalary, matchBand, type RankedJob,
 } from '@mwalimu/core';
-import { Badge, Card, SchoolMark } from './ui';
+import { Badge, Card, SchoolMark, Tag, tabularNums } from './ui';
 
-/** Score colour tracks the band so a card and a candidate row never disagree. */
+/**
+ * Score colour tracks the band so a card and a candidate row never disagree.
+ * These are text tints, which rule 7 allows; the score is never a filled chip.
+ */
 const SCORE_COLOUR = {
-  strong: 'text-success',
-  good: 'text-primary',
-  partial: 'text-warning',
-  weak: 'text-muted',
+  strong: 'text-successForeground',
+  good: 'text-foreground',
+  partial: 'text-warningForeground',
+  weak: 'text-mutedForeground',
 } as const;
 
 export function JobCard({ entry, now }: { entry: RankedJob; now: Date }) {
@@ -25,21 +28,24 @@ export function JobCard({ entry, now }: { entry: RankedJob; now: Date }) {
           <View className="flex-row items-start gap-3">
             <SchoolMark name={schoolName} />
             <View className="min-w-0 flex-1">
-              <Text numberOfLines={1} className="text-sm font-bold text-foreground">
+              <Text numberOfLines={1} className="text-sm font-medium text-foreground">
                 {job.title}
               </Text>
-              <Text numberOfLines={1} className="text-[12.5px] text-muted">
+              <Text numberOfLines={1} className="text-[12.5px] text-mutedForeground">
                 {schoolName}
               </Text>
-              <Text className="text-[11.5px] text-mutedFaint">
+              <Text className="text-[11.5px] text-mutedForeground">
                 {formatSalary(job.salary)} · {formatLabel(job.county)}
               </Text>
             </View>
             <View className="items-end">
-              <Text className={`text-base font-extrabold ${SCORE_COLOUR[matchBand(match.score)]}`}>
+              <Text
+                style={tabularNums}
+                className={`text-lg font-medium ${SCORE_COLOUR[matchBand(match.score)]}`}
+              >
                 {match.score}%
               </Text>
-              <Text className="text-[9.5px] font-bold uppercase tracking-wider text-mutedFaint">
+              <Text className="text-[10px] uppercase tracking-wider text-mutedForeground">
                 match
               </Text>
             </View>
@@ -47,12 +53,12 @@ export function JobCard({ entry, now }: { entry: RankedJob; now: Date }) {
 
           <View className="mt-2.5 flex-row items-center gap-1.5">
             {job.subjects.slice(0, 2).map((subject) => (
-              <Badge key={subject} label={formatLabel(subject)} tone="brand" />
+              <Tag key={subject} label={formatLabel(subject)} />
             ))}
             {closing !== null ? (
-              <Badge label={closing} tone={urgent ? 'warning' : 'neutral'} />
+              urgent ? <Badge label={closing} tone="warning" /> : <Tag label={closing} />
             ) : null}
-            <Text className="ml-auto text-[11px] text-mutedFaint">
+            <Text className="ml-auto text-[11px] text-mutedForeground">
               {formatPostedAge(job.postedAt, now)}
             </Text>
           </View>

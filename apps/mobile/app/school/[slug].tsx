@@ -5,19 +5,19 @@ import {
   formatClosing, formatLabel, formatSalary, RED_FLAG_LABEL, REVIEW_CATEGORY_LABEL,
 } from '@mwalimu/core';
 import { colors } from '@mwalimu/ui';
-import { Badge, Card, EmptyState, ErrorBanner, SchoolMark } from '../../components/ui';
+import { Badge, Card, EmptyState, ErrorBanner, SchoolMark, Tag } from '../../components/ui';
 import { fetchSchoolBySlug, type SchoolDetail } from '../../lib/schools';
 
 /** A rating bar. Red below 3, amber below 4 — the colour is the summary. */
 function CategoryBar({ label, average }: { label: string; average: number }) {
-  const tone = average >= 4 ? 'bg-success' : average >= 3 ? 'bg-warning' : 'bg-danger';
+  const tone = average >= 4 ? 'bg-success' : average >= 3 ? 'bg-warning' : 'bg-destructive';
   return (
     <View className="flex-row items-center gap-2.5">
-      <Text className="w-[104px] text-[11.5px] text-muted">{label}</Text>
-      <View className="h-1.5 flex-1 overflow-hidden rounded-full bg-mutedBg">
+      <Text className="w-[104px] text-[11.5px] text-mutedForeground">{label}</Text>
+      <View className="h-1.5 flex-1 overflow-hidden rounded-full bg-wash">
         <View className={`h-full rounded-full ${tone}`} style={{ width: `${(average / 5) * 100}%` }} />
       </View>
-      <Text className="w-6 text-right text-[11.5px] font-bold text-foreground">{average.toFixed(1)}</Text>
+      <Text className="w-6 text-right text-[11.5px] font-medium text-foreground">{average.toFixed(1)}</Text>
     </View>
   );
 }
@@ -47,7 +47,7 @@ export default function SchoolDetailScreen() {
   if (loading) {
     return (
       <View className="flex-1 items-center justify-center bg-background">
-        <ActivityIndicator color={colors.primary} />
+        <ActivityIndicator color={colors.mutedForeground} />
       </View>
     );
   }
@@ -66,13 +66,13 @@ export default function SchoolDetailScreen() {
         <View className="flex-row items-center gap-3">
           <SchoolMark name={school.name} size={52} />
           <View className="min-w-0 flex-1">
-            <Text className="text-[16px] font-extrabold tracking-tight text-foreground">{school.name}</Text>
+            <Text className="text-[16px] font-medium tracking-tight text-foreground">{school.name}</Text>
             <View className="mt-1 flex-row items-center gap-1.5">
               <Badge
                 label={verified ? 'Verified school' : 'Verification pending'}
                 tone={verified ? 'success' : 'warning'}
               />
-              <Text className="text-[11.5px] text-muted">{formatLabel(school.county)}</Text>
+              <Text className="text-[11.5px] text-mutedForeground">{formatLabel(school.county)}</Text>
             </View>
           </View>
         </View>
@@ -84,8 +84,8 @@ export default function SchoolDetailScreen() {
             ['Rating', ratings.overall === null ? '—' : ratings.overall.toFixed(1)],
           ].map(([label, value]) => (
             <Card key={label} className="flex-1 p-3">
-              <Text className="text-[12px] font-semibold text-muted">{label}</Text>
-              <Text className="mt-0.5 text-xl font-extrabold tracking-tight text-foreground">{value}</Text>
+              <Text className="text-[12px] font-medium text-mutedForeground">{label}</Text>
+              <Text className="mt-0.5 text-xl font-medium tracking-tight text-foreground">{value}</Text>
             </Card>
           ))}
         </View>
@@ -93,23 +93,26 @@ export default function SchoolDetailScreen() {
         {/* Red flags sit above the marketing copy on purpose: it is the thing a
             teacher opened this page to find out. */}
         {redFlags.length > 0 ? (
-          <Card className="border-warning bg-warningBg p-3.5">
-            <Text className="text-[12.5px] font-bold text-foreground">
-              {redFlags.length} open red flag{redFlags.length === 1 ? '' : 's'}
-            </Text>
+          <Card className="p-3.5">
+            <View className="flex-row items-center gap-2">
+              <View className="h-1.5 w-1.5 rounded-full bg-destructive" />
+              <Text className="text-sm text-foreground">
+                {redFlags.length} open red flag{redFlags.length === 1 ? '' : 's'}
+              </Text>
+            </View>
             <View className="mt-2 gap-1.5">
               {redFlags.map((flag) => (
                 <View key={flag.kind} className="flex-row items-center gap-2">
-                  <Text className="flex-1 text-[12px] font-semibold text-danger">
+                  <Text className="flex-1 text-[12px] font-medium text-destructiveForeground">
                     {RED_FLAG_LABEL[flag.kind]}
                   </Text>
-                  <Text className="text-[11px] font-bold text-danger">
+                  <Text className="text-[11px] font-medium text-destructiveForeground">
                     {flag.count} report{flag.count === 1 ? '' : 's'}
                   </Text>
                 </View>
               ))}
             </View>
-            <Text className="mt-2 text-[10.5px] leading-4 text-muted">
+            <Text className="mt-2 text-[10.5px] leading-4 text-mutedForeground">
               Each report is reviewed by a moderator before it appears, and the school can respond.
             </Text>
           </Card>
@@ -117,7 +120,7 @@ export default function SchoolDetailScreen() {
 
         {ratings.overall !== null ? (
           <Card className="p-3.5">
-            <Text className="mb-2.5 text-[12.5px] font-bold text-foreground">
+            <Text className="mb-2.5 text-[12.5px] font-medium text-foreground">
               What {ratings.reviewCount} teacher{ratings.reviewCount === 1 ? '' : 's'} said
             </Text>
             <View className="gap-1.5">
@@ -128,8 +131,8 @@ export default function SchoolDetailScreen() {
           </Card>
         ) : (
           <Card className="p-3.5">
-            <Text className="text-[12.5px] font-bold text-foreground">No reviews yet</Text>
-            <Text className="mt-1 text-[11.5px] leading-4 text-muted">
+            <Text className="text-[12.5px] font-medium text-foreground">No reviews yet</Text>
+            <Text className="mt-1 text-[11.5px] leading-4 text-mutedForeground">
               Taught here? A review from verified staff is what makes this page worth reading.
             </Text>
           </Card>
@@ -137,11 +140,11 @@ export default function SchoolDetailScreen() {
 
         {school.about !== null ? (
           <Card className="p-3.5">
-            <Text className="mb-1.5 text-[12.5px] font-bold text-foreground">About</Text>
-            <Text className="text-[12px] leading-5 text-muted">{school.about}</Text>
+            <Text className="mb-1.5 text-[12.5px] font-medium text-foreground">About</Text>
+            <Text className="text-[12px] leading-5 text-mutedForeground">{school.about}</Text>
             {school.facilities.length > 0 ? (
               <View className="mt-2.5 flex-row flex-wrap gap-1.5">
-                {school.facilities.map((f) => <Badge key={f} label={f} />)}
+                {school.facilities.map((f) => <Tag key={f} label={f} />)}
               </View>
             ) : null}
           </Card>
@@ -149,15 +152,15 @@ export default function SchoolDetailScreen() {
 
         {openings.length > 0 ? (
           <Card className="p-3.5">
-            <Text className="mb-1.5 text-[12.5px] font-bold text-foreground">
+            <Text className="mb-1.5 text-[12.5px] font-medium text-foreground">
               Open roles ({openings.length})
             </Text>
             {openings.map((job) => {
               const closing = formatClosing(job.closes_at === null ? undefined : new Date(job.closes_at), now);
               return (
                 <View key={job.id} className="border-t border-border py-2">
-                  <Text className="text-[12.5px] font-semibold text-foreground">{job.title}</Text>
-                  <Text className="mt-0.5 text-[11px] text-muted">
+                  <Text className="text-[12.5px] font-medium text-foreground">{job.title}</Text>
+                  <Text className="mt-0.5 text-[11px] text-mutedForeground">
                     {formatSalary(
                       job.salary_min === null ? undefined : {
                         min: job.salary_min,

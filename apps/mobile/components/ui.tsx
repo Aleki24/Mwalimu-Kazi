@@ -1,95 +1,215 @@
 import type { ReactNode } from 'react';
-import { Text, View, type ViewProps } from 'react-native';
-import { HIT_TARGET_MIN } from '@mwalimu/ui';
+import { Platform, Pressable, Text, View, type PressableProps, type ViewProps } from 'react-native';
+import { colors, HIT_TARGET_MIN, radius, shadow } from '@mwalimu/ui';
 
 /**
- * The primitives the job screens are built from. Anatomy follows the mockups:
- * cards are r16 with a 1px border, badges are 11px/700 pills.
+ * The OA surface system, ported to React Native.
+ *
+ * Two translations worth knowing about:
+ *
+ * - The squircle. OA draws continuous-curvature corners with a CSS `shape()`
+ *   clip-path. React Native has no clip-path; `borderCurve: 'continuous'` gets
+ *   the same silhouette on iOS and is ignored on Android, which falls back to a
+ *   circular corner. That is a real fidelity gap on Android, not a shim.
+ * - Semantic colour. Rule 7 says semantic colours tint text and small dots and
+ *   never fill a surface, so `Badge` is a dot plus a word, not a coloured pill.
  */
 
-export function Card({ children, className = '', ...rest }: ViewProps & { children: ReactNode }) {
+/** iOS honours this; Android ignores it and rounds circularly. */
+const SQUIRCLE = Platform.select({ ios: { borderCurve: 'continuous' as const }, default: {} });
+
+/**
+ * A plate: white surface, hairline border, resting shadow, squircle corners.
+ * The page background between plates is the only divider — no rules, ever.
+ */
+export function Card({ children, className = '', style, ...rest }: ViewProps & { children: ReactNode }) {
   return (
-    <View className={`rounded-lg border border-border bg-card p-4 ${className}`} {...rest}>
+    <View
+      style={[{ borderRadius: radius.xl2, ...SQUIRCLE }, shadow.resting, style]}
+      className={`border border-border bg-card p-4 ${className}`}
+      {...rest}
+    >
       {children}
     </View>
   );
 }
 
-const BADGE_TONES = {
-  brand: 'bg-primarySoft text-primary',
-  success: 'bg-successBg text-success',
-  danger: 'bg-dangerBg text-danger',
-  warning: 'bg-warningBg text-warning',
-  info: 'bg-infoBg text-info',
-  neutral: 'bg-mutedBg text-muted',
-} as const;
-
-export type BadgeTone = keyof typeof BADGE_TONES;
-
-export function Badge({ label, tone = 'neutral' }: { label: string; tone?: BadgeTone }) {
-  const [bg, fg] = BADGE_TONES[tone].split(' ') as [string, string];
-  return (
-    <View className={`self-start rounded-full px-2 py-1 ${bg}`}>
-      <Text className={`text-[11px] font-bold ${fg}`}>{label}</Text>
-    </View>
-  );
-}
-
-/** Filter chip. Meets the 44dp touch floor — the mockups' chips did not. */
-export function Chip({ label, selected = false }: { label: string; selected?: boolean }) {
+/**
+ * The recessed inset: ink at 5% inside a plate. The second of OA's two layers.
+ */
+export function Inset({ children, className = '', style, ...rest }: ViewProps & { children: ReactNode }) {
   return (
     <View
-      style={{ minHeight: HIT_TARGET_MIN }}
-      className={`justify-center rounded-full border px-3.5 ${
-        selected ? 'border-primary bg-primary' : 'border-border bg-card'
-      }`}
+      style={[{ borderRadius: radius.xl, ...SQUIRCLE }, style]}
+      className={`bg-wash p-3 ${className}`}
+      {...rest}
     >
-      <Text className={`text-xs font-semibold ${selected ? 'text-white' : 'text-muted'}`}>
-        {label}
-      </Text>
+      {children}
     </View>
   );
 }
 
-/** Square school mark, standing in for a logo. */
+export type Tone = 'neutral' | 'primary' | 'success' | 'danger' | 'warning' | 'info';
+
+const DOT: Readonly<Record<Tone, string>> = {
+  neutral: colors.mutedForeground,
+  primary: colors.primary,
+  success: colors.success,
+  danger: colors.destructive,
+  warning: colors.warning,
+  info: colors.info,
+};
+
+const TEXT: Readonly<Record<Tone, string>> = {
+  neutral: colors.mutedForeground,
+  primary: colors.primary,
+  success: colors.successForeground,
+  danger: colors.destructiveForeground,
+  warning: colors.warningForeground,
+  info: colors.infoForeground,
+};
+
+/**
+ * A status word with a coloured dot — NOT a filled pill.
+ *
+ * "A success state is a sentence with an emerald dot, not a green card."
+ * Filled semantic chips were the loudest thing on every screen before this.
+ */
+export function Badge({ label, tone = 'neutral' }: { label: string; tone?: Tone }) {
+  return (
+    <View className="flex-row items-center gap-1.5 self-start">
+      {tone === 'neutral' ? null : (
+        <View style={{ width: 5, height: 5, borderRadius: 999, backgroundColor: DOT[tone] }} />
+      )}
+      <Text style={{ color: TEXT[tone] }} className="text-xs">{label}</Text>
+    </View>
+  );
+}
+
+/** A quiet metadata tag: flat grey, no border, no colour. */
+export function Tag({ label }: { label: string }) {
+  return (
+    <View className="self-start rounded-full bg-secondary px-2.5 py-1">
+      <Text className="text-xs text-foreground/80">{label}</Text>
+    </View>
+  );
+}
+
+/** Everything clickable that is not a card is a pill. */
+export function Chip({
+  label, selected = false, onPress,
+}: { label: string; selected?: boolean; onPress?: PressableProps['onPress'] }) {
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityState={{ selected }}
+      onPress={onPress}
+      style={{ minHeight: HIT_TARGET_MIN, borderRadius: radius.pill }}
+      className={`justify-center px-4 ${selected ? 'bg-foreground' : 'border border-border bg-card'}`}
+    >
+      <Text className={`text-sm ${selected ? 'text-card' : 'text-mutedForeground'}`}>{label}</Text>
+    </Pressable>
+  );
+}
+
+/**
+ * Primary spends the one accent; secondary is flat grey with no border.
+ * Buttons say what happens — the label is the caller's job, not a generic "OK".
+ */
+export function Button({
+  label, onPress, variant = 'primary', disabled = false, className = '',
+}: {
+  label: string;
+  onPress?: PressableProps['onPress'];
+  variant?: 'primary' | 'secondary' | 'quiet';
+  disabled?: boolean;
+  className?: string;
+}) {
+  const surface =
+    disabled ? 'bg-secondary'
+    : variant === 'primary' ? 'bg-primary'
+    : variant === 'secondary' ? 'bg-secondary'
+    : 'border border-border bg-card';
+
+  const text =
+    disabled ? 'text-mutedForeground'
+    : variant === 'primary' ? 'text-primaryForeground'
+    : 'text-foreground';
+
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityState={{ disabled }}
+      disabled={disabled}
+      onPress={onPress}
+      style={{ minHeight: 46, borderRadius: radius.pill }}
+      className={`items-center justify-center px-5 ${surface} ${className}`}
+    >
+      <Text className={`text-sm font-medium ${text}`}>{label}</Text>
+    </Pressable>
+  );
+}
+
+/** Square school mark. Flat grey; the accent is not spent here. */
 export function SchoolMark({ name, size = 40 }: { name: string; size?: number }) {
   const initial = name.trim().charAt(0).toUpperCase() || '?';
   return (
     <View
-      style={{ width: size, height: size }}
-      className="items-center justify-center rounded-md bg-primarySoft"
+      style={{ width: size, height: size, borderRadius: radius.lg, ...SQUIRCLE }}
+      className="items-center justify-center bg-secondary"
     >
-      <Text style={{ fontSize: Math.round(size * 0.4) }} className="font-extrabold text-primaryDark">
+      <Text style={{ fontSize: Math.round(size * 0.38) }} className="font-medium text-foreground/70">
         {initial}
       </Text>
     </View>
   );
 }
 
+/** Chrome renders instantly: the title never waits for data. */
 export function ScreenHeader({ title, subtitle }: { title: string; subtitle?: string }) {
   return (
-    <View className="border-b border-border bg-card px-4 pb-3.5 pt-2">
-      <Text className="text-2xl font-extrabold tracking-tight text-foreground">{title}</Text>
+    <View className="bg-card px-5 pb-4 pt-2">
+      <Text className="text-2xl font-medium tracking-tight text-foreground">{title}</Text>
       {subtitle !== undefined ? (
-        <Text className="mt-0.5 text-[13px] text-muted">{subtitle}</Text>
+        <Text className="mt-1 text-sm text-mutedForeground">{subtitle}</Text>
       ) : null}
+    </View>
+  );
+}
+
+/**
+ * A standing condition, not an event: a strip lives exactly as long as the
+ * state it describes. One-off outcomes are toasts, which retire themselves.
+ */
+export function NoticeStrip({ tone = 'neutral', children }: { tone?: Tone; children: ReactNode }) {
+  return (
+    <View
+      style={{ borderRadius: radius.xl2, ...SQUIRCLE }}
+      className="flex-row items-center gap-2.5 border border-border bg-card px-4 py-3"
+    >
+      <View style={{ width: 6, height: 6, borderRadius: 999, backgroundColor: DOT[tone] }} />
+      <View className="flex-1">{children}</View>
     </View>
   );
 }
 
 export function EmptyState({ title, body }: { title: string; body: string }) {
   return (
-    <View className="items-center px-6 py-14">
-      <Text className="text-[15px] font-bold text-foreground">{title}</Text>
-      <Text className="mt-1 text-center text-[13px] text-muted">{body}</Text>
+    <View className="items-center px-8 py-16">
+      <Text className="text-base font-medium text-foreground">{title}</Text>
+      <Text className="mt-1.5 text-center text-sm leading-5 text-mutedForeground">{body}</Text>
     </View>
   );
 }
 
+/** Errors name the cause and the way out, without blame. */
 export function ErrorBanner({ message }: { message: string }) {
   return (
-    <View className="mb-4 rounded-md border border-danger bg-dangerBg p-3">
-      <Text className="text-[13px] text-danger">{message}</Text>
-    </View>
+    <NoticeStrip tone="danger">
+      <Text style={{ color: colors.destructiveForeground }} className="text-sm">{message}</Text>
+    </NoticeStrip>
   );
 }
+
+/** Numbers that sit in a column or update in place align by figure. */
+export const tabularNums = { fontVariant: ['tabular-nums' as const] };

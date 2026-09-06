@@ -104,28 +104,28 @@ export default function OnboardingScreen() {
     <View className="flex-1 bg-background" style={{ paddingTop: insets.top }}>
       <ScrollView contentContainerStyle={{ padding: 20, gap: 22, paddingBottom: 40 }}>
         <View>
-          <Text className="text-2xl font-extrabold tracking-tight text-foreground">
+          <Text className="text-2xl font-medium tracking-tight text-foreground">
             Tell us about your teaching
           </Text>
-          <Text className="mt-1.5 text-[14px] leading-5 text-muted">
+          <Text className="mt-1.5 text-[14px] leading-5 text-mutedForeground">
             This is what we match jobs against, and what schools see when they search.
           </Text>
         </View>
 
         <View className="gap-2">
-          <Text className="text-[13px] font-bold text-foreground">Full name</Text>
+          <Text className="text-[13px] font-medium text-foreground">Full name</Text>
           <TextInput
             value={fullName}
             onChangeText={setFullName}
             placeholder="Alex Otieno"
-            placeholderTextColor={colors.mutedFaint}
+            placeholderTextColor={colors.mutedForeground}
             autoComplete="name"
             className="h-12 rounded-md border border-border bg-card px-3.5 text-[15px] text-foreground"
           />
         </View>
 
         <View className="gap-2">
-          <Text className="text-[13px] font-bold text-foreground">County</Text>
+          <Text className="text-[13px] font-medium text-foreground">County</Text>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
             {counties.map((c) => (
               <Pressable key={c} onPress={() => setCounty(c)} accessibilityRole="button">
@@ -136,7 +136,7 @@ export default function OnboardingScreen() {
         </View>
 
         <View className="gap-2">
-          <Text className="text-[13px] font-bold text-foreground">
+          <Text className="text-[13px] font-medium text-foreground">
             Subjects you teach{subjects.size > 0 ? ` (${subjects.size})` : ''}
           </Text>
           <View className="flex-row flex-wrap gap-2">
@@ -149,7 +149,7 @@ export default function OnboardingScreen() {
         </View>
 
         <View className="gap-2">
-          <Text className="text-[13px] font-bold text-foreground">Teaching experience</Text>
+          <Text className="text-[13px] font-medium text-foreground">Teaching experience</Text>
           <View className="flex-row flex-wrap gap-2">
             {EXPERIENCE_BANDS.map((band) => (
               <Pressable key={band.label} onPress={() => setExperienceYears(band.years)} accessibilityRole="button">
@@ -167,10 +167,10 @@ export default function OnboardingScreen() {
         >
           <View
             className={`h-6 w-6 items-center justify-center rounded border ${
-              hasDegree ? 'border-primary bg-primary' : 'border-border bg-card'
+              hasDegree ? 'border-foreground bg-foreground' : 'border-border bg-card'
             }`}
           >
-            {hasDegree ? <Text className="text-xs font-bold text-white">✓</Text> : null}
+            {hasDegree ? <Text className="text-xs text-card">✓</Text> : null}
           </View>
           <Text className="flex-1 text-[14px] text-foreground">
             I have a degree in Education or my subject
@@ -178,41 +178,41 @@ export default function OnboardingScreen() {
         </Pressable>
 
         <View className="gap-2">
-          <Text className="text-[13px] font-bold text-foreground">TSC number (optional)</Text>
+          <Text className="text-[13px] font-medium text-foreground">TSC number (optional)</Text>
           <TextInput
             value={tscNumber}
             onChangeText={setTscNumber}
             placeholder="123456"
-            placeholderTextColor={colors.mutedFaint}
+            placeholderTextColor={colors.mutedForeground}
             keyboardType="number-pad"
             className="h-12 rounded-md border border-border bg-card px-3.5 text-[15px] text-foreground"
           />
-          <Text className="text-[11.5px] text-muted">
+          <Text className="text-[11.5px] text-mutedForeground">
             Adding it now means TSC-only roles match you. We verify it separately.
           </Text>
         </View>
 
-        {error !== null ? <Text className="text-[13px] text-danger">{error}</Text> : null}
+        {error !== null ? <Text className="text-[13px] text-destructiveForeground">{error}</Text> : null}
 
         <Pressable
           accessibilityRole="button"
           disabled={!complete || saving}
           onPress={() => void save()}
           className={`h-14 items-center justify-center rounded-md ${
-            complete && !saving ? 'bg-primary' : 'bg-mutedBg'
+            complete && !saving ? 'bg-primary' : 'bg-wash'
           }`}
         >
           {saving ? (
-            <ActivityIndicator color={colors.muted} />
+            <ActivityIndicator color={colors.mutedForeground} />
           ) : (
-            <Text className={`text-base font-semibold ${complete ? 'text-white' : 'text-muted'}`}>
+            <Text className={`text-base font-medium ${complete ? 'text-primaryForeground' : 'text-mutedForeground'}`}>
               Start finding jobs
             </Text>
           )}
         </Pressable>
 
         <Pressable accessibilityRole="button" onPress={() => void signOut()} className="h-11 justify-center">
-          <Text className="text-center text-[13px] font-semibold text-muted">Sign out</Text>
+          <Text className="text-center text-[13px] font-medium text-mutedForeground">Sign out</Text>
         </Pressable>
       </ScrollView>
     </View>

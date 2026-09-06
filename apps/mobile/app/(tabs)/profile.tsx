@@ -3,7 +3,7 @@ import { Pressable, ScrollView, Switch, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { formatLabel, formatPhoneForDisplay } from '@mwalimu/core';
 import { colors } from '@mwalimu/ui';
-import { Badge, Card, ErrorBanner } from '../../components/ui';
+import { Badge, Card, ErrorBanner, Tag } from '../../components/ui';
 import { useAuth, useTeacher } from '../../lib/auth';
 import { supabase } from '../../lib/supabase';
 
@@ -33,17 +33,17 @@ export default function ProfileScreen() {
   return (
     <View className="flex-1 bg-background" style={{ paddingTop: insets.top }}>
       <ScrollView contentContainerStyle={{ paddingBottom: 32 }}>
-        <View className="bg-primaryDark px-4 pb-5 pt-3">
+        <View className="bg-card px-5 pb-5 pt-3">
           <View className="flex-row items-center gap-3.5">
-            <View className="h-16 w-16 items-center justify-center rounded-full bg-card">
-              <Text className="text-xl font-extrabold text-primaryDark">{initials}</Text>
+            <View className="h-16 w-16 items-center justify-center rounded-full bg-secondary">
+              <Text className="text-xl font-medium text-foreground">{initials}</Text>
             </View>
             <View className="min-w-0 flex-1">
-              <Text className="text-xl font-extrabold tracking-tight text-white">{teacher.fullName}</Text>
-              <Text className="mt-0.5 text-[12.5px] text-white/80">
+              <Text className="text-xl font-medium tracking-tight text-foreground">{teacher.fullName}</Text>
+              <Text className="mt-0.5 text-sm text-foreground/80">
                 {teacher.subjects.map(formatLabel).join(' · ')}
               </Text>
-              <Text className="mt-0.5 text-[11.5px] text-white/60">{formatLabel(teacher.county)}</Text>
+              <Text className="mt-0.5 text-xs text-mutedForeground">{formatLabel(teacher.county)}</Text>
             </View>
           </View>
         </View>
@@ -58,35 +58,36 @@ export default function ProfileScreen() {
               ['TSC', teacher.tscVerified ? 'Verified' : teacher.tscNumber === undefined ? 'None' : 'Pending'],
             ].map(([label, value]) => (
               <Card key={label} className="flex-1 p-3">
-                <Text className="text-[12px] font-semibold text-muted">{label}</Text>
-                <Text className="mt-0.5 text-[17px] font-extrabold tracking-tight text-foreground">{value}</Text>
+                <Text className="text-[12px] font-medium text-mutedForeground">{label}</Text>
+                <Text className="mt-0.5 text-[17px] font-medium tracking-tight text-foreground">{value}</Text>
               </Card>
             ))}
           </View>
 
           <Card className="flex-row items-center gap-3 p-3.5">
             <View className="flex-1">
-              <Text className="text-[13px] font-bold text-foreground">Open to opportunities</Text>
-              <Text className="mt-0.5 text-[11.5px] text-muted">
+              <Text className="text-[13px] font-medium text-foreground">Open to opportunities</Text>
+              <Text className="mt-0.5 text-[11.5px] text-mutedForeground">
                 Verified schools can find your profile
               </Text>
             </View>
             <Switch
               value={open}
               onValueChange={(next) => void toggleOpen(next)}
-              trackColor={{ true: colors.primary, false: '#cbd5e1' }}
-              thumbColor="#ffffff"
+              trackColor={{ true: colors.primary, false: colors.secondary }}
+              thumbColor={colors.card}
+              ios_backgroundColor={colors.secondary}
             />
           </Card>
 
           <Card className="p-3.5">
-            <Text className="mb-2 text-[12.5px] font-bold text-foreground">Qualifications</Text>
+            <Text className="mb-2 text-[12.5px] font-medium text-foreground">Qualifications</Text>
             <View className="gap-1.5">
               <View className="flex-row items-center gap-2">
-                <Text className={`text-[12px] ${teacher.hasDegree ? 'text-success' : 'text-mutedFaint'}`}>
+                <Text className={`text-[12px] ${teacher.hasDegree ? 'text-success' : 'text-mutedForeground'}`}>
                   {teacher.hasDegree ? '✓' : '○'}
                 </Text>
-                <Text className="flex-1 text-[12px] text-muted">
+                <Text className="flex-1 text-[12px] text-mutedForeground">
                   {teacher.hasDegree ? 'Degree on your profile' : 'No degree recorded'}
                 </Text>
               </View>
@@ -94,7 +95,7 @@ export default function ProfileScreen() {
                 <Text className={`text-[12px] ${teacher.tscVerified ? 'text-success' : 'text-warning'}`}>
                   {teacher.tscVerified ? '✓' : '○'}
                 </Text>
-                <Text className="flex-1 text-[12px] text-muted">
+                <Text className="flex-1 text-[12px] text-mutedForeground">
                   {teacher.tscNumber === undefined
                     ? 'No TSC number — TSC-only roles will not match you'
                     : `TSC No. ${teacher.tscNumber}`}
@@ -107,15 +108,15 @@ export default function ProfileScreen() {
           </Card>
 
           <Card className="p-3.5">
-            <Text className="mb-2 text-[12.5px] font-bold text-foreground">Subjects</Text>
+            <Text className="mb-2 text-[12.5px] font-medium text-foreground">Subjects</Text>
             <View className="flex-row flex-wrap gap-1.5">
-              {teacher.subjects.map((s) => <Badge key={s} label={formatLabel(s)} tone="brand" />)}
+              {teacher.subjects.map((s) => <Tag key={s} label={formatLabel(s)} />)}
             </View>
           </Card>
 
           <Card className="p-3.5">
-            <Text className="text-[12.5px] font-bold text-foreground">Account</Text>
-            <Text className="mt-1 text-[11.5px] text-muted">
+            <Text className="text-[12.5px] font-medium text-foreground">Account</Text>
+            <Text className="mt-1 text-[11.5px] text-mutedForeground">
               {session?.user.phone === undefined
                 ? 'Signed in'
                 : formatPhoneForDisplay(`+${session.user.phone.replace(/^\+/, '')}`)}
@@ -127,7 +128,7 @@ export default function ProfileScreen() {
             onPress={() => void signOut()}
             className="h-12 items-center justify-center rounded-md border border-border bg-card"
           >
-            <Text className="text-[14px] font-semibold text-danger">Sign out</Text>
+            <Text className="text-[14px] font-medium text-destructiveForeground">Sign out</Text>
           </Pressable>
         </View>
       </ScrollView>

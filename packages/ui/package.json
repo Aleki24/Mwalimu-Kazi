@@ -8,6 +8,7 @@
   "exports": {
     ".": "./src/index.ts",
     "./tokens": "./src/tokens.ts",
+    "./motion": "./src/motion.ts",
     "./tokens.json": "./tokens.json"
   },
   "scripts": {

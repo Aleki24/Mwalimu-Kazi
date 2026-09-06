@@ -4,7 +4,7 @@ import { Link } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { formatLabel } from '@mwalimu/core';
 import { colors } from '@mwalimu/ui';
-import { Badge, EmptyState, ErrorBanner, SchoolMark, ScreenHeader } from '../../components/ui';
+import { Badge, Chip, EmptyState, ErrorBanner, SchoolMark, ScreenHeader } from '../../components/ui';
 import { fetchSchools, type SchoolListing } from '../../lib/schools';
 import { useTeacher } from '../../lib/auth';
 
@@ -60,28 +60,18 @@ export default function SchoolsScreen() {
           value={query}
           onChangeText={setQuery}
           placeholder="Search schools…"
-          placeholderTextColor={colors.mutedFaint}
+          placeholderTextColor={colors.mutedForeground}
           className="h-11 rounded-md border border-border bg-background px-3 text-[14px] text-foreground"
         />
         <View className="flex-row gap-2">
           {TABS.map((t) => (
-            <Pressable key={t.key} onPress={() => setTab(t.key)} accessibilityRole="button">
-              <View
-                className={`min-h-[44px] justify-center rounded-full border px-3.5 ${
-                  tab === t.key ? 'border-primary bg-primary' : 'border-border bg-card'
-                }`}
-              >
-                <Text className={`text-xs font-semibold ${tab === t.key ? 'text-white' : 'text-muted'}`}>
-                  {t.label}
-                </Text>
-              </View>
-            </Pressable>
+            <Chip key={t.key} label={t.label} selected={tab === t.key} onPress={() => setTab(t.key)} />
           ))}
         </View>
       </View>
 
       {loading ? (
-        <ActivityIndicator color={colors.primary} className="py-10" />
+        <ActivityIndicator color={colors.mutedForeground} className="py-10" />
       ) : (
         <FlatList
           data={visible}
@@ -98,27 +88,27 @@ export default function SchoolsScreen() {
                   <SchoolMark name={item.school.name} size={44} />
                   <View className="min-w-0 flex-1">
                     <View className="flex-row items-center gap-1.5">
-                      <Text numberOfLines={1} className="text-[13.5px] font-bold text-foreground">
+                      <Text numberOfLines={1} className="text-[13.5px] font-medium text-foreground">
                         {item.school.name}
                       </Text>
                       {item.school.verification === 'verified' ? (
-                        <Text className="text-[11px] font-bold text-success">✓</Text>
+                        <Text className="text-[11px] font-medium text-success">✓</Text>
                       ) : null}
                     </View>
-                    <Text className="mt-0.5 text-[11.5px] text-muted">
+                    <Text className="mt-0.5 text-[11.5px] text-mutedForeground">
                       {formatLabel(item.school.school_type)} · {item.school.curricula.map(formatLabel).join(', ')} · {formatLabel(item.school.county)}
                     </Text>
                     <View className="mt-1.5 flex-row items-center gap-2">
                       {item.rating === null ? (
-                        <Text className="text-[11px] text-mutedFaint">No reviews yet</Text>
+                        <Text className="text-[11px] text-mutedForeground">No reviews yet</Text>
                       ) : (
-                        <Text className="text-[11px] font-bold text-foreground">
+                        <Text className="text-[11px] font-medium text-foreground">
                           ★ {item.rating.toFixed(1)}{' '}
-                          <Text className="font-normal text-muted">({item.reviewCount})</Text>
+                          <Text className="font-normal text-mutedForeground">({item.reviewCount})</Text>
                         </Text>
                       )}
                       {item.openings > 0 ? (
-                        <Text className="text-[11px] font-semibold text-primary">
+                        <Text className="text-[11px] font-medium text-foreground">
                           {item.openings} opening{item.openings === 1 ? '' : 's'}
                         </Text>
                       ) : null}

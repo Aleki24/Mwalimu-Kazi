@@ -57,7 +57,7 @@ export default function NewsScreen() {
       </View>
 
       {loading ? (
-        <ActivityIndicator color={colors.primary} className="py-10" />
+        <ActivityIndicator color={colors.mutedForeground} className="py-10" />
       ) : (
         <FlatList
           data={rest}
@@ -68,19 +68,19 @@ export default function NewsScreen() {
               {error !== null ? <ErrorBanner message={error} /> : null}
               {featured !== undefined ? (
                 <Card className="mb-1 p-0">
-                  <View className="h-24 rounded-t-lg bg-primaryDark" />
+                  <View className="h-24 rounded-t-2xl bg-secondary" />
                   <View className="p-3.5">
                     <View className="flex-row items-center gap-2">
                       <Chip label={formatLabel(featured.topic)} selected />
-                      <Text className="text-[10.5px] text-muted">
+                      <Text className="text-[10.5px] text-mutedForeground">
                         {formatPostedAge(new Date(featured.published_at), now)}
                       </Text>
                     </View>
-                    <Text className="mt-2 text-[15px] font-bold leading-5 tracking-tight text-foreground">
+                    <Text className="mt-2 text-[15px] font-medium leading-5 tracking-tight text-foreground">
                       {featured.title}
                     </Text>
                     {featured.summary !== null ? (
-                      <Text className="mt-1.5 text-[11.5px] leading-4 text-muted">{featured.summary}</Text>
+                      <Text className="mt-1.5 text-[11.5px] leading-4 text-mutedForeground">{featured.summary}</Text>
                     ) : null}
                   </View>
                 </Card>
@@ -94,15 +94,15 @@ export default function NewsScreen() {
           }
           renderItem={({ item }) => (
             <View className="flex-row items-start gap-3 border-b border-border py-3">
-              <View className="h-[52px] w-[52px] rounded-md bg-primarySoft" />
+              <View className="h-[52px] w-[52px] rounded-lg bg-secondary" />
               <View className="min-w-0 flex-1">
-                <Text className="text-[10.5px] font-bold uppercase tracking-wide text-primary">
+                <Text className="text-[10.5px] font-medium uppercase tracking-wide text-foreground">
                   {item.source}
                 </Text>
-                <Text className="mt-0.5 text-[12.5px] font-semibold leading-4 text-foreground">
+                <Text className="mt-0.5 text-[12.5px] font-medium leading-4 text-foreground">
                   {item.title}
                 </Text>
-                <Text className="mt-1 text-[10.5px] text-muted">
+                <Text className="mt-1 text-[10.5px] text-mutedForeground">
                   {formatPostedAge(new Date(item.published_at), now)}
                 </Text>
               </View>

@@ -13,19 +13,19 @@ type Kind = Tables<'notifications'>['kind'];
  * Tone per kind. A rejection and a match should not look alike — the whole
  * point of typed notifications is that the list is scannable without reading.
  */
-const TONE: Readonly<Record<Kind, { bg: string; fg: string; mark: string }>> = {
-  job_match:           { bg: 'bg-primarySoft', fg: 'text-primary', mark: '★' },
-  auto_apply_sent:     { bg: 'bg-successBg', fg: 'text-success', mark: '⚡' },
-  auto_apply_failed:   { bg: 'bg-dangerBg', fg: 'text-danger', mark: '!' },
-  application_viewed:  { bg: 'bg-infoBg', fg: 'text-info', mark: '◉' },
-  shortlisted:         { bg: 'bg-warningBg', fg: 'text-warning', mark: '★' },
-  rejected:            { bg: 'bg-mutedBg', fg: 'text-muted', mark: '—' },
-  interview_invite:    { bg: 'bg-warningBg', fg: 'text-warning', mark: '◷' },
-  profile_viewed:      { bg: 'bg-infoBg', fg: 'text-info', mark: '◉' },
-  school_review:       { bg: 'bg-dangerBg', fg: 'text-danger', mark: '⚑' },
-  followed_school_job: { bg: 'bg-primarySoft', fg: 'text-primary', mark: '◆' },
-  news:                { bg: 'bg-infoBg', fg: 'text-info', mark: '▤' },
-  resource:            { bg: 'bg-primarySoft', fg: 'text-primary', mark: '▤' },
+const TONE: Readonly<Record<Kind, { fg: string; mark: string }>> = {
+  job_match:           { fg: 'text-foreground', mark: '★' },
+  auto_apply_sent:     { fg: 'text-successForeground', mark: '⚡' },
+  auto_apply_failed:   { fg: 'text-destructiveForeground', mark: '!' },
+  application_viewed:  { fg: 'text-infoForeground', mark: '◉' },
+  shortlisted:         { fg: 'text-warningForeground', mark: '★' },
+  rejected:            { fg: 'text-mutedForeground', mark: '—' },
+  interview_invite:    { fg: 'text-warningForeground', mark: '◷' },
+  profile_viewed:      { fg: 'text-infoForeground', mark: '◉' },
+  school_review:       { fg: 'text-destructiveForeground', mark: '⚑' },
+  followed_school_job: { fg: 'text-foreground', mark: '◆' },
+  news:                { fg: 'text-infoForeground', mark: '▤' },
+  resource:            { fg: 'text-foreground', mark: '▤' },
 };
 
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -77,14 +77,14 @@ export default function NotificationsScreen() {
           title: 'Notifications',
           headerRight: () => (
             <Pressable accessibilityRole="button" onPress={() => void onMarkAllRead()} className="h-11 justify-center px-2">
-              <Text className="text-[12.5px] font-semibold text-primary">Mark all read</Text>
+              <Text className="text-[12.5px] font-medium text-foreground">Mark all read</Text>
             </Pressable>
           ),
         }}
       />
 
       {loading ? (
-        <ActivityIndicator color={colors.primary} className="py-10" />
+        <ActivityIndicator color={colors.mutedForeground} className="py-10" />
       ) : items.length === 0 ? (
         <View>
           {error !== null ? <View className="p-4"><ErrorBanner message={error} /></View> : null}
@@ -99,7 +99,7 @@ export default function NotificationsScreen() {
           keyExtractor={(n) => n.id}
           contentContainerStyle={{ paddingBottom: 32 }}
           renderSectionHeader={({ section }) => (
-            <Text className="bg-background px-4 pb-1.5 pt-2.5 text-[11px] font-bold uppercase tracking-wider text-muted">
+            <Text className="bg-background px-4 pb-1.5 pt-2.5 text-[11px] font-medium uppercase tracking-wider text-mutedForeground">
               {section.title}
             </Text>
           )}
@@ -107,18 +107,18 @@ export default function NotificationsScreen() {
             const tone = TONE[item.kind];
             const unread = item.read_at === null;
             return (
-              <View className={`flex-row gap-3 border-b border-border px-4 py-3 ${unread ? 'bg-primarySoft/40' : ''}`}>
-                <View className={`h-[34px] w-[34px] items-center justify-center rounded-full ${tone.bg}`}>
-                  <Text className={`text-[13px] font-bold ${tone.fg}`}>{tone.mark}</Text>
+              <View className={`flex-row gap-3 border-b border-border px-4 py-3 ${unread ? 'bg-wash/40' : ''}`}>
+                <View className="h-[34px] w-[34px] items-center justify-center rounded-full bg-wash">
+                  <Text className={`text-[13px] ${tone.fg}`}>{tone.mark}</Text>
                 </View>
                 <View className="min-w-0 flex-1">
                   <View className="flex-row items-baseline gap-2">
-                    <Text className="min-w-0 flex-1 text-[12.5px] font-bold text-foreground">{item.title}</Text>
-                    <Text className="text-[10.5px] text-mutedFaint">
+                    <Text className="min-w-0 flex-1 text-[12.5px] font-medium text-foreground">{item.title}</Text>
+                    <Text className="text-[10.5px] text-mutedForeground">
                       {formatPostedAge(new Date(item.created_at), now)}
                     </Text>
                   </View>
-                  <Text className="mt-0.5 text-[11.5px] leading-4 text-muted">{item.body}</Text>
+                  <Text className="mt-0.5 text-[11.5px] leading-4 text-mutedForeground">{item.body}</Text>
                 </View>
               </View>
             );

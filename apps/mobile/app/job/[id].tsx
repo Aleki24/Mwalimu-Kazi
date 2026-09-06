@@ -6,7 +6,7 @@ import {
   type JobWithSchool, type MatchResult,
 } from '@mwalimu/core';
 import { colors } from '@mwalimu/ui';
-import { Badge, Card, EmptyState, ErrorBanner, SchoolMark } from '../../components/ui';
+import { Card, EmptyState, ErrorBanner, SchoolMark, Tag } from '../../components/ui';
 import { MatchBreakdown } from '../../components/match-breakdown';
 import { fetchJobById } from '../../lib/jobs';
 import { useTeacher } from '../../lib/auth';
@@ -40,7 +40,7 @@ export default function JobDetailScreen() {
   if (loading) {
     return (
       <View className="flex-1 items-center justify-center bg-background">
-        <ActivityIndicator color={colors.primary} />
+        <ActivityIndicator color={colors.mutedForeground} />
       </View>
     );
   }
@@ -68,8 +68,8 @@ export default function JobDetailScreen() {
         <View className="flex-row items-center gap-3">
           <SchoolMark name={schoolName} size={44} />
           <View className="min-w-0 flex-1">
-            <Text className="text-sm font-bold text-foreground">{schoolName}</Text>
-            <Text className="mt-0.5 text-[11.5px] text-muted">
+            <Text className="text-sm font-medium text-foreground">{schoolName}</Text>
+            <Text className="mt-0.5 text-[11.5px] text-mutedForeground">
               {formatLabel(job.county)} · posted {formatPostedAge(job.postedAt, now)}
             </Text>
           </View>
@@ -80,15 +80,15 @@ export default function JobDetailScreen() {
         <Card className="px-3.5 py-3">
           <View className="flex-row gap-3">
             <View className="flex-1">
-              <Text className="text-[11px] font-semibold text-muted">Salary</Text>
-              <Text className="mt-0.5 text-[15px] font-extrabold tracking-tight text-foreground">
+              <Text className="text-[11px] font-medium text-mutedForeground">Salary</Text>
+              <Text className="mt-0.5 text-[15px] font-medium tracking-tight text-foreground">
                 {formatSalaryFull(job.salary)}
               </Text>
             </View>
             {closing !== null ? (
               <View className="flex-1">
-                <Text className="text-[11px] font-semibold text-muted">Closing</Text>
-                <Text className="mt-0.5 text-[15px] font-extrabold tracking-tight text-foreground">
+                <Text className="text-[11px] font-medium text-mutedForeground">Closing</Text>
+                <Text className="mt-0.5 text-[15px] font-medium tracking-tight text-foreground">
                   {closing}
                 </Text>
               </View>
@@ -97,8 +97,8 @@ export default function JobDetailScreen() {
         </Card>
 
         <View className="flex-row flex-wrap gap-1.5">
-          {job.subjects.map((s) => <Badge key={s} label={formatLabel(s)} tone="brand" />)}
-          <Badge label={formatLabel(job.jobType)} />
+          {job.subjects.map((s) => <Tag key={s} label={formatLabel(s)} />)}
+          <Tag label={formatLabel(job.jobType)} />
         </View>
       </ScrollView>
 
@@ -107,16 +107,16 @@ export default function JobDetailScreen() {
           accessibilityRole="button"
           className="h-12 flex-1 items-center justify-center rounded-md border border-border bg-card"
         >
-          <Text className="text-sm font-semibold text-foreground">Save</Text>
+          <Text className="text-sm font-medium text-foreground">Save</Text>
         </Pressable>
         <Pressable
           accessibilityRole="button"
           disabled={match.blocked}
           className={`h-12 flex-[2] items-center justify-center rounded-md ${
-            match.blocked ? 'bg-mutedBg' : 'bg-primary'
+            match.blocked ? 'bg-wash' : 'bg-primary'
           }`}
         >
-          <Text className={`text-sm font-semibold ${match.blocked ? 'text-muted' : 'text-white'}`}>
+          <Text className={`text-sm font-medium ${match.blocked ? 'text-mutedForeground' : 'text-primaryForeground'}`}>
             {match.blocked ? 'Requirement not met' : 'Apply now'}
           </Text>
         </Pressable>

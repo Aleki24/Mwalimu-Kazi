@@ -35,34 +35,34 @@ export default function SignInScreen() {
     >
       <ScrollView contentContainerStyle={{ padding: 24, paddingTop: 48, gap: 24 }}>
         <View>
-          <Text className="text-3xl font-extrabold tracking-tight text-foreground">
+          <Text className="text-3xl font-medium tracking-tight text-foreground">
             Mwalimu Kazi
           </Text>
-          <Text className="mt-2 text-[15px] leading-5 text-muted">
+          <Text className="mt-2 text-[15px] leading-5 text-mutedForeground">
             Teaching jobs, and what a school is really like before you accept.
           </Text>
         </View>
 
         <View className="gap-2">
-          <Text className="text-[13px] font-bold text-foreground">Phone number</Text>
+          <Text className="text-[13px] font-medium text-foreground">Phone number</Text>
           <TextInput
             value={phone}
             onChangeText={(next) => { setPhone(next); setError(null); }}
             placeholder="0712 345 678"
-            placeholderTextColor={colors.mutedFaint}
+            placeholderTextColor={colors.mutedForeground}
             keyboardType="phone-pad"
             autoComplete="tel"
             textContentType="telephoneNumber"
             returnKeyType="go"
             onSubmitEditing={() => { if (!sending) void submit(); }}
             className={`h-14 rounded-md border bg-card px-4 text-base text-foreground ${
-              error === null ? 'border-border' : 'border-danger'
+              error === null ? 'border-border' : 'border-destructive'
             }`}
           />
           {error !== null ? (
-            <Text className="text-[12.5px] text-danger">{error}</Text>
+            <Text className="text-[12.5px] text-destructiveForeground">{error}</Text>
           ) : (
-            <Text className="text-[12.5px] text-muted">
+            <Text className="text-[12.5px] text-mutedForeground">
               We will text you a 6-digit code. Kenyan numbers only for now.
             </Text>
           )}
@@ -73,15 +73,15 @@ export default function SignInScreen() {
           disabled={sending || phone.trim() === ''}
           onPress={() => void submit()}
           className={`h-14 items-center justify-center rounded-md ${
-            sending || phone.trim() === '' ? 'bg-mutedBg' : 'bg-primary'
+            sending || phone.trim() === '' ? 'bg-wash' : 'bg-primary'
           }`}
         >
           {sending ? (
-            <ActivityIndicator color={colors.muted} />
+            <ActivityIndicator color={colors.mutedForeground} />
           ) : (
             <Text
-              className={`text-base font-semibold ${
-                phone.trim() === '' ? 'text-muted' : 'text-white'
+              className={`text-base font-medium ${
+                phone.trim() === '' ? 'text-mutedForeground' : 'text-primaryForeground'
               }`}
             >
               Send code
@@ -89,7 +89,7 @@ export default function SignInScreen() {
           )}
         </Pressable>
 
-        <Text className="text-[11.5px] leading-4 text-mutedFaint">
+        <Text className="text-[11.5px] leading-4 text-mutedForeground">
           Your number identifies your account. It is never shown to schools.
         </Text>
       </ScrollView>
