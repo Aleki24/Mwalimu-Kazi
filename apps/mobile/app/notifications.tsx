@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, FlatList, Pressable, SectionList, Text, View } from 'react-native';
-import { Stack } from 'expo-router';
-import { formatPostedAge } from '@mwalimu/core';
+import { Link, Stack } from 'expo-router';
+import { formatPostedAge, matchBand, matchScore, type JobWithSchool } from '@mwalimu/core';
 import { colors } from '@mwalimu/ui';
 import type { Tables } from '@mwalimu/types';
 import { EmptyState, ErrorBanner } from '../components/ui';
-import { fetchNotifications, markAllRead } from '../lib/notifications';
+import { fetchNotifications, jobIdOf, markAllRead } from '../lib/notifications';
+import { useTeacher } from '../lib/auth';
 
 type Kind = Tables<'notifications'>['kind'];
 
@@ -30,15 +31,26 @@ const TONE: Readonly<Record<Kind, { fg: string; mark: string }>> = {
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
+const SCORE_COLOUR = {
+  strong: 'text-successForeground',
+  good: 'text-foreground',
+  partial: 'text-warningForeground',
+  weak: 'text-mutedForeground',
+} as const;
+
 export default function NotificationsScreen() {
+  const teacher = useTeacher();
   const [items, setItems] = useState<readonly Tables<'notifications'>[]>([]);
+  const [jobs, setJobs] = useState<ReadonlyMap<string, JobWithSchool>>(new Map());
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [now] = useState(() => new Date());
 
   const load = useCallback(async () => {
     try {
-      setItems(await fetchNotifications());
+      const feed = await fetchNotifications();
+      setItems(feed.items);
+      setJobs(feed.jobs);
       setError(null);
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : 'Could not load notifications');
@@ -106,8 +118,17 @@ export default function NotificationsScreen() {
           renderItem={({ item }) => {
             const tone = TONE[item.kind];
             const unread = item.read_at === null;
-            return (
-              <View className={`flex-row gap-3 border-b border-border px-4 py-3 ${unread ? 'bg-wash/40' : ''}`}>
+            // Scored here, not at insert: the number tracks the teacher's
+            // current profile rather than whatever it was when the job posted.
+            const jobId = jobIdOf(item);
+            const entry = jobId === null ? undefined : jobs.get(jobId);
+            const match = entry === undefined ? null : matchScore(entry.job, teacher).score;
+            // Unread is a card lift plus a dot, never a tinted fill. An
+            // opacity modifier on a token that is already an ink mix
+            // (`bg-wash/40`) rewrites its alpha to 0.4 rather than scaling it,
+            // which painted the whole row 40% ink.
+            const row = (
+              <View className={`flex-row gap-3 border-b border-border px-4 py-3 ${unread ? 'bg-card' : ''}`}>
                 <View className="h-[34px] w-[34px] items-center justify-center rounded-full bg-wash">
                   <Text className={`text-[13px] ${tone.fg}`}>{tone.mark}</Text>
                 </View>
@@ -117,10 +138,25 @@ export default function NotificationsScreen() {
                     <Text className="text-[10.5px] text-mutedForeground">
                       {formatPostedAge(new Date(item.created_at), now)}
                     </Text>
+                    {unread ? <View className="h-1.5 w-1.5 rounded-full bg-primary" /> : null}
                   </View>
                   <Text className="mt-0.5 text-[11.5px] leading-4 text-mutedForeground">{item.body}</Text>
+                  {match === null ? null : (
+                    <Text className={`mt-1 text-[11px] ${SCORE_COLOUR[matchBand(match)]}`}>
+                      {match}% match for you
+                    </Text>
+                  )}
                 </View>
               </View>
+            );
+
+            // Telling a teacher about a vacancy and then making them go and
+            // find it is the whole feature failing at the last step.
+            if (jobId === null) return row;
+            return (
+              <Link href={{ pathname: '/job/[id]', params: { id: jobId } }} asChild>
+                <Pressable accessibilityRole="link">{row}</Pressable>
+              </Link>
             );
           }}
         />
