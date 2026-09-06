@@ -50,9 +50,9 @@ function RootNavigator() {
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen name="job/[id]" options={{ title: 'Job' }} />
         <Stack.Screen name="school/[slug]" options={{ title: 'School' }} />
-        <Stack.Screen name="news" options={{ title: 'News' }} />
         <Stack.Screen name="notifications" options={{ title: 'Notifications' }} />
         <Stack.Screen name="saved" options={{ title: 'Saved' }} />
+        <Stack.Screen name="profile" options={{ title: 'Your profile' }} />
       </Stack.Protected>
 
       <Stack.Protected guard={status === 'needs-onboarding'}>

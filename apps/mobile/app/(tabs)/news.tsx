@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, FlatList, Pressable, ScrollView, Text, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { formatPostedAge, formatLabel } from '@mwalimu/core';
 import { colors } from '@mwalimu/ui';
 import type { Tables } from '@mwalimu/types';
-import { Card, Chip, EmptyState, ErrorBanner } from '../components/ui';
-import { fetchNews } from '../lib/content';
+import { Card, Chip, EmptyState, ErrorBanner, ScreenHeader } from '../../components/ui';
+import { fetchNews } from '../../lib/content';
 
 type Topic = Tables<'news_articles'>['topic'];
 
@@ -19,6 +20,7 @@ const TOPICS: ReadonlyArray<{ key: Topic | 'all'; label: string }> = [
 ];
 
 export default function NewsScreen() {
+  const insets = useSafeAreaInsets();
   const [items, setItems] = useState<readonly Tables<'news_articles'>[]>([]);
   const [topic, setTopic] = useState<Topic | 'all'>('all');
   const [error, setError] = useState<string | null>(null);
@@ -45,8 +47,12 @@ export default function NewsScreen() {
   const [featured, ...rest] = visible;
 
   return (
-    <View className="flex-1 bg-background">
-      <View className="border-b border-border bg-card px-4 pb-3 pt-2">
+    <View className="flex-1 bg-background" style={{ paddingTop: insets.top }}>
+      <ScreenHeader
+        title="News"
+        subtitle={loading ? 'Loading…' : `${items.length} updates`}
+      />
+      <View className="bg-card px-5 pb-3">
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
           {TOPICS.map((t) => (
             <Pressable key={t.key} onPress={() => setTopic(t.key)} accessibilityRole="button">
@@ -70,8 +76,12 @@ export default function NewsScreen() {
                 <Card className="mb-1 p-0">
                   <View className="h-24 rounded-t-2xl bg-secondary" />
                   <View className="p-3.5">
+                    {/* A label, not a control — Chip is 44px and tappable. */}
                     <View className="flex-row items-center gap-2">
-                      <Chip label={formatLabel(featured.topic)} selected />
+                      <Text className="text-[10.5px] uppercase tracking-wide text-mutedForeground">
+                        {featured.source}
+                      </Text>
+                      <Text className="text-[10.5px] text-mutedForeground">·</Text>
                       <Text className="text-[10.5px] text-mutedForeground">
                         {formatPostedAge(new Date(featured.published_at), now)}
                       </Text>

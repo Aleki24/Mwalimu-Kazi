@@ -1,19 +1,18 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, Pressable, RefreshControl, ScrollView, Text, View } from 'react-native';
-import { Link } from 'expo-router';
+import { Link, router } from 'expo-router';
 import Feather from '@expo/vector-icons/Feather';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { closingSoon, rankJobs, type JobWithSchool, type RankedJob } from '@mwalimu/core';
 import { colors } from '@mwalimu/ui';
-import { Card, EmptyState, ErrorBanner, NoticeStrip, ScreenHeader } from '../../components/ui';
+import { Avatar, Card, EmptyState, ErrorBanner, NoticeStrip } from '../../components/ui';
 import { JobCard } from '../../components/job-card';
 import { fetchOpenJobs } from '../../lib/jobs';
 import { useTeacher } from '../../lib/auth';
 
 /** Routes with no tab of their own; the grid is how a teacher reaches them. */
 const QUICK_ACCESS = [
-  { href: '/saved', label: 'Saved', icon: 'bookmark' },
-  { href: '/news', label: 'News', icon: 'file-text' },
+  { href: '/saved', label: 'Saved jobs', icon: 'bookmark' },
   { href: '/notifications', label: 'Alerts', icon: 'bell' },
 ] as const satisfies ReadonlyArray<{
   href: string;
@@ -56,7 +55,16 @@ export default function HomeScreen() {
 
   return (
     <View className="flex-1 bg-background" style={{ paddingTop: insets.top }}>
-      <ScreenHeader title={`Good morning, ${teacher.fullName.split(' ')[0]}`} subtitle="Your career dashboard" />
+      <View className="flex-row items-center gap-3 bg-card px-5 pb-4 pt-2">
+        <View className="min-w-0 flex-1">
+          <Text className="text-2xl font-medium tracking-tight text-foreground">
+            {`Good morning, ${teacher.fullName.split(' ')[0]}`}
+          </Text>
+          <Text className="mt-1 text-sm text-mutedForeground">Your career dashboard</Text>
+        </View>
+        {/* Profile has no tab any more; this is the way in. */}
+        <Avatar name={teacher.fullName} size={40} onPress={() => router.push('/profile')} label="Your profile" />
+      </View>
 
       <ScrollView
         contentContainerStyle={{ padding: 16, gap: 12, paddingBottom: 32 }}
@@ -88,7 +96,7 @@ export default function HomeScreen() {
         <View className="flex-row flex-wrap gap-2.5">
           {QUICK_ACCESS.map((item) => (
             <Link key={item.href} href={item.href} asChild>
-              <Pressable accessibilityRole="button" style={{ width: '31%' }}>
+              <Pressable accessibilityRole="button" style={{ width: '48.5%' }}>
                 <Card className="items-center gap-1.5 px-2 py-3">
                   <Feather name={item.icon} size={19} color={colors.foreground} />
                   <Text className="text-[11.5px] font-medium text-foreground">{item.label}</Text>

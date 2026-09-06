@@ -3,7 +3,11 @@ import Feather from '@expo/vector-icons/Feather';
 import { colors, HIT_TARGET_MIN } from '@mwalimu/ui';
 
 /**
- * The five tabs from the mockup. Community joins when its slice lands.
+ * Five tabs, and the rule for what earns one: a teacher opens it most days.
+ * News is here because reading it is a daily habit and habits are what bring
+ * someone back; Profile is not, because you edit a CV occasionally — it lives
+ * behind the avatar in the Home header instead. Six tabs at 390px starts
+ * truncating labels, so the bar stays at five.
  *
  * Real icons rather than text glyphs: two tabs previously shared the same
  * character, which made the bar unreadable at a glance.
@@ -11,9 +15,9 @@ import { colors, HIT_TARGET_MIN } from '@mwalimu/ui';
 const TABS = [
   { name: 'index', title: 'Home', icon: 'home' },
   { name: 'jobs', title: 'Jobs', icon: 'briefcase' },
+  { name: 'news', title: 'News', icon: 'file-text' },
   { name: 'resources', title: 'Resources', icon: 'folder' },
   { name: 'schools', title: 'Schools', icon: 'map-pin' },
-  { name: 'profile', title: 'Profile', icon: 'user' },
 ] as const satisfies ReadonlyArray<{
   name: string;
   title: string;

@@ -3,9 +3,9 @@ import { Pressable, ScrollView, Switch, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { formatLabel, formatPhoneForDisplay } from '@mwalimu/core';
 import { colors } from '@mwalimu/ui';
-import { Badge, Card, ErrorBanner, Tag } from '../../components/ui';
-import { useAuth, useTeacher } from '../../lib/auth';
-import { supabase } from '../../lib/supabase';
+import { Avatar, Badge, Card, ErrorBanner, Tag } from '../components/ui';
+import { useAuth, useTeacher } from '../lib/auth';
+import { supabase } from '../lib/supabase';
 
 export default function ProfileScreen() {
   const insets = useSafeAreaInsets();
@@ -28,16 +28,13 @@ export default function ProfileScreen() {
     await refreshProfile();
   };
 
-  const initials = teacher.fullName.split(' ').map((p) => p.charAt(0)).slice(0, 2).join('').toUpperCase();
 
   return (
     <View className="flex-1 bg-background" style={{ paddingTop: insets.top }}>
       <ScrollView contentContainerStyle={{ paddingBottom: 32 }}>
         <View className="bg-card px-5 pb-5 pt-3">
           <View className="flex-row items-center gap-3.5">
-            <View className="h-16 w-16 items-center justify-center rounded-full bg-secondary">
-              <Text className="text-xl font-medium text-foreground">{initials}</Text>
-            </View>
+            <Avatar name={teacher.fullName} size={64} />
             <View className="min-w-0 flex-1">
               <Text className="text-xl font-medium tracking-tight text-foreground">{teacher.fullName}</Text>
               <Text className="mt-0.5 text-sm text-foreground/80">

@@ -165,6 +165,35 @@ export function SchoolMark({ name, size = 40 }: { name: string; size?: number })
   );
 }
 
+/** Initials on a flat disc. `onPress` makes it the route into a profile. */
+export function Avatar({
+  name, size = 40, onPress, label,
+}: { name: string; size?: number; onPress?: PressableProps['onPress']; label?: string }) {
+  const initials = name.trim().split(/\s+/).map((p) => p.charAt(0)).slice(0, 2).join('').toUpperCase();
+  const disc = (
+    <View
+      style={{ width: size, height: size, borderRadius: 999 }}
+      className="items-center justify-center bg-secondary"
+    >
+      <Text style={{ fontSize: Math.round(size * 0.34) }} className="font-medium text-foreground/70">
+        {initials || '?'}
+      </Text>
+    </View>
+  );
+
+  if (onPress === undefined) return disc;
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={label ?? `Open ${name}'s profile`}
+      onPress={onPress}
+      hitSlop={(HIT_TARGET_MIN - size) / 2}
+    >
+      {disc}
+    </Pressable>
+  );
+}
+
 /** Chrome renders instantly: the title never waits for data. */
 export function ScreenHeader({ title, subtitle }: { title: string; subtitle?: string }) {
   return (
