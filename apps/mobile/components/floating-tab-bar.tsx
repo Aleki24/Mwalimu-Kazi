@@ -26,7 +26,8 @@ type TabBarProps = Parameters<NonNullable<React.ComponentProps<typeof Tabs>['tab
 export const TAB_BAR_HEIGHT = 58;
 
 /** Gap between the plate and the screen edges, and its minimum bottom offset. */
-const EDGE_GAP = 10;
+export const TAB_BAR_EDGE_GAP = 10;
+const EDGE_GAP = TAB_BAR_EDGE_GAP;
 
 /**
  * Bottom padding a scrolling tab screen must leave so the floating plate never

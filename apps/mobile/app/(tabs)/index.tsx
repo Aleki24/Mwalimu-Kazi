@@ -8,7 +8,6 @@ import { colors } from '@mwalimu/ui';
 import { Avatar, Card, EmptyState, ErrorBanner, NoticeStrip } from '../../components/ui';
 import { useTabBarClearance } from '../../components/floating-tab-bar';
 import { JobCard } from '../../components/job-card';
-import { ComposeFab } from '../../components/compose-fab';
 import { fetchOpenJobs } from '../../lib/jobs';
 import { useTeacher } from '../../lib/auth';
 
@@ -125,8 +124,6 @@ export default function HomeScreen() {
         )}
       </ScrollView>
 
-      {/* Outside the ScrollView: it floats over the content, it does not scroll with it. */}
-      <ComposeFab />
     </View>
   );
 }

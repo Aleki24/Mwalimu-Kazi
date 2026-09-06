@@ -1,6 +1,8 @@
 import { Tabs } from 'expo-router';
 import Feather from '@expo/vector-icons/Feather';
+import { View } from 'react-native';
 import { FloatingTabBar } from '../../components/floating-tab-bar';
+import { ComposeFab } from '../../components/compose-fab';
 
 /**
  * Five tabs, and the rule for what earns one: a teacher opens it most days.
@@ -26,23 +28,31 @@ const TABS = [
 
 export default function TabsLayout() {
   return (
-    // The bar floats over the content, so it draws itself: tint, label and
-    // hit target all live in FloatingTabBar rather than being split between
-    // screenOptions here and a style override there.
-    <Tabs
-      tabBar={(props) => <FloatingTabBar {...props} />}
-      screenOptions={{ headerShown: false }}
-    >
-      {TABS.map((tab) => (
-        <Tabs.Screen
-          key={tab.name}
-          name={tab.name}
-          options={{
-            title: tab.title,
-            tabBarIcon: ({ color, size }) => <Feather name={tab.icon} size={size} color={color} />,
-          }}
-        />
-      ))}
-    </Tabs>
+    // The FAB is mounted here rather than on Home so it appears on every tab,
+    // once. It is a sibling of the navigator, not a screen inside it, so it
+    // floats above whichever tab is showing.
+    <View style={{ flex: 1 }}>
+      {/*
+        The bar floats over the content, so it draws itself: tint, label and
+        hit target all live in FloatingTabBar rather than being split between
+        screenOptions here and a style override there.
+      */}
+      <Tabs
+        tabBar={(props) => <FloatingTabBar {...props} />}
+        screenOptions={{ headerShown: false }}
+      >
+        {TABS.map((tab) => (
+          <Tabs.Screen
+            key={tab.name}
+            name={tab.name}
+            options={{
+              title: tab.title,
+              tabBarIcon: ({ color, size }) => <Feather name={tab.icon} size={size} color={color} />,
+            }}
+          />
+        ))}
+      </Tabs>
+      <ComposeFab />
+    </View>
   );
 }

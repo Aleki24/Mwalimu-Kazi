@@ -4,6 +4,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import Feather from '@expo/vector-icons/Feather';
 import { colors, radius, shadow } from '@mwalimu/ui';
+import { TAB_BAR_EDGE_GAP, TAB_BAR_HEIGHT } from './floating-tab-bar';
 
 /**
  * The plus button, and the sheet it opens.
@@ -45,7 +46,10 @@ export function ComposeFab() {
         style={{
           position: 'absolute',
           right: 16,
-          bottom: insets.bottom + 78,
+          // Derived from the bar rather than a magic number: the two move
+          // together, so changing the bar's height cannot leave the button
+          // sitting on top of it.
+          bottom: Math.max(insets.bottom, TAB_BAR_EDGE_GAP) + TAB_BAR_HEIGHT + TAB_BAR_EDGE_GAP,
           height: 52,
           width: 52,
           borderRadius: radius.pill,
