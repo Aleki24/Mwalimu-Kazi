@@ -613,6 +613,167 @@ export type Database = {
         }
         Relationships: []
       }
+      cv_details: {
+        Row: {
+          email: string | null
+          location: string | null
+          phone: string | null
+          summary: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          email?: string | null
+          location?: string | null
+          phone?: string | null
+          summary?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          email?: string | null
+          location?: string | null
+          phone?: string | null
+          summary?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cv_details_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cv_education: {
+        Row: {
+          created_at: string
+          end_year: number | null
+          grade: string | null
+          id: string
+          institution: string
+          qualification: string
+          start_year: number | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          end_year?: number | null
+          grade?: string | null
+          id?: string
+          institution: string
+          qualification: string
+          start_year?: number | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          end_year?: number | null
+          grade?: string | null
+          id?: string
+          institution?: string
+          qualification?: string
+          start_year?: number | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cv_education_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cv_experience: {
+        Row: {
+          created_at: string
+          description: string | null
+          end_year: number | null
+          id: string
+          is_current: boolean
+          organisation: string
+          role: string
+          start_year: number | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          end_year?: number | null
+          id?: string
+          is_current?: boolean
+          organisation: string
+          role: string
+          start_year?: number | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          end_year?: number | null
+          id?: string
+          is_current?: boolean
+          organisation?: string
+          role?: string
+          start_year?: number | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cv_experience_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cv_referees: {
+        Row: {
+          created_at: string
+          email: string | null
+          id: string
+          name: string
+          organisation: string | null
+          phone: string | null
+          title: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          email?: string | null
+          id?: string
+          name: string
+          organisation?: string | null
+          phone?: string | null
+          title?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          email?: string | null
+          id?: string
+          name?: string
+          organisation?: string | null
+          phone?: string | null
+          title?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cv_referees_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       job_comments: {
         Row: {
           author_id: string

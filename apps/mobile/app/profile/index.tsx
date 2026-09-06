@@ -1,12 +1,14 @@
 import { useState } from 'react';
-import { Pressable, ScrollView, Switch, Text, View } from 'react-native';
+import { Pressable, ScrollView, Text, View } from 'react-native';
+import { Link } from 'expo-router';
+import Feather from '@expo/vector-icons/Feather';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { formatLabel, formatPhoneForDisplay } from '@mwalimu/core';
 import { colors } from '@mwalimu/ui';
-import { Avatar, Badge, Card, ErrorBanner, Tag } from '../components/ui';
-import { useAuth, useTeacher } from '../lib/auth';
-import { supabase } from '../lib/supabase';
-import { playNotificationSound, setNotificationSound } from '../lib/sound';
+import { Avatar, Badge, Card, ErrorBanner, Tag, ToggleRow } from '../../components/ui';
+import { useAuth, useTeacher } from '../../lib/auth';
+import { supabase } from '../../lib/supabase';
+import { playNotificationSound, setNotificationSound } from '../../lib/sound';
 
 export default function ProfileScreen() {
   const insets = useSafeAreaInsets();
@@ -79,35 +81,50 @@ export default function ProfileScreen() {
             ))}
           </View>
 
-          <Card className="flex-row items-center gap-3 p-3.5">
-            <View className="flex-1">
-              <Text className="text-[13px] font-medium text-foreground">Open to opportunities</Text>
-              <Text className="mt-0.5 text-[11.5px] text-mutedForeground">
-                Verified schools can find your profile
-              </Text>
-            </View>
-            <Switch
+          {/*
+            Two destinations, not one settings blob. Editing who you are and
+            writing a CV are different jobs done at different times.
+          */}
+          {([
+            { href: '/profile/edit', icon: 'user', label: 'Edit profile',
+              hint: 'Name, subjects, county, TSC number' },
+            { href: '/profile/cv', icon: 'file-text', label: 'Your CV',
+              hint: 'Build it once, download as PDF or Word' },
+          ] as const).map((item) => (
+            <Link key={item.href} href={item.href} asChild>
+              <Pressable accessibilityRole="link">
+                <Card className="flex-row items-center gap-3 p-3.5">
+                  <View
+                    style={{ borderRadius: 999 }}
+                    className="h-9 w-9 items-center justify-center bg-wash"
+                  >
+                    <Feather name={item.icon} size={15} color={colors.foreground} />
+                  </View>
+                  <View className="min-w-0 flex-1">
+                    <Text className="text-[13px] font-medium text-foreground">{item.label}</Text>
+                    <Text className="mt-0.5 text-[11.5px] text-mutedForeground">{item.hint}</Text>
+                  </View>
+                  <Feather name="chevron-right" size={16} color={colors.mutedForeground} />
+                </Card>
+              </Pressable>
+            </Link>
+          ))}
+
+          <Card className="p-3.5">
+            <ToggleRow
+              label="Open to opportunities"
+              hint="Verified schools can find your profile"
               value={open}
               onValueChange={(next) => void toggleOpen(next)}
-              trackColor={{ true: colors.primary, false: colors.secondary }}
-              thumbColor={colors.card}
-              ios_backgroundColor={colors.secondary}
             />
           </Card>
 
-          <Card className="flex-row items-center gap-3 p-3.5">
-            <View className="flex-1">
-              <Text className="text-[13px] font-medium text-foreground">Notification sound</Text>
-              <Text className="mt-0.5 text-[11.5px] text-mutedForeground">
-                Play a tone for job matches and replies
-              </Text>
-            </View>
-            <Switch
+          <Card className="p-3.5">
+            <ToggleRow
+              label="Notification sound"
+              hint="Play a tone for job matches and replies"
               value={sound}
               onValueChange={(next) => void toggleSound(next)}
-              trackColor={{ true: colors.primary, false: colors.secondary }}
-              thumbColor={colors.card}
-              ios_backgroundColor={colors.secondary}
             />
           </Card>
 

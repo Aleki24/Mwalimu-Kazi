@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { Platform, Pressable, Text, View, type PressableProps, type ViewProps } from 'react-native';
+import { Platform, Pressable, Switch, Text, View, type PressableProps, type ViewProps } from 'react-native';
 import { colors, HIT_TARGET_MIN, radius, shadow } from '@mwalimu/ui';
 
 /**
@@ -242,3 +242,46 @@ export function ErrorBanner({ message }: { message: string }) {
 
 /** Numbers that sit in a column or update in place align by figure. */
 export const tabularNums = { fontVariant: ['tabular-nums' as const] };
+
+/**
+ * A labelled switch where the whole row is the target.
+ *
+ * A bare <Switch> is about 51×31 — under the 44pt minimum in one dimension and
+ * surrounded by text that looks tappable but is not. People tap the words. So
+ * the row is the control and the switch is just its indicator.
+ */
+export function ToggleRow({
+  label, hint, value, onValueChange,
+}: {
+  label: string;
+  hint?: string;
+  value: boolean;
+  onValueChange: (next: boolean) => void;
+}) {
+  return (
+    <Pressable
+      accessibilityRole="switch"
+      accessibilityState={{ checked: value }}
+      accessibilityLabel={label}
+      onPress={() => onValueChange(!value)}
+      style={{ minHeight: HIT_TARGET_MIN }}
+      className="flex-row items-center gap-3"
+    >
+      <View className="min-w-0 flex-1">
+        <Text className="text-[13px] font-medium text-foreground">{label}</Text>
+        {hint === undefined ? null : (
+          <Text className="mt-0.5 text-[11.5px] text-mutedForeground">{hint}</Text>
+        )}
+      </View>
+      <Switch
+        value={value}
+        onValueChange={onValueChange}
+        trackColor={{ true: colors.primary, false: colors.secondary }}
+        thumbColor={colors.card}
+        ios_backgroundColor={colors.secondary}
+        // The row already handles the press; the switch must not fire twice.
+        pointerEvents="none"
+      />
+    </Pressable>
+  );
+}
