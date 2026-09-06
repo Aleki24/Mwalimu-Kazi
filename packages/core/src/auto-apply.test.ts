@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { decideAutoApply, SkipReason } from './auto-apply.js';
-import { matchScore } from './match.js';
-import { job, req, rule, teacher } from './fixtures.js';
+import { decideAutoApply, SkipReason } from './auto-apply';
+import { matchScore } from './match';
+import { job, req, rule, teacher } from './fixtures';
 
 const NOW = new Date('2026-09-05T09:00:00Z');
 const ctx = (over: Partial<Parameters<typeof decideAutoApply>[3]> = {}) => ({

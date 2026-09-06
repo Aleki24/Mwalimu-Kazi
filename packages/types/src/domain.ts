@@ -2,7 +2,7 @@ import { z } from 'zod';
 import {
   ApplicationSource, ApplicationStage, County, Curriculum, JobType, ModerationStatus,
   RedFlagKind, RequirementKind, ReviewCategory, SchoolType, VerificationStatus,
-} from './enums.js';
+} from './enums';
 
 export const Uuid = z.string().uuid();
 export const Slug = z.string().min(1).max(64).regex(/^[a-z0-9-]+$/);

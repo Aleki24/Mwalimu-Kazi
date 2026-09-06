@@ -1,5 +1,5 @@
 import type { Curriculum, County, Job, JobType, SchoolType, TeacherProfile } from '@mwalimu/types';
-import { matchScore, type MatchResult } from './match.js';
+import { matchScore, type MatchResult } from './match';
 
 /**
  * Job search: the filter set behind the Jobs screen, and the ranking that

@@ -1,4 +1,4 @@
-import type { MatchResult } from './match.js';
+import type { MatchResult } from './match';
 
 /**
  * Presentation helpers shared by the mobile app and the recruiter dashboard.
@@ -128,3 +128,45 @@ export function explainMatch(match: MatchResult): string {
   if (metCount === totalCount) return `You meet all ${totalCount} listed requirements.`;
   return `You meet ${metCount} of ${totalCount} listed requirements.`;
 }
+
+/**
+ * Terms that are acronyms, not words. Without this, title-casing turns "ict"
+ * into "Ict" and "8-4-4" into "8 4 4".
+ */
+const LABEL_OVERRIDES: Readonly<Record<string, string>> = {
+  ict: 'ICT',
+  igcse: 'IGCSE',
+  ib: 'IB',
+  cbc: 'CBC',
+  tsc: 'TSC',
+  '8-4-4': '8-4-4',
+  ecd: 'ECD',
+  cre: 'CRE',
+  ire: 'IRE',
+};
+
+/**
+ * Turn a stored slug into something a person reads: "mathematics" ->
+ * "Mathematics", "computer-studies" -> "Computer studies", "full_time" ->
+ * "Full-time", "ict" -> "ICT".
+ *
+ * Slugs are the database's vocabulary, not the user's. Nothing stored as a slug
+ * should reach a screen unlabelled.
+ */
+export function formatLabel(slug: string): string {
+  const key = slug.trim().toLowerCase();
+  const override = LABEL_OVERRIDES[key];
+  if (override !== undefined) return override;
+
+  // Job types are stored snake_case and read better hyphenated: full-time.
+  const words = key.replace(/_/g, '-').split('-');
+  const joined = words
+    .map((w) => LABEL_OVERRIDES[w] ?? w)
+    .join('-');
+
+  return joined.charAt(0).toUpperCase() + joined.slice(1);
+}
+
+/** Comma-separated labels, for a row of subjects or counties. */
+export const formatLabels = (slugs: readonly string[]): string =>
+  slugs.map(formatLabel).join(', ');

@@ -1,9 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import {
-  explainMatch, formatClosing, formatPostedAge, formatSalary, formatSalaryFull, matchBand,
-} from './format.js';
-import { matchScore } from './match.js';
-import { job, req, teacher } from './fixtures.js';
+  explainMatch, formatClosing, formatLabel, formatLabels, formatPostedAge, formatSalary,
+  formatSalaryFull, matchBand,
+} from './format';
+import { matchScore } from './match';
+import { job, req, teacher } from './fixtures';
 
 const NOW = new Date('2026-09-05T12:00:00Z');
 
@@ -99,5 +100,36 @@ describe('formatClosing — calendar boundaries', () => {
     const lateUtc = new Date('2026-09-05T22:30:00Z');
     expect(formatClosing(lateUtc, NOW)).toBe('Closes tomorrow');
     expect(formatClosing(lateUtc, NOW, 'UTC')).toBe('Closes today');
+  });
+});
+
+describe('formatLabel', () => {
+  it('title-cases a plain slug', () => {
+    expect(formatLabel('mathematics')).toBe('Mathematics');
+    expect(formatLabel('nairobi')).toBe('Nairobi');
+  });
+
+  it('keeps acronyms upper-case', () => {
+    expect(formatLabel('ict')).toBe('ICT');
+    expect(formatLabel('igcse')).toBe('IGCSE');
+    expect(formatLabel('cbc')).toBe('CBC');
+  });
+
+  it('leaves the 8-4-4 system alone', () => {
+    expect(formatLabel('8-4-4')).toBe('8-4-4');
+  });
+
+  it('hyphenates snake_case job types', () => {
+    expect(formatLabel('full_time')).toBe('Full-time');
+    expect(formatLabel('part_time')).toBe('Part-time');
+  });
+
+  it('handles a multi-word slug', () => {
+    expect(formatLabel('computer-studies')).toBe('Computer-studies');
+    expect(formatLabel('taita-taveta')).toBe('Taita-taveta');
+  });
+
+  it('joins a list', () => {
+    expect(formatLabels(['mathematics', 'ict'])).toBe('Mathematics, ICT');
   });
 });

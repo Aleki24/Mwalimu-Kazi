@@ -1,5 +1,5 @@
 import type { AutoApplyRule, Job } from '@mwalimu/types';
-import type { MatchResult } from './match.js';
+import type { MatchResult } from './match';
 
 /**
  * Auto-Apply decisioning.

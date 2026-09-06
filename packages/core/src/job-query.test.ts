@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { closingSoon, filterJobs, rankJobs, requiredExperience, requiresTsc, type JobWithSchool } from './job-query.js';
-import { job, req, teacher } from './fixtures.js';
+import { closingSoon, filterJobs, rankJobs, requiredExperience, requiresTsc, type JobWithSchool } from './job-query';
+import { job, req, teacher } from './fixtures';
 
 const NOW = new Date('2026-09-05T09:00:00Z');
 

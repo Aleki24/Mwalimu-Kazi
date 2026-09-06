@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { MUST_HAVE_FAIL_CAP, matchScore } from './match.js';
-import { job, req, teacher } from './fixtures.js';
+import { MUST_HAVE_FAIL_CAP, matchScore } from './match';
+import { job, req, teacher } from './fixtures';
 
 describe('matchScore', () => {
   it('scores a perfect fit at 100', () => {

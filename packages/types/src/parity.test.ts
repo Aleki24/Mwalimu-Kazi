@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import { Constants } from './database.generated.js';
+import { Constants } from './database.generated';
 import {
   ApplicationSource, ApplicationStage, Curriculum, JobType, SchoolType, VerificationStatus,
-} from './enums.js';
+} from './enums';
 
 /**
  * The Postgres enums and the Zod enums are two declarations of one vocabulary.
