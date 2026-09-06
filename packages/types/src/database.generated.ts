@@ -213,6 +213,83 @@ export type Database = {
           },
         ]
       }
+      news_articles: {
+        Row: {
+          body: string | null
+          id: string
+          image_url: string | null
+          published_at: string
+          source: string
+          summary: string | null
+          title: string
+          topic: Database["public"]["Enums"]["news_topic"]
+          url: string | null
+        }
+        Insert: {
+          body?: string | null
+          id?: string
+          image_url?: string | null
+          published_at?: string
+          source: string
+          summary?: string | null
+          title: string
+          topic: Database["public"]["Enums"]["news_topic"]
+          url?: string | null
+        }
+        Update: {
+          body?: string | null
+          id?: string
+          image_url?: string | null
+          published_at?: string
+          source?: string
+          summary?: string | null
+          title?: string
+          topic?: Database["public"]["Enums"]["news_topic"]
+          url?: string | null
+        }
+        Relationships: []
+      }
+      notifications: {
+        Row: {
+          body: string
+          created_at: string
+          id: string
+          kind: Database["public"]["Enums"]["notification_kind"]
+          payload: Json
+          read_at: string | null
+          title: string
+          user_id: string
+        }
+        Insert: {
+          body: string
+          created_at?: string
+          id?: string
+          kind: Database["public"]["Enums"]["notification_kind"]
+          payload?: Json
+          read_at?: string | null
+          title: string
+          user_id: string
+        }
+        Update: {
+          body?: string
+          created_at?: string
+          id?: string
+          kind?: Database["public"]["Enums"]["notification_kind"]
+          payload?: Json
+          read_at?: string | null
+          title?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notifications_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           county: string
@@ -264,6 +341,144 @@ export type Database = {
         }
         Relationships: []
       }
+      resources: {
+        Row: {
+          created_at: string
+          download_count: number
+          file_extension: string
+          id: string
+          kind: Database["public"]["Enums"]["resource_kind"]
+          size_bytes: number
+          storage_path: string
+          subject: string | null
+          title: string
+          uploaded_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          download_count?: number
+          file_extension: string
+          id?: string
+          kind: Database["public"]["Enums"]["resource_kind"]
+          size_bytes: number
+          storage_path: string
+          subject?: string | null
+          title: string
+          uploaded_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          download_count?: number
+          file_extension?: string
+          id?: string
+          kind?: Database["public"]["Enums"]["resource_kind"]
+          size_bytes?: number
+          storage_path?: string
+          subject?: string | null
+          title?: string
+          uploaded_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "resources_uploaded_by_fkey"
+            columns: ["uploaded_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      review_ratings: {
+        Row: {
+          category: Database["public"]["Enums"]["review_category"]
+          review_id: string
+          score: number
+        }
+        Insert: {
+          category: Database["public"]["Enums"]["review_category"]
+          review_id: string
+          score: number
+        }
+        Update: {
+          category?: Database["public"]["Enums"]["review_category"]
+          review_id?: string
+          score?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "review_ratings_review_id_fkey"
+            columns: ["review_id"]
+            isOneToOne: false
+            referencedRelation: "school_reviews"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      review_red_flags: {
+        Row: {
+          id: string
+          kind: Database["public"]["Enums"]["red_flag_kind"]
+          occurred_on: string | null
+          reason: string
+          review_id: string
+        }
+        Insert: {
+          id?: string
+          kind: Database["public"]["Enums"]["red_flag_kind"]
+          occurred_on?: string | null
+          reason: string
+          review_id: string
+        }
+        Update: {
+          id?: string
+          kind?: Database["public"]["Enums"]["red_flag_kind"]
+          occurred_on?: string | null
+          reason?: string
+          review_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "review_red_flags_review_id_fkey"
+            columns: ["review_id"]
+            isOneToOne: false
+            referencedRelation: "school_reviews"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      saved_jobs: {
+        Row: {
+          created_at: string
+          job_id: string
+          teacher_id: string
+        }
+        Insert: {
+          created_at?: string
+          job_id: string
+          teacher_id: string
+        }
+        Update: {
+          created_at?: string
+          job_id?: string
+          teacher_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "saved_jobs_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "jobs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "saved_jobs_teacher_id_fkey"
+            columns: ["teacher_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       school_members: {
         Row: {
           role: Database["public"]["Enums"]["school_role"]
@@ -290,39 +505,102 @@ export type Database = {
           },
         ]
       }
+      school_reviews: {
+        Row: {
+          author_id: string
+          body: string
+          created_at: string
+          employment_verified: boolean
+          id: string
+          moderation: Database["public"]["Enums"]["moderation_status"]
+          role_title: string | null
+          school_id: string
+        }
+        Insert: {
+          author_id: string
+          body: string
+          created_at?: string
+          employment_verified?: boolean
+          id?: string
+          moderation?: Database["public"]["Enums"]["moderation_status"]
+          role_title?: string | null
+          school_id: string
+        }
+        Update: {
+          author_id?: string
+          body?: string
+          created_at?: string
+          employment_verified?: boolean
+          id?: string
+          moderation?: Database["public"]["Enums"]["moderation_status"]
+          role_title?: string | null
+          school_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "school_reviews_author_id_fkey"
+            columns: ["author_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "school_reviews_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "schools"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       schools: {
         Row: {
+          about: string | null
           county: string
+          cover_url: string | null
           created_at: string
           curricula: Database["public"]["Enums"]["curriculum"][]
+          facilities: string[]
           id: string
           name: string
           school_type: Database["public"]["Enums"]["school_type"]
           slug: string
+          student_count: number | null
           teacher_count: number | null
           verification: Database["public"]["Enums"]["verification_status"]
+          website: string | null
         }
         Insert: {
+          about?: string | null
           county: string
+          cover_url?: string | null
           created_at?: string
           curricula?: Database["public"]["Enums"]["curriculum"][]
+          facilities?: string[]
           id?: string
           name: string
           school_type: Database["public"]["Enums"]["school_type"]
           slug: string
+          student_count?: number | null
           teacher_count?: number | null
           verification?: Database["public"]["Enums"]["verification_status"]
+          website?: string | null
         }
         Update: {
+          about?: string | null
           county?: string
+          cover_url?: string | null
           created_at?: string
           curricula?: Database["public"]["Enums"]["curriculum"][]
+          facilities?: string[]
           id?: string
           name?: string
           school_type?: Database["public"]["Enums"]["school_type"]
           slug?: string
+          student_count?: number | null
           teacher_count?: number | null
           verification?: Database["public"]["Enums"]["verification_status"]
+          website?: string | null
         }
         Relationships: []
       }
@@ -346,6 +624,58 @@ export type Database = {
         | "withdrawn"
       curriculum: "cbc" | "8-4-4" | "igcse" | "ib" | "montessori"
       job_type: "full_time" | "part_time" | "contract" | "locum"
+      moderation_status: "pending" | "approved" | "rejected"
+      news_topic:
+        | "tsc"
+        | "knec"
+        | "kicd"
+        | "cbc"
+        | "policy"
+        | "recruitment"
+        | "scholarships"
+        | "professional_development"
+      notification_kind:
+        | "job_match"
+        | "auto_apply_sent"
+        | "auto_apply_failed"
+        | "application_viewed"
+        | "shortlisted"
+        | "rejected"
+        | "interview_invite"
+        | "profile_viewed"
+        | "school_review"
+        | "followed_school_job"
+        | "news"
+        | "resource"
+      red_flag_kind:
+        | "salary_delays"
+        | "excessive_workload"
+        | "poor_management"
+        | "contract_issues"
+        | "harassment"
+        | "unclear_hours"
+        | "poor_communication"
+        | "unsafe_conditions"
+      resource_kind:
+        | "notes"
+        | "scheme_of_work"
+        | "lesson_plan"
+        | "past_paper"
+        | "marking_scheme"
+        | "worksheet"
+        | "slides"
+        | "assessment"
+      review_category:
+        | "management"
+        | "pay_reliability"
+        | "workload"
+        | "working_hours"
+        | "teacher_treatment"
+        | "professional_growth"
+        | "housing"
+        | "student_behaviour"
+        | "resources"
+        | "communication"
       school_role: "recruiter" | "admin"
       school_type: "private" | "international" | "public"
       verification_status:
@@ -493,6 +823,63 @@ export const Constants = {
       ],
       curriculum: ["cbc", "8-4-4", "igcse", "ib", "montessori"],
       job_type: ["full_time", "part_time", "contract", "locum"],
+      moderation_status: ["pending", "approved", "rejected"],
+      news_topic: [
+        "tsc",
+        "knec",
+        "kicd",
+        "cbc",
+        "policy",
+        "recruitment",
+        "scholarships",
+        "professional_development",
+      ],
+      notification_kind: [
+        "job_match",
+        "auto_apply_sent",
+        "auto_apply_failed",
+        "application_viewed",
+        "shortlisted",
+        "rejected",
+        "interview_invite",
+        "profile_viewed",
+        "school_review",
+        "followed_school_job",
+        "news",
+        "resource",
+      ],
+      red_flag_kind: [
+        "salary_delays",
+        "excessive_workload",
+        "poor_management",
+        "contract_issues",
+        "harassment",
+        "unclear_hours",
+        "poor_communication",
+        "unsafe_conditions",
+      ],
+      resource_kind: [
+        "notes",
+        "scheme_of_work",
+        "lesson_plan",
+        "past_paper",
+        "marking_scheme",
+        "worksheet",
+        "slides",
+        "assessment",
+      ],
+      review_category: [
+        "management",
+        "pay_reliability",
+        "workload",
+        "working_hours",
+        "teacher_treatment",
+        "professional_growth",
+        "housing",
+        "student_behaviour",
+        "resources",
+        "communication",
+      ],
       school_role: ["recruiter", "admin"],
       school_type: ["private", "international", "public"],
       verification_status: [

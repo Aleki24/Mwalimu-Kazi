@@ -73,6 +73,32 @@ export const RequirementKind = z.enum([
 ]);
 export type RequirementKind = z.infer<typeof RequirementKind>;
 
+/** File kinds in the resource library. */
+export const ResourceKind = z.enum([
+  'notes', 'scheme_of_work', 'lesson_plan', 'past_paper', 'marking_scheme',
+  'worksheet', 'slides', 'assessment',
+]);
+export type ResourceKind = z.infer<typeof ResourceKind>;
+
+/** Topics a teacher can follow in the news feed. */
+export const NewsTopic = z.enum([
+  'tsc', 'knec', 'kicd', 'cbc', 'policy', 'recruitment', 'scholarships',
+  'professional_development',
+]);
+export type NewsTopic = z.infer<typeof NewsTopic>;
+
+/**
+ * Notification kinds. Deliberately specific rather than a generic "alert":
+ * the screen renders a different icon, tone and destination per kind, and a
+ * vague notification is one a teacher learns to ignore.
+ */
+export const NotificationKind = z.enum([
+  'job_match', 'auto_apply_sent', 'auto_apply_failed', 'application_viewed',
+  'shortlisted', 'rejected', 'interview_invite', 'profile_viewed',
+  'school_review', 'followed_school_job', 'news', 'resource',
+]);
+export type NotificationKind = z.infer<typeof NotificationKind>;
+
 /**
  * Teaching subjects offered at sign-up. Stored as free slugs on `profiles` and
  * `jobs` rather than an enum, because schools advertise subjects we have not
