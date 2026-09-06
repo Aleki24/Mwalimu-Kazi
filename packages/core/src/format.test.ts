@@ -81,6 +81,16 @@ describe('explainMatch', () => {
 
     expect(explainMatch(match)).toBe('This role requires a degree in education, which is not on your profile.');
   });
+
+  it('keeps acronyms intact when folding a label into the sentence', () => {
+    const match = matchScore(job({
+      requirements: [req({ kind: 'qualification', value: 'tsc', label: 'TSC registration', mustHave: true })],
+    }), teacher({ tscNumber: undefined, tscVerified: false }));
+
+    // Not "tsc registration" — the row above this sentence spells it TSC, and
+    // every Kenyan teaching credential is an acronym.
+    expect(explainMatch(match)).toBe('This role requires TSC registration, which is not on your profile.');
+  });
 });
 
 describe('formatClosing — calendar boundaries', () => {

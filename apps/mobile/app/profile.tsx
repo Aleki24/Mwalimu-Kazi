@@ -14,6 +14,9 @@ export default function ProfileScreen() {
   const [open, setOpen] = useState(teacher.openToOpportunities);
   const [error, setError] = useState<string | null>(null);
 
+  const raw = session?.user.phone ?? '';
+  const phone = raw.trim() === '' ? null : `+${raw.replace(/^\+/, '')}`;
+
   const toggleOpen = async (next: boolean) => {
     setOpen(next); // optimistic: a toggle that lags feels broken
     const { error: updateError } = await supabase
@@ -114,9 +117,12 @@ export default function ProfileScreen() {
           <Card className="p-3.5">
             <Text className="text-[12.5px] font-medium text-foreground">Account</Text>
             <Text className="mt-1 text-[11.5px] text-mutedForeground">
-              {session?.user.phone === undefined
-                ? 'Signed in'
-                : formatPhoneForDisplay(`+${session.user.phone.replace(/^\+/, '')}`)}
+              {/*
+                Supabase returns an empty string for a user with no phone, not
+                undefined, so an `=== undefined` guard fell through and rendered
+                a bare "+" — the country prefix with nothing after it.
+              */}
+              {phone === null ? 'Signed in' : formatPhoneForDisplay(phone)}
             </Text>
           </Card>
 

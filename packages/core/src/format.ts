@@ -114,6 +114,20 @@ export const MATCH_BAND_LABEL: Readonly<Record<MatchBand, string>> = {
 };
 
 /**
+ * Fit a label into the middle of a sentence without destroying acronyms.
+ *
+ * A blanket `.toLowerCase()` rendered "TSC registration" as "tsc registration"
+ * on the job detail screen, directly under a row that spelled it correctly.
+ * Kenyan teaching labels are full of acronyms — TSC, KNEC, KCSE, IGCSE, CBC —
+ * so that is the common case here, not the edge case. Every word is lowered
+ * except the ones that are already all-caps.
+ */
+function lowerForSentence(label: string): string {
+  const isAcronym = (w: string) => w.length > 1 && w === w.toUpperCase() && /[A-Z]/.test(w);
+  return label.split(' ').map((w) => (isAcronym(w) ? w : w.toLowerCase())).join(' ');
+}
+
+/**
  * The sentence under the score on a job detail screen. When a must-have is
  * unmet it says so plainly instead of dressing up a capped number.
  */
@@ -122,7 +136,7 @@ export function explainMatch(match: MatchResult): string {
     const missing = match.requirements.find((r) => r.mustHave && r.status === 'missing');
     return missing === undefined
       ? 'You do not meet a required qualification for this role.'
-      : `This role requires ${missing.label.toLowerCase()}, which is not on your profile.`;
+      : `This role requires ${lowerForSentence(missing.label)}, which is not on your profile.`;
   }
   const { metCount, totalCount } = match;
   if (metCount === totalCount) return `You meet all ${totalCount} listed requirements.`;
