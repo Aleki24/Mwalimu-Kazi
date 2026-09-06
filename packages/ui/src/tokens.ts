@@ -1,41 +1,43 @@
+import raw from '../tokens.json';
+
 /**
- * Design tokens — the single source for both the Expo app (via NativeWind) and
- * the Next.js dashboard (via the Tailwind theme). Values carried over from the
- * skulbase mobile theme so the two products read as one family.
+ * Design tokens.
  *
- * `muted` is deliberately the darker slate-600 rather than slate-500: at the
- * 10-12px sizes this UI is built from, slate-500 reads washed out. The web app's
+ * The values live in `tokens.json` so that BOTH TypeScript and
+ * `tailwind.config.js` (which cannot import TS) read the same file — the
+ * alternative is two copies of the palette drifting apart.
+ *
+ * `muted` is deliberately slate-600 rather than slate-500: at the 10-12px sizes
+ * this UI is built from, slate-500 reads washed out. The skulbase web app's
  * globals.css made the same correction.
  */
 
-export const colors = {
-  primary: '#4f46e5',
-  primaryDark: '#4338ca',
-  primarySoft: '#eef2ff',
+export interface Palette {
+  readonly primary: string;
+  readonly primaryDark: string;
+  readonly primarySoft: string;
+  readonly background: string;
+  readonly card: string;
+  readonly border: string;
+  readonly foreground: string;
+  readonly muted: string;
+  readonly mutedFaint: string;
+  readonly mutedBg: string;
+  readonly success: string; readonly successBg: string;
+  readonly danger: string;  readonly dangerBg: string;
+  readonly warning: string; readonly warningBg: string;
+  readonly info: string;    readonly infoBg: string;
+}
 
-  background: '#f8fafc',
-  card: '#ffffff',
-  border: '#e2e8f0',
+export interface Scale { readonly xs: number; readonly sm: number; readonly md: number; readonly lg: number; readonly xl: number }
+export interface RadiusScale extends Omit<Scale, 'xs'> { readonly pill: number }
+export interface Fonts { readonly display: string; readonly body: string; readonly mono: string }
 
-  foreground: '#0f172a',
-  muted: '#475569',
-  mutedFaint: '#64748b',
-  mutedBg: '#f1f5f9',
-
-  success: '#16a34a', successBg: '#dcfce7',
-  danger:  '#dc2626', dangerBg:  '#fee2e2',
-  warning: '#d97706', warningBg: '#fef3c7',
-  info:    '#2563eb', infoBg:    '#dbeafe',
-} as const;
-
-export const spacing = { xs: 4, sm: 8, md: 12, lg: 16, xl: 24 } as const;
-export const radius = { sm: 8, md: 12, lg: 16, xl: 20, pill: 999 } as const;
-
-export const fonts = {
-  display: 'Syne',
-  body: 'Inter',
-  mono: 'JetBrains Mono',
-} as const;
+// The annotations are the contract: a key missing from tokens.json fails the build.
+export const colors: Palette = raw.colors;
+export const spacing: Scale = raw.spacing;
+export const radius: RadiusScale = raw.radius;
+export const fonts: Fonts = raw.fonts;
 
 /**
  * Minimum tappable size in dp. Anything interactive must meet this — filter
@@ -43,4 +45,4 @@ export const fonts = {
  */
 export const HIT_TARGET_MIN = 44;
 
-export type ColorToken = keyof typeof colors;
+export type ColorToken = keyof Palette;

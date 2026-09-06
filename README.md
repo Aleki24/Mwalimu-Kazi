@@ -4,8 +4,9 @@ Teacher jobs and professional network for Kenya. Teachers find work before the
 WhatsApp channels do, judge a school before accepting a job, and carry one
 profile that every application reads from.
 
-> Status: foundation. The domain model, match-scoring engine and database schema
-> are in place and tested. The apps are not scaffolded yet.
+> Status: the domain model, match scoring, job search and the database are in
+> place and tested against a live Supabase project. The mobile app is scaffolded
+> but its screens are not built yet.
 
 ## Why it exists
 
@@ -38,24 +39,30 @@ anything uncertain skips with a reason the teacher can read back.
 
 ```bash
 npm install
-npx vitest run          # 17 tests
+npx vitest run          # 49 tests
 npx tsc --noEmit -p tsconfig.json
 ```
 
-Supabase, once you have a project:
+Copy `.env.example` to `.env` and fill in the project URL and publishable key
+from the Supabase dashboard.
+
+The schema in `supabase/migrations/` is already applied to the project, with
+sample schools and vacancies from `supabase/seed.sql`. After any schema change,
+regenerate the database types so queries stay checked:
 
 ```bash
-supabase start
-supabase db push
-npm run db:types        # regenerates packages/types/src/database.generated.ts
+npm run db:types        # rewrites packages/types/src/database.generated.ts
+npm test                # the enum parity test fails if the two drift apart
 ```
-
-Copy `.env.example` to `.env` and fill it in.
 
 ## Stack
 
-Turborepo · Expo + expo-router + NativeWind (mobile) · Next.js + Tailwind +
-shadcn (web dashboard) · Supabase (Postgres, Auth, Realtime, Storage, Edge
-Functions) · TypeScript in strict mode with Zod at every boundary.
+Turborepo with npm workspaces · Expo + expo-router + NativeWind (mobile) ·
+Next.js + Tailwind + shadcn (web dashboard) · Supabase (Postgres, Auth,
+Realtime, Storage, Edge Functions) · TypeScript in strict mode with Zod at
+every boundary.
+
+Note: NativeWind v4 pins Tailwind 3, so the mobile app is on Tailwind 3 while
+the web app can use Tailwind 4.
 
 See [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) for the decisions behind that.

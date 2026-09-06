@@ -140,6 +140,8 @@ alter table auto_apply_events enable row level security;
 
 -- Membership lookup used by several policies. SECURITY DEFINER so the policy can
 -- read school_members without recursing through that table's own RLS.
+-- NOTE: migration 0002 moves this into the `private` schema so PostgREST stops
+-- exposing it as an RPC endpoint. Read 0002 before changing it here.
 create or replace function is_school_member(target_school uuid)
 returns boolean language sql stable security definer set search_path = public as $$
   select exists (

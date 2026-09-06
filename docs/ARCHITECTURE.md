@@ -45,6 +45,20 @@ Job requirements ┘                        │
                                                           auto_apply_events (audit)
 ```
 
+**Private helpers live outside `public`.** PostgREST publishes every function in
+`public` as an RPC endpoint, so `is_school_member()` was callable by anyone
+before it moved to the `private` schema in migration 0002. Any future
+`SECURITY DEFINER` helper goes there too, with a pinned `search_path`.
+
+**`jobs` and `schools` are readable signed-out; everything else is not.**
+Browsing vacancies before creating an account is the point. `profiles`,
+`applications`, `auto_apply_rules`, `auto_apply_events` and `school_members`
+have `SELECT` revoked from `anon` outright, so RLS is the second line rather
+than the only one.
+
+**One vocabulary, two declarations, one test.** The Postgres enums and the Zod
+enums must agree; `packages/types/src/parity.test.ts` fails if they drift.
+
 ## Still to build
 
 - Expo and Next.js app scaffolds
