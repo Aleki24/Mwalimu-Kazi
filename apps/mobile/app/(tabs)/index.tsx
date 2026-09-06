@@ -14,6 +14,7 @@ import { useTeacher } from '../../lib/auth';
 /** Routes with no tab of their own; the grid is how a teacher reaches them. */
 const QUICK_ACCESS = [
   { href: '/saved', label: 'Saved jobs', icon: 'bookmark' },
+  { href: '/applications', label: 'Applications', icon: 'send' },
   { href: '/notifications', label: 'Alerts', icon: 'bell' },
 ] as const satisfies ReadonlyArray<{
   href: string;

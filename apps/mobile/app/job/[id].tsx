@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, Text, View } from 'react-native';
+import Feather from '@expo/vector-icons/Feather';
 import { Stack, useLocalSearchParams } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
@@ -10,6 +11,8 @@ import { colors, radius, shadow } from '@mwalimu/ui';
 import { Card, EmptyState, ErrorBanner, SchoolMark, Tag } from '../../components/ui';
 import { MatchBreakdown } from '../../components/match-breakdown';
 import { fetchJobById } from '../../lib/jobs';
+import { fetchSavedJobIds, saveJob, unsaveJob } from '../../lib/saved';
+import { applyToJob, fetchAppliedJobIds } from '../../lib/applications';
 import { useTeacher } from '../../lib/auth';
 
 export default function JobDetailScreen() {
@@ -23,15 +26,28 @@ export default function JobDetailScreen() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [now] = useState(() => new Date());
+  const [saved, setSaved] = useState(false);
+  const [applied, setApplied] = useState(false);
+  const [busy, setBusy] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
     void (async () => {
       try {
-        const found = await fetchJobById(id);
+        // One round trip each, in parallel: the action bar cannot render its
+        // real state until it knows whether this job is already saved or
+        // applied to, and showing "Apply now" to someone who already applied
+        // is worse than a moment of loading.
+        const [found, savedIds, appliedIds] = await Promise.all([
+          fetchJobById(id),
+          fetchSavedJobIds(),
+          fetchAppliedJobIds(),
+        ]);
         if (cancelled) return;
         setEntry(found);
         setMatch(found === null ? null : matchScore(found.job, teacher));
+        setSaved(savedIds.has(id));
+        setApplied(appliedIds.has(id));
       } catch (cause) {
         if (!cancelled) setError(cause instanceof Error ? cause.message : 'Could not load this role');
       } finally {
@@ -40,6 +56,31 @@ export default function JobDetailScreen() {
     })();
     return () => { cancelled = true; };
   }, [id]);
+
+  const toggleSave = async () => {
+    const next = !saved;
+    setSaved(next); // optimistic: a save that lags feels broken
+    try {
+      await (next ? saveJob(teacher.id, id) : unsaveJob(teacher.id, id));
+    } catch (cause) {
+      setSaved(!next);
+      setError(cause instanceof Error ? cause.message : 'Could not save this role');
+    }
+  };
+
+  const submit = async (score: number) => {
+    // Not optimistic. Saving is reversible in one tap; sending an application
+    // to a school is not, so this one waits for the database to confirm.
+    setBusy(true);
+    try {
+      await applyToJob(teacher.id, id, score);
+      setApplied(true);
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : 'Could not send your application');
+    } finally {
+      setBusy(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -138,20 +179,53 @@ export default function JobDetailScreen() {
         >
           <Pressable
             accessibilityRole="button"
-            className="h-12 flex-1 items-center justify-center border border-border bg-card"
+            accessibilityState={{ selected: saved }}
+            accessibilityLabel={saved ? 'Remove from saved' : 'Save this role'}
+            onPress={() => void toggleSave()}
+            className={`h-12 flex-1 flex-row items-center justify-center gap-1.5 border border-border ${saved ? 'bg-wash' : 'bg-card'}`}
             style={{ borderRadius: radius.md, borderCurve: 'continuous' }}
           >
-            <Text className="text-sm font-medium text-foreground">Save</Text>
+            <Feather
+              name="bookmark"
+              size={15}
+              color={colors.foreground}
+              // Filled once saved, so the state is legible without reading it.
+              style={saved ? undefined : { opacity: 0.7 }}
+            />
+            <Text className="text-sm font-medium text-foreground">{saved ? 'Saved' : 'Save'}</Text>
           </Pressable>
+
+          {/*
+            Three states, and they are not interchangeable. Blocked means a
+            must-have is unmet and applying would waste everyone's time.
+            Applied is terminal here — the row exists, and a second tap must not
+            look like it might do something.
+          */}
           <Pressable
             accessibilityRole="button"
-            disabled={match.blocked}
-            className={`h-12 flex-[2] items-center justify-center ${match.blocked ? 'bg-wash' : 'bg-primary'}`}
+            disabled={match.blocked || applied || busy}
+            onPress={() => void submit(match.score)}
+            className={`h-12 flex-[2] flex-row items-center justify-center gap-1.5 ${
+              match.blocked || applied ? 'bg-wash' : 'bg-primary'
+            }`}
             style={{ borderRadius: radius.md, borderCurve: 'continuous' }}
           >
-            <Text className={`text-sm font-medium ${match.blocked ? 'text-mutedForeground' : 'text-primaryForeground'}`}>
-              {match.blocked ? 'Requirement not met' : 'Apply now'}
-            </Text>
+            {busy ? (
+              <ActivityIndicator size="small" color={colors.primaryForeground} />
+            ) : (
+              <>
+                {applied ? <Feather name="check" size={15} color={colors.successForeground} /> : null}
+                <Text
+                  className={`text-sm font-medium ${
+                    match.blocked ? 'text-mutedForeground'
+                    : applied ? 'text-foreground'
+                    : 'text-primaryForeground'
+                  }`}
+                >
+                  {match.blocked ? 'Requirement not met' : applied ? 'Applied' : 'Apply now'}
+                </Text>
+              </>
+            )}
           </Pressable>
         </View>
       </View>
