@@ -49,6 +49,9 @@ export async function fetchSchools(): Promise<readonly SchoolListing[]> {
 
   const openings = new Map<string, number>();
   for (const row of jobs.data ?? []) {
+    // school_id is nullable since 0008: a job posted by an individual belongs
+    // to no school and must not be counted as anyone's opening.
+    if (row.school_id === null) continue;
     openings.set(row.school_id, (openings.get(row.school_id) ?? 0) + 1);
   }
 

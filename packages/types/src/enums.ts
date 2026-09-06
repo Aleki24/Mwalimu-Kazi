@@ -64,6 +64,18 @@ export const ReviewCategory = z.enum([
 ]);
 export type ReviewCategory = z.infer<typeof ReviewCategory>;
 
+/**
+ * Who put a job up. Not a display detail: a listing with no verified school
+ * behind it is the shape a scam advert takes, so provenance is carried, shown,
+ * and kept out of Auto-Apply.
+ */
+export const JobPosterKind = z.enum(['school', 'individual', 'platform']);
+export type JobPosterKind = z.infer<typeof JobPosterKind>;
+
+/** A person's role at a school. Had no Zod counterpart until the parity guard found it. */
+export const SchoolRole = z.enum(['recruiter', 'admin']);
+export type SchoolRole = z.infer<typeof SchoolRole>;
+
 export const ModerationStatus = z.enum(['pending', 'approved', 'rejected']);
 export type ModerationStatus = z.infer<typeof ModerationStatus>;
 

@@ -168,8 +168,10 @@ export type Database = {
           published: boolean
           requirements: Json
           salary_max: number | null
+          posted_by: string | null
+          poster_kind: Database["public"]["Enums"]["job_poster_kind"]
           salary_min: number | null
-          school_id: string
+          school_id: string | null
           subjects: string[]
           title: string
         }
@@ -183,8 +185,10 @@ export type Database = {
           published?: boolean
           requirements?: Json
           salary_max?: number | null
+          posted_by?: string | null
+          poster_kind?: Database["public"]["Enums"]["job_poster_kind"]
           salary_min?: number | null
-          school_id: string
+          school_id?: string | null
           subjects: string[]
           title: string
         }
@@ -198,8 +202,10 @@ export type Database = {
           published?: boolean
           requirements?: Json
           salary_max?: number | null
+          posted_by?: string | null
+          poster_kind?: Database["public"]["Enums"]["job_poster_kind"]
           salary_min?: number | null
-          school_id?: string
+          school_id?: string | null
           subjects?: string[]
           title?: string
         }
@@ -300,6 +306,7 @@ export type Database = {
           has_degree: boolean
           headline: string | null
           id: string
+          notification_sound: boolean
           open_to_opportunities: boolean
           skills: string[]
           subjects: string[]
@@ -316,6 +323,7 @@ export type Database = {
           has_degree?: boolean
           headline?: string | null
           id: string
+          notification_sound?: boolean
           open_to_opportunities?: boolean
           skills?: string[]
           subjects?: string[]
@@ -332,6 +340,7 @@ export type Database = {
           has_degree?: boolean
           headline?: string | null
           id?: string
+          notification_sound?: boolean
           open_to_opportunities?: boolean
           skills?: string[]
           subjects?: string[]
@@ -604,6 +613,154 @@ export type Database = {
         }
         Relationships: []
       }
+      job_comments: {
+        Row: {
+          author_id: string
+          body: string
+          created_at: string
+          id: string
+          job_id: string
+        }
+        Insert: {
+          author_id: string
+          body: string
+          created_at?: string
+          id?: string
+          job_id: string
+        }
+        Update: {
+          author_id?: string
+          body?: string
+          created_at?: string
+          id?: string
+          job_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "job_comments_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "jobs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "job_comments_author_id_fkey"
+            columns: ["author_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      platform_admins: {
+        Row: {
+          granted_at: string
+          user_id: string
+        }
+        Insert: {
+          granted_at?: string
+          user_id: string
+        }
+        Update: {
+          granted_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      post_comments: {
+        Row: {
+          author_id: string
+          body: string
+          created_at: string
+          id: string
+          post_id: string
+        }
+        Insert: {
+          author_id: string
+          body: string
+          created_at?: string
+          id?: string
+          post_id: string
+        }
+        Update: {
+          author_id?: string
+          body?: string
+          created_at?: string
+          id?: string
+          post_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "post_comments_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "posts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "post_comments_author_id_fkey"
+            columns: ["author_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      post_likes: {
+        Row: {
+          created_at: string
+          post_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          post_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          post_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "post_likes_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "posts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      posts: {
+        Row: {
+          author_id: string
+          body: string
+          created_at: string
+          id: string
+        }
+        Insert: {
+          author_id: string
+          body: string
+          created_at?: string
+          id?: string
+        }
+        Update: {
+          author_id?: string
+          body?: string
+          created_at?: string
+          id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "posts_author_id_fkey"
+            columns: ["author_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
@@ -632,6 +789,7 @@ export type Database = {
         | "rejected"
         | "withdrawn"
       curriculum: "cbc" | "8-4-4" | "igcse" | "ib" | "montessori"
+      job_poster_kind: "school" | "individual" | "platform"
       job_type: "full_time" | "part_time" | "contract" | "locum"
       moderation_status: "pending" | "approved" | "rejected"
       news_topic:
@@ -831,6 +989,7 @@ export const Constants = {
         "withdrawn",
       ],
       curriculum: ["cbc", "8-4-4", "igcse", "ib", "montessori"],
+      job_poster_kind: ["school", "individual", "platform"],
       job_type: ["full_time", "part_time", "contract", "locum"],
       moderation_status: ["pending", "approved", "rejected"],
       news_topic: [

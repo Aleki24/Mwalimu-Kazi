@@ -66,3 +66,67 @@ export async function fetchJobById(id: string): Promise<JobWithSchool | null> {
   const { jobs } = parseJobsWithSchools([data as unknown as JobRowWithSchool]);
   return jobs[0] ?? null;
 }
+
+/** How many rows one scroll-page pulls. */
+export const JOBS_PAGE_SIZE = 20;
+
+/** Opaque position in the recency ordering. */
+export interface JobsCursor {
+  readonly postedAt: string;
+  readonly id: string;
+}
+
+export interface JobsPage {
+  readonly jobs: readonly JobWithSchool[];
+  readonly skipped: readonly string[];
+  /** Null once the end is reached. */
+  readonly next: JobsCursor | null;
+}
+
+/**
+ * One page of open vacancies, newest first.
+ *
+ * Ordered by recency, not by match, and that is a deliberate limit rather than
+ * an oversight. Match ranking lives in `@mwalimu/core` so one matcher serves
+ * every view — but a client-side ranking can only order what it has loaded, so
+ * a match-ordered infinite list would silently reshuffle as you scrolled and
+ * "best match" would mean "best of the first forty". Recency is stable under
+ * paging; the per-card score still tells a teacher what each row is worth, and
+ * Home's "Top matches" does the real ranking over a bounded recent window.
+ *
+ * Keyset, not OFFSET: a job published while someone is scrolling shifts every
+ * offset by one and makes a row appear twice. (posted_at, id) is unique and
+ * ordered, so a cursor stays correct however much the table changes underneath.
+ */
+export async function fetchJobsPage(cursor: JobsCursor | null): Promise<JobsPage> {
+  let query = supabase
+    .from('jobs')
+    .select(JOB_SELECT)
+    .eq('published', true)
+    .order('posted_at', { ascending: false })
+    .order('id', { ascending: false })
+    .limit(JOBS_PAGE_SIZE);
+
+  if (cursor !== null) {
+    // Strictly after the cursor in (posted_at desc, id desc) order.
+    query = query.or(
+      `posted_at.lt.${cursor.postedAt},and(posted_at.eq.${cursor.postedAt},id.lt.${cursor.id})`,
+    );
+  }
+
+  const { data, error } = await query;
+  if (error !== null) throw new Error(error.message);
+
+  const rows = (data ?? []) as unknown as JobRowWithSchool[];
+  const { jobs, skipped } = parseJobsWithSchools(rows);
+
+  // The cursor comes from the last ROW, not the last parsed job: a row that
+  // failed to parse still occupies a position, and skipping it would re-fetch
+  // everything after it forever.
+  const lastRow = rows[rows.length - 1];
+  const next = rows.length < JOBS_PAGE_SIZE || lastRow === undefined
+    ? null
+    : { postedAt: lastRow.posted_at, id: lastRow.id };
+
+  return { jobs, skipped, next };
+}
