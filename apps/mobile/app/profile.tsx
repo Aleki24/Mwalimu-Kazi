@@ -6,16 +6,31 @@ import { colors } from '@mwalimu/ui';
 import { Avatar, Badge, Card, ErrorBanner, Tag } from '../components/ui';
 import { useAuth, useTeacher } from '../lib/auth';
 import { supabase } from '../lib/supabase';
+import { playNotificationSound, setNotificationSound } from '../lib/sound';
 
 export default function ProfileScreen() {
   const insets = useSafeAreaInsets();
   const teacher = useTeacher();
   const { session, refreshProfile, signOut } = useAuth();
   const [open, setOpen] = useState(teacher.openToOpportunities);
+  const [sound, setSound] = useState(teacher.notificationSound);
   const [error, setError] = useState<string | null>(null);
 
   const raw = session?.user.phone ?? '';
   const phone = raw.trim() === '' ? null : `+${raw.replace(/^\+/, '')}`;
+
+  const toggleSound = async (next: boolean) => {
+    setSound(next);
+    // Play it on the way on, never on the way off. Someone turning a sound off
+    // has already decided what they think of it.
+    if (next) void playNotificationSound(true);
+    try {
+      await setNotificationSound(teacher.id, next);
+    } catch (cause) {
+      setSound(!next);
+      setError(cause instanceof Error ? cause.message : 'Could not save that');
+    }
+  };
 
   const toggleOpen = async (next: boolean) => {
     setOpen(next); // optimistic: a toggle that lags feels broken
@@ -74,6 +89,22 @@ export default function ProfileScreen() {
             <Switch
               value={open}
               onValueChange={(next) => void toggleOpen(next)}
+              trackColor={{ true: colors.primary, false: colors.secondary }}
+              thumbColor={colors.card}
+              ios_backgroundColor={colors.secondary}
+            />
+          </Card>
+
+          <Card className="flex-row items-center gap-3 p-3.5">
+            <View className="flex-1">
+              <Text className="text-[13px] font-medium text-foreground">Notification sound</Text>
+              <Text className="mt-0.5 text-[11.5px] text-mutedForeground">
+                Play a tone for job matches and replies
+              </Text>
+            </View>
+            <Switch
+              value={sound}
+              onValueChange={(next) => void toggleSound(next)}
               trackColor={{ true: colors.primary, false: colors.secondary }}
               thumbColor={colors.card}
               ios_backgroundColor={colors.secondary}

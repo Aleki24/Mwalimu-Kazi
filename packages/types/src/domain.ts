@@ -42,6 +42,8 @@ export const TeacherProfile = z.object({
   tscNumber: TscNumber.optional(),
   tscVerified: z.boolean().default(false),
   openToOpportunities: z.boolean().default(true),
+  /** Off by default: an app that makes noise unasked gets muted entirely. */
+  notificationSound: z.boolean().default(false),
   skills: z.array(z.string().max(48)).max(20).default([]),
 });
 export type TeacherProfile = z.infer<typeof TeacherProfile>;
@@ -77,7 +79,11 @@ export type JobRequirement = z.infer<typeof JobRequirement>;
 
 export const Job = z.object({
   id: Uuid,
-  schoolId: Uuid,
+  /**
+   * Null for a listing posted by an individual. Since migration 0008 a job
+   * need not belong to a school; `posterKind` on JobWithSchool says which.
+   */
+  schoolId: Uuid.nullable(),
   title: z.string().min(3).max(160),
   subjects: z.array(Slug).min(1),
   jobType: JobType,

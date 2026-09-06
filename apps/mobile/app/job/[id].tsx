@@ -13,6 +13,9 @@ import { MatchBreakdown } from '../../components/match-breakdown';
 import { fetchJobById } from '../../lib/jobs';
 import { fetchSavedJobIds, saveJob, unsaveJob } from '../../lib/saved';
 import { applyToJob, fetchAppliedJobIds } from '../../lib/applications';
+import { addJobComment, fetchJobComments } from '../../lib/social';
+import { CommentThread } from '../../components/comment-thread';
+import { NoticeStrip } from '../../components/ui';
 import { useTeacher } from '../../lib/auth';
 
 export default function JobDetailScreen() {
@@ -145,6 +148,28 @@ export default function JobDetailScreen() {
           {job.subjects.map((s) => <Tag key={s} label={formatLabel(s)} />)}
           <Tag label={formatLabel(job.jobType)} />
         </View>
+
+        {/*
+          Provenance, stated plainly. A listing with no verified school behind
+          it is how a placement scam presents itself, and the teacher deciding
+          whether to send their documents is the person who needs to know.
+        */}
+        {entry.posterKind === 'individual' ? (
+          <NoticeStrip tone="warning">
+            <Text className="text-[11.5px] leading-4 text-mutedForeground">
+              Posted by an individual, not a verified school. Never pay a fee to apply for a
+              teaching job.
+            </Text>
+          </NoticeStrip>
+        ) : null}
+
+        <Card className="px-3.5 py-3">
+          <CommentThread
+            load={() => fetchJobComments(id)}
+            send={(body) => addJobComment(id, teacher.id, body)}
+            emptyHint="No questions yet. Comments here are public and shown under your name."
+          />
+        </Card>
       </ScrollView>
 
       {/*

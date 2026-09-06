@@ -76,10 +76,24 @@ describe('parseJobsWithSchools', () => {
     expect(skipped[0]).toContain('malformed requirements');
   });
 
+  it('keeps a school-less listing rather than dropping it', () => {
+    // Since 0008 a job posted by an individual has no school. The old code
+    // skipped any row with schools === null, which would have made every
+    // independent listing invisible everywhere, silently.
+    const { jobs, skipped } = parseJobsWithSchools([
+      joined({ schools: null, school_id: null, poster_kind: 'individual' }),
+    ]);
+    expect(skipped).toEqual([]);
+    expect(jobs).toHaveLength(1);
+    expect(jobs[0]?.schoolName).toBe('Independent listing');
+    expect(jobs[0]?.schoolType).toBeNull();
+    expect(jobs[0]?.posterKind).toBe('individual');
+  });
+
   it('skips a job whose school did not come back from the join', () => {
     const { jobs, skipped } = parseJobsWithSchools([joined({ schools: null })]);
     expect(jobs).toHaveLength(0);
-    expect(skipped[0]).toContain('missing school');
+    expect(skipped[0]).toContain('did not resolve');
   });
 
   it('carries the school through for filtering', () => {

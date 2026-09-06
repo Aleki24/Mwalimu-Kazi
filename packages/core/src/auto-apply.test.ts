@@ -82,3 +82,18 @@ describe('decideAutoApply', () => {
     expect(decision).toEqual({ decision: 'skip', reason: SkipReason.Disabled });
   });
 });
+
+describe('decideAutoApply — listings with no school', () => {
+  it('never auto-applies to a listing posted by an individual', () => {
+    // Auto-Apply sends documents without the teacher reading the listing
+    // first. A rule that matches perfectly must still not do that to an
+    // unverified poster; they can apply by hand after looking at it.
+    const independent = job({ schoolId: null });
+    expect(decideAutoApply(rule(), independent, strong, ctx()))
+      .toEqual({ decision: 'skip', reason: SkipReason.UnverifiedPoster });
+  });
+
+  it('still applies to the same job once it belongs to a school', () => {
+    expect(decideAutoApply(rule(), job(), strong, ctx())).toEqual({ decision: 'apply' });
+  });
+});

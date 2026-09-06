@@ -1,4 +1,6 @@
-import type { Curriculum, County, Job, JobType, SchoolType, TeacherProfile } from '@mwalimu/types';
+import type {
+  Curriculum, County, Job, JobPosterKind, JobType, SchoolType, TeacherProfile,
+} from '@mwalimu/types';
 import { matchScore, type MatchResult } from './match';
 
 /**
@@ -27,9 +29,16 @@ export interface JobFilters {
 /** Fields a job needs beyond `Job` itself to be filterable by school. */
 export interface JobWithSchool {
   readonly job: Job;
+  /** The school's name, or a label for a listing that has no school. */
   readonly schoolName: string;
-  readonly schoolType: SchoolType;
+  /**
+   * Null for a job posted by an individual. Since 0008 a listing need not
+   * belong to a school, and a missing school is not the same as an unknown
+   * one — a school-type filter must exclude these rather than guess.
+   */
+  readonly schoolType: SchoolType | null;
   readonly schoolCurricula: readonly Curriculum[];
+  readonly posterKind: JobPosterKind;
 }
 
 const norm = (s: string): string => s.trim().toLowerCase();
@@ -69,7 +78,10 @@ export function filterJobs(
     if (filters.subjects?.length && !overlaps(job.subjects, filters.subjects)) return false;
     if (filters.counties?.length && !filters.counties.some((c) => norm(c) === norm(job.county))) return false;
     if (filters.jobTypes?.length && !filters.jobTypes.includes(job.jobType)) return false;
-    if (filters.schoolTypes?.length && !filters.schoolTypes.includes(entry.schoolType)) return false;
+    // A school-type filter is a question about schools. A listing with no
+    // school cannot answer it, so it is excluded rather than let through.
+    if (filters.schoolTypes?.length
+      && (entry.schoolType === null || !filters.schoolTypes.includes(entry.schoolType))) return false;
     if (filters.curricula?.length && !overlaps(entry.schoolCurricula, filters.curricula)) return false;
 
     if (filters.minSalary !== undefined) {

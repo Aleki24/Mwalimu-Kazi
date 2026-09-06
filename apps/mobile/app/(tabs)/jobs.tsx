@@ -6,7 +6,7 @@ import { colors } from '@mwalimu/ui';
 import { Chip, EmptyState, ErrorBanner, ScreenHeader } from '../../components/ui';
 import { useTabBarClearance } from '../../components/floating-tab-bar';
 import { JobCard } from '../../components/job-card';
-import { fetchOpenJobs } from '../../lib/jobs';
+import { fetchJobsPage, type JobsCursor } from '../../lib/jobs';
 import { useTeacher } from '../../lib/auth';
 
 interface QuickFilter {
@@ -24,13 +24,18 @@ export default function JobsScreen() {
   const [active, setActive] = useState<ReadonlySet<string>>(new Set());
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [cursor, setCursor] = useState<JobsCursor | null>(null);
+  const [done, setDone] = useState(false);
   const [now, setNow] = useState(() => new Date());
 
   const load = useCallback(async () => {
     try {
-      const result = await fetchOpenJobs();
-      setAll(result.jobs);
-      setSkipped(result.skipped);
+      const page = await fetchJobsPage(null);
+      setAll(page.jobs);
+      setSkipped(page.skipped);
+      setCursor(page.next);
+      setDone(page.next === null);
       setNow(new Date());
       setError(null);
     } catch (cause) {
@@ -41,6 +46,24 @@ export default function JobsScreen() {
   }, []);
 
   useEffect(() => { void load(); }, [load]);
+
+  const loadMore = async () => {
+    // All three guards matter: onEndReached fires repeatedly while a slow page
+    // is in flight, and without them the same page lands two or three times.
+    if (done || loadingMore || cursor === null) return;
+    setLoadingMore(true);
+    try {
+      const page = await fetchJobsPage(cursor);
+      setAll((prev) => [...prev, ...page.jobs]);
+      setSkipped((prev) => [...prev, ...page.skipped]);
+      setCursor(page.next);
+      setDone(page.next === null);
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : 'Could not load more jobs');
+    } finally {
+      setLoadingMore(false);
+    }
+  };
 
   /**
    * Two of these read the signed-in teacher, so they are built per render
@@ -103,6 +126,16 @@ export default function JobsScreen() {
           data={results}
           keyExtractor={(entry) => entry.job.id}
           contentContainerStyle={{ padding: 16, gap: 12, paddingBottom: tabBarClearance }}
+          onEndReachedThreshold={0.6}
+          onEndReached={() => void loadMore()}
+          ListFooterComponent={
+            loadingMore ? <ActivityIndicator color={colors.mutedForeground} className="py-4" />
+            : done && results.length > 0
+              ? <Text className="py-4 text-center text-[11px] text-mutedForeground">
+                  That is every open role.
+                </Text>
+              : null
+          }
           renderItem={({ item }) => <JobCard entry={item} now={now} />}
           ListHeaderComponent={
             <View className="gap-3">

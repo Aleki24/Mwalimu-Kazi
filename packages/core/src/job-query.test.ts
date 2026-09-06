@@ -8,7 +8,31 @@ const entry = (over: Partial<JobWithSchool> & { job: JobWithSchool['job'] }): Jo
   schoolName: 'Greenfield Academy',
   schoolType: 'private',
   schoolCurricula: ['cbc'],
+  posterKind: 'school',
   ...over,
+});
+
+describe('filterJobs — listings with no school', () => {
+  // Since 0008 a job can be posted by an individual and belong to no school.
+  const independent = entry({
+    job: job({}),
+    schoolName: 'Independent listing',
+    schoolType: null,
+    schoolCurricula: [],
+    posterKind: 'individual',
+  });
+
+  it('keeps an independent listing when no school filter is applied', () => {
+    expect(filterJobs([independent], {})).toHaveLength(1);
+  });
+
+  it('excludes it from a school-type filter rather than guessing a type', () => {
+    expect(filterJobs([independent], { schoolTypes: ['private'] })).toHaveLength(0);
+  });
+
+  it('excludes it from a curriculum filter — it advertises none', () => {
+    expect(filterJobs([independent], { curricula: ['cbc'] })).toHaveLength(0);
+  });
 });
 
 describe('filterJobs', () => {

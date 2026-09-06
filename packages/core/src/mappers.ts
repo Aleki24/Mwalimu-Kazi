@@ -90,6 +90,7 @@ export function parseTeacherProfile(row: Tables<'profiles'>): ParseResult<Teache
     tscNumber: row.tsc_number ?? undefined,
     tscVerified: row.tsc_verified,
     openToOpportunities: row.open_to_opportunities,
+    notificationSound: row.notification_sound,
     skills: row.skills,
   });
   return profile.success
@@ -114,15 +115,32 @@ export function parseJobsWithSchools(
   const skipped: string[] = [];
 
   for (const row of rows) {
-    if (row.schools === null) {
-      skipped.push(`job ${row.id}: missing school`);
-      continue;
-    }
     const parsed = parseJob(row);
     if (!parsed.ok) {
       skipped.push(parsed.reason);
       continue;
     }
+
+    // Since 0008 a job need not belong to a school. Dropping those rows here
+    // — which is what "missing school" used to do — would have made every
+    // individually posted job invisible in every list, with nothing failing.
+    if (row.schools === null) {
+      if (row.school_id !== null) {
+        // A school_id that did not resolve IS a data problem, and still gets
+        // reported rather than quietly rendered as an independent listing.
+        skipped.push(`job ${row.id}: school ${row.school_id} did not resolve`);
+        continue;
+      }
+      jobs.push({
+        job: parsed.value,
+        schoolName: 'Independent listing',
+        schoolType: null,
+        schoolCurricula: [],
+        posterKind: row.poster_kind,
+      });
+      continue;
+    }
+
     const curricula = z.array(Curriculum).safeParse(row.schools.curricula);
     const schoolType = SchoolType.safeParse(row.schools.school_type);
     if (!curricula.success || !schoolType.success) {
@@ -134,6 +152,7 @@ export function parseJobsWithSchools(
       schoolName: row.schools.name,
       schoolType: schoolType.data,
       schoolCurricula: curricula.data,
+      posterKind: row.poster_kind,
     });
   }
 

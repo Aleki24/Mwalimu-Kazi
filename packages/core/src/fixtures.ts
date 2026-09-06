@@ -13,6 +13,7 @@ export const teacher = (over: Partial<TeacherProfile> = {}): TeacherProfile => (
   tscNumber: '123456',
   tscVerified: true,
   openToOpportunities: true,
+  notificationSound: false,
   skills: [],
   ...over,
 });

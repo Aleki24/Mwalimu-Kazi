@@ -23,6 +23,7 @@ export const SkipReason = {
   DailyLimitReached: 'daily_limit_reached',
   WeeklyLimitReached: 'weekly_limit_reached',
   JobClosed: 'job_closed',
+  UnverifiedPoster: 'unverified_poster',
 } as const;
 export type SkipReason = (typeof SkipReason)[keyof typeof SkipReason];
 
@@ -39,6 +40,7 @@ export const SKIP_REASON_TEXT: Readonly<Record<SkipReason, string>> = {
   must_have_unmet: 'You do not meet a required qualification',
   daily_limit_reached: 'Daily application limit reached',
   weekly_limit_reached: 'Weekly application limit reached',
+  unverified_poster: 'Posted by an individual, not a verified school',
   job_closed: 'The role had already closed',
 };
 
@@ -75,6 +77,11 @@ export function decideAutoApply(
   if (job.closesAt !== undefined && job.closesAt.getTime() <= ctx.now.getTime()) {
     return skip(SkipReason.JobClosed);
   }
+  // Auto-Apply sends a teacher's documents without them seeing the listing
+  // first. That is only defensible when there is a verified institution on the
+  // other end, so a listing with no school is never sent to automatically —
+  // whatever the rules say. A teacher can still apply by hand after reading it.
+  if (job.schoolId === null) return skip(SkipReason.UnverifiedPoster);
   if (rule.excludedSchoolIds.includes(job.schoolId)) return skip(SkipReason.ExcludedSchool);
 
   const subjectHit = job.subjects.some((s) => rule.subjects.includes(s));

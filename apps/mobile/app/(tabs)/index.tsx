@@ -8,6 +8,7 @@ import { colors } from '@mwalimu/ui';
 import { Avatar, Card, EmptyState, ErrorBanner, NoticeStrip } from '../../components/ui';
 import { useTabBarClearance } from '../../components/floating-tab-bar';
 import { JobCard } from '../../components/job-card';
+import { ComposeFab } from '../../components/compose-fab';
 import { fetchOpenJobs } from '../../lib/jobs';
 import { useTeacher } from '../../lib/auth';
 
@@ -16,6 +17,7 @@ const QUICK_ACCESS = [
   { href: '/saved', label: 'Saved jobs', icon: 'bookmark' },
   { href: '/applications', label: 'Applications', icon: 'send' },
   { href: '/notifications', label: 'Alerts', icon: 'bell' },
+  { href: '/feed', label: 'Staffroom', icon: 'message-square' },
 ] as const satisfies ReadonlyArray<{
   href: string;
   label: string;
@@ -122,6 +124,9 @@ export default function HomeScreen() {
           topMatches.map((entry) => <JobCard key={entry.job.id} entry={entry} now={now} />)
         )}
       </ScrollView>
+
+      {/* Outside the ScrollView: it floats over the content, it does not scroll with it. */}
+      <ComposeFab />
     </View>
   );
 }

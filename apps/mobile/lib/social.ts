@@ -91,9 +91,13 @@ export async function fetchFeedPage(
 ): Promise<FeedPage> {
   let query = supabase
     .from('posts')
+    // `profiles!posts_author_id_fkey`, not bare `profiles`: the nested
+    // post_likes and post_comments embeds also reach profiles, so PostgREST
+    // sees several paths and refuses with "more than one relationship was
+    // found" rather than guessing. Naming the constraint settles it.
     .select(`
       id, author_id, body, created_at,
-      profiles ( id, full_name, headline ),
+      profiles!posts_author_id_fkey ( id, full_name, headline ),
       post_likes ( user_id ),
       post_comments ( id )
     `)

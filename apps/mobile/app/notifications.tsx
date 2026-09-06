@@ -7,6 +7,7 @@ import type { Tables } from '@mwalimu/types';
 import { EmptyState, ErrorBanner } from '../components/ui';
 import { fetchNotifications, jobIdOf, markAllRead } from '../lib/notifications';
 import { useTeacher } from '../lib/auth';
+import { playNotificationSound } from '../lib/sound';
 
 type Kind = Tables<'notifications'>['kind'];
 
@@ -49,7 +50,15 @@ export default function NotificationsScreen() {
   const load = useCallback(async () => {
     try {
       const feed = await fetchNotifications();
-      setItems(feed.items);
+      // Sound only for rows that are new SINCE THE LAST LOAD. Playing it for
+      // every unread row would chime on every visit to a screen someone has
+      // already read, which is how a tone stops meaning "something happened".
+      setItems((prev) => {
+        const known = new Set(prev.map((n) => n.id));
+        const arrived = feed.items.filter((n) => !known.has(n.id) && n.read_at === null);
+        if (prev.length > 0 && arrived.length > 0) void playNotificationSound(teacher.notificationSound);
+        return feed.items;
+      });
       setJobs(feed.jobs);
       setError(null);
     } catch (cause) {
@@ -57,7 +66,7 @@ export default function NotificationsScreen() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [teacher.notificationSound]);
 
   useEffect(() => { void load(); }, [load]);
 
