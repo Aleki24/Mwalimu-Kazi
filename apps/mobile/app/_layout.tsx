@@ -42,6 +42,10 @@ function RootNavigator() {
       <Stack.Protected guard={status === 'ready'}>
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen name="job/[id]" options={{ title: 'Job' }} />
+        <Stack.Screen name="school/[slug]" options={{ title: 'School' }} />
+        <Stack.Screen name="news" options={{ title: 'News & updates' }} />
+        <Stack.Screen name="notifications" options={{ title: 'Notifications' }} />
+        <Stack.Screen name="saved" options={{ title: 'Saved jobs' }} />
       </Stack.Protected>
 
       <Stack.Protected guard={status === 'needs-onboarding'}>

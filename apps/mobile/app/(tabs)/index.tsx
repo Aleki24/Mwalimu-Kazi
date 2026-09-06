@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, RefreshControl, ScrollView, Text, View } from 'react-native';
+import { ActivityIndicator, Pressable, RefreshControl, ScrollView, Text, View } from 'react-native';
 import { Link } from 'expo-router';
+import Feather from '@expo/vector-icons/Feather';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { closingSoon, rankJobs, type JobWithSchool, type RankedJob } from '@mwalimu/core';
 import { colors } from '@mwalimu/ui';
@@ -8,6 +9,17 @@ import { Card, EmptyState, ErrorBanner, ScreenHeader } from '../../components/ui
 import { JobCard } from '../../components/job-card';
 import { fetchOpenJobs } from '../../lib/jobs';
 import { useTeacher } from '../../lib/auth';
+
+/** Routes with no tab of their own; the grid is how a teacher reaches them. */
+const QUICK_ACCESS = [
+  { href: '/saved', label: 'Saved', icon: 'bookmark' },
+  { href: '/news', label: 'News', icon: 'file-text' },
+  { href: '/notifications', label: 'Alerts', icon: 'bell' },
+] as const satisfies ReadonlyArray<{
+  href: string;
+  label: string;
+  icon: React.ComponentProps<typeof Feather>['name'];
+}>;
 
 export default function HomeScreen() {
   const insets = useSafeAreaInsets();
@@ -72,6 +84,19 @@ export default function HomeScreen() {
             Set your rules and we will apply to strong matches for you, before the shortlist fills.
           </Text>
         </Card>
+
+        <View className="flex-row flex-wrap gap-2.5">
+          {QUICK_ACCESS.map((item) => (
+            <Link key={item.href} href={item.href} asChild>
+              <Pressable accessibilityRole="button" style={{ width: '31%' }}>
+                <Card className="items-center gap-1.5 px-2 py-3">
+                  <Feather name={item.icon} size={19} color={colors.primary} />
+                  <Text className="text-[11.5px] font-semibold text-foreground">{item.label}</Text>
+                </Card>
+              </Pressable>
+            </Link>
+          ))}
+        </View>
 
         <View className="flex-row items-baseline justify-between">
           <Text className="text-[15px] font-bold tracking-tight text-foreground">Top matches for you</Text>

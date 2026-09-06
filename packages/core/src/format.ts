@@ -140,6 +140,8 @@ const LABEL_OVERRIDES: Readonly<Record<string, string>> = {
   cbc: 'CBC',
   tsc: 'TSC',
   '8-4-4': '8-4-4',
+  full_time: 'Full-time',
+  part_time: 'Part-time',
   ecd: 'ECD',
   cre: 'CRE',
   ire: 'IRE',
@@ -147,8 +149,13 @@ const LABEL_OVERRIDES: Readonly<Record<string, string>> = {
 
 /**
  * Turn a stored slug into something a person reads: "mathematics" ->
- * "Mathematics", "computer-studies" -> "Computer studies", "full_time" ->
- * "Full-time", "ict" -> "ICT".
+ * "Mathematics", "past_paper" -> "Past paper", "full_time" -> "Full-time",
+ * "ict" -> "ICT".
+ *
+ * Underscores become spaces and hyphens stay hyphens, because the two carry
+ * different meaning in our slugs: `past_paper` is two words, while
+ * `taita-taveta` is one hyphenated name. The genuinely hyphenated compounds
+ * (full-time, part-time) are listed above rather than inferred.
  *
  * Slugs are the database's vocabulary, not the user's. Nothing stored as a slug
  * should reach a screen unlabelled.
@@ -158,13 +165,12 @@ export function formatLabel(slug: string): string {
   const override = LABEL_OVERRIDES[key];
   if (override !== undefined) return override;
 
-  // Job types are stored snake_case and read better hyphenated: full-time.
-  const words = key.replace(/_/g, '-').split('-');
-  const joined = words
-    .map((w) => LABEL_OVERRIDES[w] ?? w)
-    .join('-');
+  const spaced = key
+    .split('_')
+    .map((word) => word.split('-').map((part) => LABEL_OVERRIDES[part] ?? part).join('-'))
+    .join(' ');
 
-  return joined.charAt(0).toUpperCase() + joined.slice(1);
+  return spaced.charAt(0).toUpperCase() + spaced.slice(1);
 }
 
 /** Comma-separated labels, for a row of subjects or counties. */

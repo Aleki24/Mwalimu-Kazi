@@ -119,9 +119,21 @@ describe('formatLabel', () => {
     expect(formatLabel('8-4-4')).toBe('8-4-4');
   });
 
-  it('hyphenates snake_case job types', () => {
+  it('keeps genuinely hyphenated compounds hyphenated', () => {
     expect(formatLabel('full_time')).toBe('Full-time');
     expect(formatLabel('part_time')).toBe('Part-time');
+  });
+
+  it('reads other underscored slugs as separate words', () => {
+    // "Past-paper" and "Scheme-of-work" were shipping on the resources list.
+    expect(formatLabel('past_paper')).toBe('Past paper');
+    expect(formatLabel('scheme_of_work')).toBe('Scheme of work');
+    expect(formatLabel('marking_scheme')).toBe('Marking scheme');
+    expect(formatLabel('pay_reliability')).toBe('Pay reliability');
+  });
+
+  it('leaves a hyphenated proper name alone', () => {
+    expect(formatLabel('taita-taveta')).toBe('Taita-taveta');
   });
 
   it('handles a multi-word slug', () => {
