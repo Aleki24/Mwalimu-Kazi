@@ -5,6 +5,7 @@ import { formatPostedAge, formatLabel } from '@mwalimu/core';
 import { colors } from '@mwalimu/ui';
 import type { Tables } from '@mwalimu/types';
 import { Card, Chip, EmptyState, ErrorBanner, ScreenHeader } from '../../components/ui';
+import { useTabBarClearance } from '../../components/floating-tab-bar';
 import { fetchNews } from '../../lib/content';
 
 type Topic = Tables<'news_articles'>['topic'];
@@ -20,6 +21,7 @@ const TOPICS: ReadonlyArray<{ key: Topic | 'all'; label: string }> = [
 ];
 
 export default function NewsScreen() {
+  const tabBarClearance = useTabBarClearance();
   const insets = useSafeAreaInsets();
   const [items, setItems] = useState<readonly Tables<'news_articles'>[]>([]);
   const [topic, setTopic] = useState<Topic | 'all'>('all');
@@ -68,7 +70,7 @@ export default function NewsScreen() {
         <FlatList
           data={rest}
           keyExtractor={(a) => a.id}
-          contentContainerStyle={{ padding: 16, paddingBottom: 32 }}
+          contentContainerStyle={{ padding: 16, paddingBottom: tabBarClearance }}
           ListHeaderComponent={
             <View className="gap-3">
               {error !== null ? <ErrorBanner message={error} /> : null}

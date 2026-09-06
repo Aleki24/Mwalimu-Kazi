@@ -4,6 +4,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { filterJobs, rankJobs, type JobFilters, type JobWithSchool } from '@mwalimu/core';
 import { colors } from '@mwalimu/ui';
 import { Chip, EmptyState, ErrorBanner, ScreenHeader } from '../../components/ui';
+import { useTabBarClearance } from '../../components/floating-tab-bar';
 import { JobCard } from '../../components/job-card';
 import { fetchOpenJobs } from '../../lib/jobs';
 import { useTeacher } from '../../lib/auth';
@@ -15,6 +16,7 @@ interface QuickFilter {
 }
 
 export default function JobsScreen() {
+  const tabBarClearance = useTabBarClearance();
   const insets = useSafeAreaInsets();
   const teacher = useTeacher();
   const [all, setAll] = useState<readonly JobWithSchool[]>([]);
@@ -100,7 +102,7 @@ export default function JobsScreen() {
         <FlatList
           data={results}
           keyExtractor={(entry) => entry.job.id}
-          contentContainerStyle={{ padding: 16, gap: 12, paddingBottom: 32 }}
+          contentContainerStyle={{ padding: 16, gap: 12, paddingBottom: tabBarClearance }}
           renderItem={({ item }) => <JobCard entry={item} now={now} />}
           ListHeaderComponent={
             <View className="gap-3">

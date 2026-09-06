@@ -1,6 +1,6 @@
 import { Tabs } from 'expo-router';
 import Feather from '@expo/vector-icons/Feather';
-import { colors, HIT_TARGET_MIN } from '@mwalimu/ui';
+import { FloatingTabBar } from '../../components/floating-tab-bar';
 
 /**
  * Five tabs, and the rule for what earns one: a teacher opens it most days.
@@ -26,18 +26,12 @@ const TABS = [
 
 export default function TabsLayout() {
   return (
+    // The bar floats over the content, so it draws itself: tint, label and
+    // hit target all live in FloatingTabBar rather than being split between
+    // screenOptions here and a style override there.
     <Tabs
-      screenOptions={{
-        headerShown: false,
-        tabBarActiveTintColor: colors.foreground,
-        tabBarInactiveTintColor: colors.mutedForeground,
-        tabBarStyle: {
-          backgroundColor: colors.card,
-          borderTopColor: colors.border,
-          minHeight: HIT_TARGET_MIN + 16,
-        },
-        tabBarLabelStyle: { fontSize: 11, fontWeight: '500', fontFamily: 'InterTight_500Medium' },
-      }}
+      tabBar={(props) => <FloatingTabBar {...props} />}
+      screenOptions={{ headerShown: false }}
     >
       {TABS.map((tab) => (
         <Tabs.Screen
@@ -45,7 +39,7 @@ export default function TabsLayout() {
           name={tab.name}
           options={{
             title: tab.title,
-            tabBarIcon: ({ color }) => <Feather name={tab.icon} size={20} color={color} />,
+            tabBarIcon: ({ color, size }) => <Feather name={tab.icon} size={size} color={color} />,
           }}
         />
       ))}

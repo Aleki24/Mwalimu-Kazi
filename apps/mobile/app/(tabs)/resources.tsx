@@ -6,6 +6,7 @@ import Feather from '@expo/vector-icons/Feather';
 import { colors } from '@mwalimu/ui';
 import type { Tables } from '@mwalimu/types';
 import { Chip, EmptyState, ErrorBanner, ScreenHeader } from '../../components/ui';
+import { useTabBarClearance } from '../../components/floating-tab-bar';
 import { fetchResources, formatFileSize } from '../../lib/content';
 
 type Kind = Tables<'resources'>['kind'];
@@ -27,6 +28,7 @@ const KINDS: ReadonlyArray<{ key: Kind | 'all'; label: string }> = [
  */
 
 export default function ResourcesScreen() {
+  const tabBarClearance = useTabBarClearance();
   const insets = useSafeAreaInsets();
   const [items, setItems] = useState<readonly Tables<'resources'>[]>([]);
   const [kind, setKind] = useState<Kind | 'all'>('all');
@@ -86,7 +88,7 @@ export default function ResourcesScreen() {
         <FlatList
           data={visible}
           keyExtractor={(r) => r.id}
-          contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 32 }}
+          contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: tabBarClearance }}
           ListHeaderComponent={error !== null ? <View className="pt-4"><ErrorBanner message={error} /></View> : null}
           ListEmptyComponent={<EmptyState title="Nothing here yet" body="Try another type or search." />}
           renderItem={({ item }) => {

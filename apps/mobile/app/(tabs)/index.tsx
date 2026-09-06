@@ -6,6 +6,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { closingSoon, rankJobs, type JobWithSchool, type RankedJob } from '@mwalimu/core';
 import { colors } from '@mwalimu/ui';
 import { Avatar, Card, EmptyState, ErrorBanner, NoticeStrip } from '../../components/ui';
+import { useTabBarClearance } from '../../components/floating-tab-bar';
 import { JobCard } from '../../components/job-card';
 import { fetchOpenJobs } from '../../lib/jobs';
 import { useTeacher } from '../../lib/auth';
@@ -21,6 +22,7 @@ const QUICK_ACCESS = [
 }>;
 
 export default function HomeScreen() {
+  const tabBarClearance = useTabBarClearance();
   const insets = useSafeAreaInsets();
   const teacher = useTeacher();
   const [all, setAll] = useState<readonly JobWithSchool[]>([]);
@@ -67,7 +69,7 @@ export default function HomeScreen() {
       </View>
 
       <ScrollView
-        contentContainerStyle={{ padding: 16, gap: 12, paddingBottom: 32 }}
+        contentContainerStyle={{ padding: 16, gap: 12, paddingBottom: tabBarClearance }}
         refreshControl={
           <RefreshControl
             refreshing={refreshing}

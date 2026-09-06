@@ -5,12 +5,14 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { formatLabel } from '@mwalimu/core';
 import { colors } from '@mwalimu/ui';
 import { Badge, Chip, EmptyState, ErrorBanner, SchoolMark, ScreenHeader } from '../../components/ui';
+import { useTabBarClearance } from '../../components/floating-tab-bar';
 import { fetchSchools, type SchoolListing } from '../../lib/schools';
 import { useTeacher } from '../../lib/auth';
 
 type Tab = 'all' | 'nearby' | 'hiring';
 
 export default function SchoolsScreen() {
+  const tabBarClearance = useTabBarClearance();
   const insets = useSafeAreaInsets();
   const teacher = useTeacher();
   const [listings, setListings] = useState<readonly SchoolListing[]>([]);
@@ -76,7 +78,7 @@ export default function SchoolsScreen() {
         <FlatList
           data={visible}
           keyExtractor={(l) => l.school.id}
-          contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 32 }}
+          contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: tabBarClearance }}
           ListHeaderComponent={error !== null ? <View className="pt-4"><ErrorBanner message={error} /></View> : null}
           ListEmptyComponent={
             <EmptyState title="No schools match" body="Try a different search or tab." />
