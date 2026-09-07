@@ -67,7 +67,6 @@ function RootNavigator() {
 
       <Stack.Protected guard={status === 'signed-out'}>
         <Stack.Screen name="(auth)/sign-in" options={{ headerShown: false }} />
-        <Stack.Screen name="(auth)/verify" options={{ headerShown: false }} />
       </Stack.Protected>
     </Stack>
   );

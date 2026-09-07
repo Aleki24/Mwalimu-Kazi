@@ -1,6 +1,6 @@
 import type { CvData, CvEducation, CvExperience, CvReferee } from '@mwalimu/core';
 import type { Tables, TablesInsert, TeacherProfile } from '@mwalimu/types';
-import { formatLabel } from '@mwalimu/core';
+import { formatLabel, formatPhoneForDisplay, toE164Kenya } from '@mwalimu/core';
 import { supabase } from './supabase';
 
 /**
@@ -79,7 +79,17 @@ export function toCvData(teacher: TeacherProfile, cv: CvRecord): CvData {
     headline: trimmed(teacher.headline),
     summary: trimmed(cv.details?.summary),
     email: trimmed(cv.details?.email),
-    phone: trimmed(cv.details?.phone),
+    // Normalised for the document, not for storage. A teacher types
+    // "0712345678" or "+254712345678" depending on habit; both should print
+    // the same way on a CV an employer reads. Anything that does not parse as
+    // a Kenyan number is printed exactly as typed — a foreign number is not an
+    // error, it is just not ours to reformat.
+    phone: (() => {
+      const raw = trimmed(cv.details?.phone);
+      if (raw === null) return null;
+      const parsed = toE164Kenya(raw);
+      return parsed.ok ? formatPhoneForDisplay(parsed.e164) : raw;
+    })(),
     // Falls back to the county on the profile, so the header is never blank
     // just because someone skipped one optional field.
     location: trimmed(cv.details?.location) ?? formatLabel(teacher.county),

@@ -3,7 +3,7 @@ import {
   type ReactNode,
 } from 'react';
 import type { Session } from '@supabase/supabase-js';
-import { parseTeacherProfile, toE164Kenya } from '@mwalimu/core';
+import { parseTeacherProfile } from '@mwalimu/core';
 import type { TeacherProfile } from '@mwalimu/types';
 import { supabase } from './supabase';
 
@@ -16,13 +16,26 @@ import { supabase } from './supabase';
  */
 export type AuthStatus = 'loading' | 'signed-out' | 'needs-onboarding' | 'ready';
 
+export type AuthOutcome =
+  | { readonly ok: true }
+  | { readonly ok: true; readonly needsConfirmation: true }
+  | { readonly ok: false; readonly reason: string };
+
+/** Supabase's own floor. Checked here so the failure is legible, not a 422. */
+const MIN_PASSWORD = 6;
+
 export interface AuthValue {
   readonly status: AuthStatus;
   readonly session: Session | null;
   /** Non-null exactly when status is 'ready'. */
   readonly profile: TeacherProfile | null;
-  readonly sendOtp: (phone: string) => Promise<{ ok: true; e164: string } | { ok: false; reason: string }>;
-  readonly verifyOtp: (e164: string, token: string) => Promise<{ ok: true } | { ok: false; reason: string }>;
+  readonly signIn: (email: string, password: string) => Promise<AuthOutcome>;
+  /**
+   * `needsConfirmation` is a real outcome, not an error. When the project has
+   * "Confirm email" on, sign-up succeeds but returns no session until the link
+   * is clicked — telling someone that failed would be a lie.
+   */
+  readonly signUp: (email: string, password: string) => Promise<AuthOutcome>;
   readonly refreshProfile: () => Promise<void>;
   readonly signOut: () => Promise<void>;
 }
@@ -95,24 +108,32 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => { subscription.subscription.unsubscribe(); };
   }, [loadProfile]);
 
-  const sendOtp = useCallback<AuthValue['sendOtp']>(async (phone) => {
-    // Normalise before anything touches the API: Supabase keys the user on this
-    // string, so two formats of one number would become two accounts.
-    const parsed = toE164Kenya(phone);
-    if (!parsed.ok) return parsed;
-
-    const { error } = await supabase.auth.signInWithOtp({ phone: parsed.e164 });
-    if (error !== null) return { ok: false, reason: error.message };
-    return { ok: true, e164: parsed.e164 };
-  }, []);
-
-  const verifyOtp = useCallback<AuthValue['verifyOtp']>(async (e164, token) => {
-    const code = token.trim();
-    if (!/^\d{6}$/.test(code)) return { ok: false, reason: 'Enter the 6-digit code' };
-
-    const { error } = await supabase.auth.verifyOtp({ phone: e164, token: code, type: 'sms' });
+  const signIn = useCallback<AuthValue['signIn']>(async (email, password) => {
+    const { error } = await supabase.auth.signInWithPassword({
+      // Supabase lowercases the stored address, but the keyboard on a phone
+      // capitalises the first letter. Without this a teacher can be told their
+      // own password is wrong.
+      email: email.trim().toLowerCase(),
+      password,
+    });
     if (error !== null) return { ok: false, reason: error.message };
     return { ok: true };
+  }, []);
+
+  const signUp = useCallback<AuthValue['signUp']>(async (email, password) => {
+    if (password.length < MIN_PASSWORD) {
+      return { ok: false, reason: `Use at least ${MIN_PASSWORD} characters.` };
+    }
+
+    const { data, error } = await supabase.auth.signUp({
+      email: email.trim().toLowerCase(),
+      password,
+    });
+    if (error !== null) return { ok: false, reason: error.message };
+
+    // No session means the project requires email confirmation. The account
+    // exists; it just cannot be used until the link is clicked.
+    return data.session === null ? { ok: true, needsConfirmation: true } : { ok: true };
   }, []);
 
   const refreshProfile = useCallback(async () => {
@@ -133,8 +154,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [sessionResolved, session, profileResolved, profile]);
 
   const value = useMemo<AuthValue>(
-    () => ({ status, session, profile, sendOtp, verifyOtp, refreshProfile, signOut }),
-    [status, session, profile, sendOtp, verifyOtp, refreshProfile, signOut],
+    () => ({ status, session, profile, signIn, signUp, refreshProfile, signOut }),
+    [status, session, profile, signIn, signUp, refreshProfile, signOut],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

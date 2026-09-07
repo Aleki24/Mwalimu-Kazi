@@ -18,8 +18,11 @@ export default function ProfileScreen() {
   const [sound, setSound] = useState(teacher.notificationSound);
   const [error, setError] = useState<string | null>(null);
 
-  const raw = session?.user.phone ?? '';
-  const phone = raw.trim() === '' ? null : `+${raw.replace(/^\+/, '')}`;
+  const email = (session?.user.email ?? '').trim();
+  const phone = (session?.user.phone ?? '').trim();
+  const signedInAs = email !== '' ? email
+    : phone !== '' ? formatPhoneForDisplay(`+${phone.replace(/^\+/, '')}`)
+    : null;
 
   const toggleSound = async (next: boolean) => {
     setSound(next);
@@ -164,13 +167,14 @@ export default function ProfileScreen() {
 
           <Card className="p-3.5">
             <Text className="text-[12.5px] font-medium text-foreground">Account</Text>
+            {/*
+              Supabase returns an empty string rather than undefined for a
+              field a user does not have, so these are checked for blankness
+              rather than for undefined — an `=== undefined` guard here once
+              rendered a bare "+" from an empty phone number.
+            */}
             <Text className="mt-1 text-[11.5px] text-mutedForeground">
-              {/*
-                Supabase returns an empty string for a user with no phone, not
-                undefined, so an `=== undefined` guard fell through and rendered
-                a bare "+" — the country prefix with nothing after it.
-              */}
-              {phone === null ? 'Signed in' : formatPhoneForDisplay(phone)}
+              {signedInAs ?? 'Signed in'}
             </Text>
           </Card>
 
