@@ -7,3 +7,4 @@ export * from './phone';
 export * from './reviews';
 export * from './review-draft';
 export * from './cv';
+export * from './profile-strength';

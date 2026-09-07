@@ -35,7 +35,14 @@ export interface Palette {
   /** Flat grey for secondary controls; carries no border. */
   readonly secondary: string;
 
-  /** The one accent. Primary actions and the primary chart line, nothing else. */
+  /**
+   * The one accent. Primary actions and the primary chart line, nothing else.
+   *
+   * Warm terracotta rather than the brighter orange these palettes usually
+   * reach for: #f97316 and #ea580c both fall below 4.5:1 against white, so a
+   * button label sitting on them fails AA. This clears it at 5.18:1, which is
+   * within a hair of the blue it replaced.
+   */
   readonly primary: string;
   readonly primaryForeground: string;
   readonly ring: string;

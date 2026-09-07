@@ -2,7 +2,8 @@ import { useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Link } from 'expo-router';
-import { colors } from '@mwalimu/ui';
+import Feather from '@expo/vector-icons/Feather';
+import { colors, radius } from '@mwalimu/ui';
 import { Button, ErrorBanner, NoticeStrip } from '../../components/ui';
 import { useAuth } from '../../lib/auth';
 import { RECOVERY_LINK_ERROR } from '../../lib/supabase';
@@ -68,13 +69,56 @@ export default function SignInScreen() {
         contentContainerStyle={{ padding: 24, paddingTop: insets.top + 48, gap: 20 }}
         keyboardShouldPersistTaps="handled"
       >
-        <View className="gap-1.5">
-          <Text className="text-[26px] font-medium tracking-tight text-foreground">Mwalimu Kazi</Text>
-          <Text className="text-[13.5px] leading-5 text-mutedForeground">
-            {mode === 'sign-in'
-              ? 'Sign in to see roles matched to what you actually teach.'
-              : 'Create an account. It takes a minute, and you can browse jobs either way.'}
+        {/*
+          A hero, not an illustration. The reference designs lean on commissioned
+          artwork we do not have, and a stock drawing of a classroom that is not
+          a Kenyan classroom would say the wrong thing on the first screen a
+          teacher sees. Type and the one accent carry it instead.
+        */}
+        <View className="gap-3">
+          <View className="flex-row items-center gap-2">
+            <View
+              style={{ width: 26, height: 26, borderRadius: radius.sm, borderCurve: 'continuous' }}
+              className="items-center justify-center bg-primary"
+            >
+              <Text className="text-[13px] font-medium text-primaryForeground">M</Text>
+            </View>
+            <Text className="text-[13px] font-medium tracking-tight text-foreground">
+              Mwalimu Kazi
+            </Text>
+          </View>
+
+          <Text className="text-[30px] font-medium leading-9 tracking-tight text-foreground">
+            Your teaching career{'\n'}starts here.
           </Text>
+
+          <Text className="text-[14px] leading-6 text-mutedForeground">
+            {mode === 'sign-in'
+              ? 'Roles matched to what you actually teach — with what other teachers say about the school before you apply.'
+              : 'One account for jobs, schools, your CV and the staffroom. It takes a minute.'}
+          </Text>
+
+          {/*
+            Three claims, each one something the app genuinely does. Anything
+            here that the product cannot back up would be found out on the very
+            next screen.
+          */}
+          <View className="mt-1 gap-2">
+            {[
+              ['target', 'Matched to your subjects, county and TSC status'],
+              ['shield', 'School reviews and red flags, written by teachers'],
+              ['file-text', 'A CV you build once and download as PDF or Word'],
+            ].map(([icon, line]) => (
+              <View key={line} className="flex-row items-center gap-2.5">
+                <Feather
+                  name={icon as React.ComponentProps<typeof Feather>['name']}
+                  size={13}
+                  color={colors.primary}
+                />
+                <Text className="flex-1 text-[12.5px] leading-4 text-mutedForeground">{line}</Text>
+              </View>
+            ))}
+          </View>
         </View>
 
         <View className="gap-2">

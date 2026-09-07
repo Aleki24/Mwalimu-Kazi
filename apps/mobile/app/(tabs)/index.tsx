@@ -5,10 +5,13 @@ import Feather from '@expo/vector-icons/Feather';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { closingSoon, rankJobs, type JobWithSchool, type RankedJob } from '@mwalimu/core';
 import { colors } from '@mwalimu/ui';
-import { Avatar, Card, EmptyState, ErrorBanner, NoticeStrip } from '../../components/ui';
+import {
+  Avatar, Card, EmptyState, ErrorBanner, NoticeStrip, tabularNums,
+} from '../../components/ui';
 import { useTabBarClearance } from '../../components/floating-tab-bar';
 import { JobCard } from '../../components/job-card';
 import { fetchOpenJobs } from '../../lib/jobs';
+import { fetchCareerSnapshot, type CareerSnapshot } from '../../lib/career';
 import { useTeacher } from '../../lib/auth';
 
 /** Routes with no tab of their own; the grid is how a teacher reaches them. */
@@ -33,11 +36,14 @@ export default function HomeScreen() {
   const [refreshing, setRefreshing] = useState(false);
   // One timestamp per render pass, so "2h ago" and the ranking agree.
   const [now, setNow] = useState(() => new Date());
+  const [snapshot, setSnapshot] = useState<CareerSnapshot | null>(null);
 
   const load = useCallback(async () => {
     try {
-      const { jobs } = await fetchOpenJobs();
+      // In parallel: the snapshot is secondary, so it must not delay the jobs.
+      const [{ jobs }, career] = await Promise.all([fetchOpenJobs(), fetchCareerSnapshot(teacher)]);
       setAll(jobs);
+      setSnapshot(career);
       setNow(new Date());
       setError(null);
     } catch (cause) {
@@ -46,7 +52,7 @@ export default function HomeScreen() {
       setLoading(false);
       setRefreshing(false);
     }
-  }, []);
+  }, [teacher]);
 
   useEffect(() => { void load(); }, [load]);
 
@@ -89,6 +95,52 @@ export default function HomeScreen() {
             </Text>
           </NoticeStrip>
         ) : null}
+
+        {/*
+          Real counts, not a dashboard for its own sake. Applications, interviews
+          and offers come from the stage column a school actually sets, so the
+          numbers cannot flatter anyone; profile strength names the one thing
+          most worth fixing next rather than showing a bare percentage.
+        */}
+        {snapshot === null ? null : (
+          <Card className="gap-3 p-3.5">
+            <View className="flex-row items-baseline justify-between">
+              <Text className="text-[13px] font-medium text-foreground">Your career so far</Text>
+              <Text className="text-[11px] text-mutedForeground">
+                Profile {snapshot.strength.percent}%
+              </Text>
+            </View>
+
+            <View className="flex-row">
+              {([
+                ['Applications', snapshot.applications],
+                ['Interviews', snapshot.interviews],
+                ['Offers', snapshot.offers],
+              ] as const).map(([label, value]) => (
+                <View key={label} className="flex-1">
+                  <Text
+                    style={tabularNums}
+                    className="text-[19px] font-medium tracking-tight text-foreground"
+                  >
+                    {value}
+                  </Text>
+                  <Text className="text-[11px] text-mutedForeground">{label}</Text>
+                </View>
+              ))}
+            </View>
+
+            {snapshot.strength.missing[0] === undefined ? null : (
+              <Link href="/profile/cv" asChild>
+                <Pressable accessibilityRole="link" className="flex-row items-center gap-1.5">
+                  <Feather name="arrow-right" size={13} color={colors.primary} />
+                  <Text className="text-[12px] font-medium text-primary">
+                    {snapshot.strength.missing[0].label}
+                  </Text>
+                </Pressable>
+              </Link>
+            )}
+          </Card>
+        )}
 
         <Card className="p-3.5">
           <Text className="text-[13px] font-medium text-foreground">Auto-Apply is off</Text>
