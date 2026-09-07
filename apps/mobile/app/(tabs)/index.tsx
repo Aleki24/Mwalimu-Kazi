@@ -12,6 +12,7 @@ import { useTabBarClearance } from '../../components/floating-tab-bar';
 import { JobCard } from '../../components/job-card';
 import { fetchOpenJobs } from '../../lib/jobs';
 import { fetchCareerSnapshot, type CareerSnapshot } from '../../lib/career';
+import { fetchRule } from '../../lib/auto-apply';
 import { useTeacher } from '../../lib/auth';
 
 /** Routes with no tab of their own; the grid is how a teacher reaches them. */
@@ -37,13 +38,17 @@ export default function HomeScreen() {
   // One timestamp per render pass, so "2h ago" and the ranking agree.
   const [now, setNow] = useState(() => new Date());
   const [snapshot, setSnapshot] = useState<CareerSnapshot | null>(null);
+  const [autoApplyOn, setAutoApplyOn] = useState(false);
 
   const load = useCallback(async () => {
     try {
       // In parallel: the snapshot is secondary, so it must not delay the jobs.
-      const [{ jobs }, career] = await Promise.all([fetchOpenJobs(), fetchCareerSnapshot(teacher)]);
+      const [{ jobs }, career, rule] = await Promise.all([
+        fetchOpenJobs(), fetchCareerSnapshot(teacher), fetchRule(),
+      ]);
       setAll(jobs);
       setSnapshot(career);
+      setAutoApplyOn(rule?.enabled ?? false);
       setNow(new Date());
       setError(null);
     } catch (cause) {
@@ -142,12 +147,32 @@ export default function HomeScreen() {
           </Card>
         )}
 
-        <Card className="p-3.5">
-          <Text className="text-[13px] font-medium text-foreground">Auto-Apply is off</Text>
-          <Text className="mt-1 text-[11.5px] leading-4 text-mutedForeground">
-            Set your rules and we will apply to strong matches for you, before the shortlist fills.
-          </Text>
-        </Card>
+        {/* Reads the real rule rather than always claiming to be off. */}
+        <Link href="/auto-apply" asChild>
+          <Pressable accessibilityRole="link">
+            <Card className="flex-row items-center gap-3 p-3.5">
+              <View className="min-w-0 flex-1">
+                <View className="flex-row items-center gap-2">
+                  <Text className="text-[13px] font-medium text-foreground">
+                    Auto-Apply is {autoApplyOn ? 'on' : 'off'}
+                  </Text>
+                  {autoApplyOn ? (
+                    <View
+                      style={{ width: 6, height: 6, borderRadius: 999 }}
+                      className="bg-successForeground"
+                    />
+                  ) : null}
+                </View>
+                <Text className="mt-1 text-[11.5px] leading-4 text-mutedForeground">
+                  {autoApplyOn
+                    ? 'Runs while the app is open, against the rules you set.'
+                    : 'Set your rules and it will apply to strong matches for you.'}
+                </Text>
+              </View>
+              <Feather name="chevron-right" size={16} color={colors.mutedForeground} />
+            </Card>
+          </Pressable>
+        </Link>
 
         <View className="flex-row flex-wrap gap-2.5">
           {QUICK_ACCESS.map((item) => (

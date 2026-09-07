@@ -56,6 +56,7 @@ function RootNavigator() {
         <Stack.Screen name="review/new" options={{ title: 'Write a review' }} />
         <Stack.Screen name="post/new" options={{ title: 'Post a role' }} />
         <Stack.Screen name="feed" options={{ title: 'Staffroom' }} />
+        <Stack.Screen name="auto-apply" options={{ title: 'Auto-Apply' }} />
         <Stack.Screen name="profile/index" options={{ title: 'Your profile' }} />
         <Stack.Screen name="profile/edit" options={{ title: 'Edit profile' }} />
         <Stack.Screen name="profile/cv" options={{ title: 'Your CV' }} />
