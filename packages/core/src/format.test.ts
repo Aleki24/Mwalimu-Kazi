@@ -146,12 +146,33 @@ describe('formatLabel', () => {
     expect(formatLabel('taita-taveta')).toBe('Taita-taveta');
   });
 
-  it('handles a multi-word slug', () => {
-    expect(formatLabel('computer-studies')).toBe('Computer-studies');
+  it('reads a multi-word subject as words, not as a hyphenated compound', () => {
+    // This test used to assert 'Computer-studies', which is what the
+    // onboarding form actually rendered. The test was encoding the bug.
+    expect(formatLabel('computer-studies')).toBe('Computer studies');
     expect(formatLabel('taita-taveta')).toBe('Taita-taveta');
   });
 
   it('joins a list', () => {
     expect(formatLabels(['mathematics', 'ict'])).toBe('Mathematics, ICT');
+  });
+});
+
+describe('formatLabel — hyphens mean different things', () => {
+  it('reads a multi-word subject as words', () => {
+    // These rendered as "Business-studies" on the onboarding form.
+    expect(formatLabel('business-studies')).toBe('Business studies');
+    expect(formatLabel('art-and-design')).toBe('Art and design');
+    expect(formatLabel('physical-education')).toBe('Physical education');
+  });
+
+  it('keeps a county that is genuinely hyphenated', () => {
+    expect(formatLabel('elgeyo-marakwet')).toBe('Elgeyo-marakwet');
+    expect(formatLabel('taita-taveta')).toBe('Taita-taveta');
+  });
+
+  it('still keeps the hyphenated compounds that were always right', () => {
+    expect(formatLabel('full_time')).toBe('Full-time');
+    expect(formatLabel('8-4-4')).toBe('8-4-4');
   });
 });

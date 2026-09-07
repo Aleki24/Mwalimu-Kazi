@@ -159,6 +159,17 @@ const LABEL_OVERRIDES: Readonly<Record<string, string>> = {
   ecd: 'ECD',
   cre: 'CRE',
   ire: 'IRE',
+
+  // Multi-word subjects. A hyphen means two different things across our
+  // vocabularies: a word separator in a subject slug, but a real hyphen in a
+  // county (elgeyo-marakwet is Elgeyo-Marakwet, not "Elgeyo marakwet"). The
+  // slug grammar forbids underscores, so it cannot be told apart by shape —
+  // these are listed rather than guessed at.
+  'business-studies': 'Business studies',
+  'computer-studies': 'Computer studies',
+  'home-science': 'Home science',
+  'art-and-design': 'Art and design',
+  'physical-education': 'Physical education',
 };
 
 /**

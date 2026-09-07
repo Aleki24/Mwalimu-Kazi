@@ -128,9 +128,12 @@ export default function OnboardingScreen() {
           <Text className="text-[13px] font-medium text-foreground">County</Text>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
             {counties.map((c) => (
-              <Pressable key={c} onPress={() => setCounty(c)} accessibilityRole="button">
-                <Chip label={formatLabel(c)} selected={county === c} />
-              </Pressable>
+              <Chip
+                key={c}
+                label={formatLabel(c)}
+                selected={county === c}
+                onPress={() => setCounty(c)}
+              />
             ))}
           </ScrollView>
         </View>
@@ -141,9 +144,12 @@ export default function OnboardingScreen() {
           </Text>
           <View className="flex-row flex-wrap gap-2">
             {COMMON_SUBJECTS.map((s) => (
-              <Pressable key={s} onPress={() => toggleSubject(s)} accessibilityRole="button">
-                <Chip label={formatLabel(s)} selected={subjects.has(s)} />
-              </Pressable>
+              <Chip
+                key={s}
+                label={formatLabel(s)}
+                selected={subjects.has(s)}
+                onPress={() => toggleSubject(s)}
+              />
             ))}
           </View>
         </View>
@@ -152,9 +158,12 @@ export default function OnboardingScreen() {
           <Text className="text-[13px] font-medium text-foreground">Teaching experience</Text>
           <View className="flex-row flex-wrap gap-2">
             {EXPERIENCE_BANDS.map((band) => (
-              <Pressable key={band.label} onPress={() => setExperienceYears(band.years)} accessibilityRole="button">
-                <Chip label={band.label} selected={experienceYears === band.years} />
-              </Pressable>
+              <Chip
+                key={band.label}
+                label={band.label}
+                selected={experienceYears === band.years}
+                onPress={() => setExperienceYears(band.years)}
+              />
             ))}
           </View>
         </View>
