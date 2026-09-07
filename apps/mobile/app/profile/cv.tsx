@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Stack } from 'expo-router';
@@ -15,6 +15,7 @@ import {
   toCvData, type CvRecord, type CvTable,
 } from '../../lib/cv';
 import { exportCv, type CvFormat } from '../../lib/cv-export';
+import { CvPreview } from '../../components/cv-preview';
 
 const EMPTY: CvRecord = { details: null, education: [], experience: [], referees: [] };
 
@@ -78,6 +79,8 @@ export default function CvScreen() {
   const [busy, setBusy] = useState(false);
   const [template, setTemplate] = useState<CvTemplate>('classic');
 
+  const preview = useMemo(() => toCvData(teacher, cv), [teacher, cv]);
+
   const [summary, setSummary] = useState('');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
@@ -130,7 +133,7 @@ export default function CvScreen() {
     setError(null);
     setNote(null);
     try {
-      const result = await exportCv(toCvData(teacher, cv), template, format);
+      const result = await exportCv(preview, template, format);
       setNote(result.kind === 'shared'
         ? `${result.fileName} is ready to send.`
         : `Saved as ${result.fileName}.`);
@@ -331,13 +334,20 @@ export default function CvScreen() {
 
         {/* -------------------------------------------------------- download */}
         <Card className="gap-2.5 px-3.5 py-3">
-          <Text className="text-[12.5px] font-medium text-foreground">Download</Text>
+          <Text className="text-[12.5px] font-medium text-foreground">Preview & download</Text>
           <View className="flex-row flex-wrap gap-1.5">
             {(Object.keys(CV_TEMPLATES) as CvTemplate[]).map((t) => (
               <Chip key={t} label={CV_TEMPLATES[t]} selected={template === t} onPress={() => setTemplate(t)} />
             ))}
           </View>
           <Text className="text-[11px] leading-4 text-mutedForeground">{CV_TEMPLATE_HINT[template]}</Text>
+
+          {/*
+            The real document, at the size it will print. Rebuilt only when the
+            template or the saved record changes — the drafts above are local
+            state, so typing does not re-render a whole page on every keystroke.
+          */}
+          <CvPreview cv={preview} template={template} />
 
           <View className="mt-1 flex-row gap-2">
             <Pressable

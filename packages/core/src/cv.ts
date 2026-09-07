@@ -247,3 +247,30 @@ export function cvFileName(fullName: string, extension: string): string {
     .replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
   return `${slug === '' ? 'cv' : `${slug}-cv`}.${extension}`;
 }
+
+/** The width of an A4 page at 96dpi, in CSS pixels. */
+export const CV_PAGE_WIDTH = 794;
+
+/**
+ * The exact same document, made to fit a phone-width viewport.
+ *
+ * It re-renders rather than restyling: a preview built from different HTML
+ * than the export is worse than no preview, because it tells a teacher their
+ * CV looks one way and then sends a different one. The only addition is a
+ * viewport meta pinned to the page width, so the browser scales the whole A4
+ * sheet down instead of reflowing it into a narrow column — reflowed text
+ * would show line breaks that the PDF will not have.
+ */
+export function renderCvPreviewHtml(cv: CvData, template: CvTemplate = 'classic'): string {
+  return renderCvHtml(cv, template).replace(
+    '<meta charset="utf-8">',
+    `<meta charset="utf-8">` +
+    `<meta name="viewport" content="width=${CV_PAGE_WIDTH}, initial-scale=1">` +
+    // A page needs an edge to read as a page. Margins come from @page, which
+    // only applies when printing, so the preview supplies its own.
+    `<style>
+      html { background: #e9e9e9; }
+      body { background: #fff; margin: 0 auto; padding: 16mm; max-width: ${CV_PAGE_WIDTH}px; min-height: 1123px; }
+    </style>`,
+  );
+}

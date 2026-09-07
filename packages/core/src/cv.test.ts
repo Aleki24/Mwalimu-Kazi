@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   contactLine, cvFileName, formatYearRange, orderEducation, orderExperience,
-  renderCvHtml, renderCvWordHtml, type CvData, type CvExperience,
+  renderCvHtml, renderCvPreviewHtml, renderCvWordHtml, type CvData, type CvExperience,
 } from './cv';
 
 const cv = (over: Partial<CvData> = {}): CvData => ({
@@ -124,4 +124,24 @@ describe('cvFileName', () => {
     expect(cvFileName("  O'Brien   Ka-mau ", 'doc')).toBe('o-brien-ka-mau-cv.doc'));
   it('falls back when a name has nothing usable', () =>
     expect(cvFileName('•••', 'pdf')).toBe('cv.pdf'));
+});
+
+describe('renderCvPreviewHtml', () => {
+  const filled = cv({ summary: 'Ten years teaching.', experience: [role()] });
+
+  it('scales the page rather than reflowing it into a column', () => {
+    // Reflowed text would break lines where the PDF will not, which is the
+    // one thing a preview must never do.
+    expect(renderCvPreviewHtml(filled)).toContain('width=794, initial-scale=1');
+  });
+
+  it('shows exactly what the export will show', () => {
+    const preview = renderCvPreviewHtml(filled, 'modern');
+    const exported = renderCvHtml(filled, 'modern');
+    // Every content node in the export survives into the preview; the preview
+    // only adds a viewport and a page frame.
+    const text = (html: string) => html.replace(/<style>[\s\S]*?<\/style>/g, '')
+      .replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
+    expect(text(preview)).toBe(text(exported));
+  });
 });
