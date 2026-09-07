@@ -5,7 +5,9 @@ import {
 import type { Session } from '@supabase/supabase-js';
 import { parseTeacherProfile } from '@mwalimu/core';
 import type { TeacherProfile } from '@mwalimu/types';
-import { supabase } from './supabase';
+import { Platform } from 'react-native';
+import * as Linking from 'expo-linking';
+import { OPENED_FROM_RECOVERY_LINK, supabase } from './supabase';
 
 /**
  * Auth state for the whole app.
@@ -14,7 +16,16 @@ import { supabase } from './supabase';
  * booleans: "signed in but no profile row yet" is a real state the router has to
  * handle, and a `loading`/`session`/`profile` trio lets the caller forget it.
  */
-export type AuthStatus = 'loading' | 'signed-out' | 'needs-onboarding' | 'ready';
+/**
+ * `recovering` is its own state, not a flag on top of the others.
+ *
+ * Opening a password-reset link signs you in — that is how Supabase delivers
+ * the ability to change the password. Without a state for it, the router would
+ * see a valid session and drop the teacher on Home, having never shown them
+ * the screen the email promised.
+ */
+export type AuthStatus =
+  | 'loading' | 'signed-out' | 'needs-onboarding' | 'ready' | 'recovering';
 
 export type AuthOutcome =
   | { readonly ok: true }
@@ -23,6 +34,23 @@ export type AuthOutcome =
 
 /** Supabase's own floor. Checked here so the failure is legible, not a 422. */
 const MIN_PASSWORD = 6;
+
+/**
+ * Where the emailed reset link should land.
+ *
+ * On web that is a real URL on this origin, so the same link works from the
+ * deployed site and from a local dev server without being hardcoded. On a
+ * device it is the app's own scheme, because there is no browser to return to.
+ *
+ * Either value must be listed under Authentication → URL Configuration →
+ * Redirect URLs in Supabase, or the link silently sends people to the site
+ * root with no token.
+ */
+function passwordResetRedirect(): string {
+  return Platform.OS === 'web'
+    ? `${globalThis.location.origin}/reset-password`
+    : Linking.createURL('/reset-password');
+}
 
 export interface AuthValue {
   readonly status: AuthStatus;
@@ -36,6 +64,8 @@ export interface AuthValue {
    * is clicked — telling someone that failed would be a lie.
    */
   readonly signUp: (email: string, password: string) => Promise<AuthOutcome>;
+  readonly requestPasswordReset: (email: string) => Promise<AuthOutcome>;
+  readonly updatePassword: (password: string) => Promise<AuthOutcome>;
   readonly refreshProfile: () => Promise<void>;
   readonly signOut: () => Promise<void>;
 }
@@ -60,6 +90,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [profile, setProfile] = useState<TeacherProfile | null>(null);
   const [sessionResolved, setSessionResolved] = useState(false);
   const [profileResolved, setProfileResolved] = useState(false);
+  // Seeded from the URL, not only from the event — see the note in
+  // supabase.ts on why the event alone is missed on web.
+  const [recovering, setRecovering] = useState(OPENED_FROM_RECOVERY_LINK);
   const mounted = useRef(true);
 
   useEffect(() => () => { mounted.current = false; }, []);
@@ -98,7 +131,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       await loadProfile(data.session?.user.id);
     })();
 
-    const { data: subscription } = supabase.auth.onAuthStateChange((_event, next) => {
+    const { data: subscription } = supabase.auth.onAuthStateChange((event, next) => {
+      // Supabase signs the user in to let them change the password. The event
+      // is the only thing distinguishing that from an ordinary sign-in.
+      if (event === 'PASSWORD_RECOVERY') setRecovering(true);
       setSession(next);
       setSessionResolved(true);
       setProfileResolved(false);
@@ -107,6 +143,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     return () => { subscription.subscription.unsubscribe(); };
   }, [loadProfile]);
+
+  const requestPasswordReset = useCallback<AuthValue['requestPasswordReset']>(async (email) => {
+    const { error } = await supabase.auth.resetPasswordForEmail(
+      email.trim().toLowerCase(),
+      { redirectTo: passwordResetRedirect() },
+    );
+    if (error !== null) return { ok: false, reason: error.message };
+    return { ok: true };
+  }, []);
+
+  const updatePassword = useCallback<AuthValue['updatePassword']>(async (password) => {
+    if (password.length < MIN_PASSWORD) {
+      return { ok: false, reason: `Use at least ${MIN_PASSWORD} characters.` };
+    }
+    const { error } = await supabase.auth.updateUser({ password });
+    if (error !== null) return { ok: false, reason: error.message };
+    setRecovering(false);
+    return { ok: true };
+  }, []);
 
   const signIn = useCallback<AuthValue['signIn']>(async (email, password) => {
     const { error } = await supabase.auth.signInWithPassword({
@@ -144,18 +199,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signOut = useCallback(async () => {
     await supabase.auth.signOut();
     setProfile(null);
+    setRecovering(false);
   }, []);
 
   const status: AuthStatus = useMemo(() => {
     if (!sessionResolved) return 'loading';
     if (session === null) return 'signed-out';
+    // Ahead of the profile checks: someone resetting a password must reach the
+    // reset screen whether or not they have finished onboarding.
+    if (recovering) return 'recovering';
     if (!profileResolved) return 'loading';
     return profile === null ? 'needs-onboarding' : 'ready';
-  }, [sessionResolved, session, profileResolved, profile]);
+  }, [sessionResolved, session, profileResolved, profile, recovering]);
 
   const value = useMemo<AuthValue>(
-    () => ({ status, session, profile, signIn, signUp, refreshProfile, signOut }),
-    [status, session, profile, signIn, signUp, refreshProfile, signOut],
+    () => ({
+      status, session, profile,
+      signIn, signUp, requestPasswordReset, updatePassword, refreshProfile, signOut,
+    }),
+    [status, session, profile, signIn, signUp, requestPasswordReset, updatePassword, refreshProfile, signOut],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

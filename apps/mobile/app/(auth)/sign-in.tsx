@@ -1,9 +1,11 @@
 import { useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Link } from 'expo-router';
 import { colors } from '@mwalimu/ui';
 import { Button, ErrorBanner, NoticeStrip } from '../../components/ui';
 import { useAuth } from '../../lib/auth';
+import { RECOVERY_LINK_ERROR } from '../../lib/supabase';
 
 type Mode = 'sign-in' | 'sign-up';
 
@@ -14,7 +16,9 @@ export default function SignInScreen() {
   const [mode, setMode] = useState<Mode>('sign-in');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [error, setError] = useState<string | null>(null);
+  // Seeded from the URL so a dead reset link explains itself here, which is
+  // where the router sends you when one fails.
+  const [error, setError] = useState<string | null>(RECOVERY_LINK_ERROR);
   const [busy, setBusy] = useState(false);
   const [confirmSent, setConfirmSent] = useState(false);
 
@@ -115,6 +119,14 @@ export default function SignInScreen() {
             onPress={() => void submit()}
           />
         )}
+
+        {mode === 'sign-in' ? (
+          <Link href="/forgot-password" asChild>
+            <Pressable accessibilityRole="link" className="items-center py-1">
+              <Text className="text-[12.5px] text-mutedForeground">Forgot your password?</Text>
+            </Pressable>
+          </Link>
+        ) : null}
 
         <Pressable
           accessibilityRole="button"

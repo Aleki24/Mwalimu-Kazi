@@ -65,8 +65,18 @@ function RootNavigator() {
         <Stack.Screen name="(auth)/onboarding" options={{ headerShown: false }} />
       </Stack.Protected>
 
+      {/*
+        A recovery session is a real session, so this guard has to come before
+        anything keyed on 'ready' — otherwise the link drops the teacher on
+        Home and the email's promise is never kept.
+      */}
+      <Stack.Protected guard={status === 'recovering'}>
+        <Stack.Screen name="(auth)/reset-password" />
+      </Stack.Protected>
+
       <Stack.Protected guard={status === 'signed-out'}>
         <Stack.Screen name="(auth)/sign-in" options={{ headerShown: false }} />
+        <Stack.Screen name="(auth)/forgot-password" />
       </Stack.Protected>
     </Stack>
   );
