@@ -100,7 +100,8 @@ export function parseTeacherProfile(row: Tables<'profiles'>): ParseResult<Teache
 
 /** A job row joined to its school, as the jobs list selects it. */
 export interface JobRowWithSchool extends Tables<'jobs'> {
-  readonly schools: Pick<Tables<'schools'>, 'name' | 'school_type' | 'curricula'> | null;
+  readonly schools:
+    Pick<Tables<'schools'>, 'name' | 'school_type' | 'curricula' | 'verification'> | null;
 }
 
 /**
@@ -136,6 +137,7 @@ export function parseJobsWithSchools(
         schoolName: 'Independent listing',
         schoolType: null,
         schoolCurricula: [],
+        schoolVerification: null,
         posterKind: row.poster_kind,
       });
       continue;
@@ -152,6 +154,7 @@ export function parseJobsWithSchools(
       schoolName: row.schools.name,
       schoolType: schoolType.data,
       schoolCurricula: curricula.data,
+      schoolVerification: row.schools.verification,
       posterKind: row.poster_kind,
     });
   }

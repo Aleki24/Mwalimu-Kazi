@@ -1,5 +1,6 @@
 import type {
   Curriculum, County, Job, JobPosterKind, JobType, SchoolType, TeacherProfile,
+  VerificationStatus,
 } from '@mwalimu/types';
 import { matchScore, type MatchResult } from './match';
 
@@ -38,6 +39,13 @@ export interface JobWithSchool {
    */
   readonly schoolType: SchoolType | null;
   readonly schoolCurricula: readonly Curriculum[];
+  /**
+   * Null for a listing with no school. Carried all the way to the job card
+   * because a teacher deciding whether to send their documents is the person
+   * who needs to know the school has not been checked — the schools directory
+   * already says so, and the vacancy is where the decision actually happens.
+   */
+  readonly schoolVerification: VerificationStatus | null;
   readonly posterKind: JobPosterKind;
 }
 

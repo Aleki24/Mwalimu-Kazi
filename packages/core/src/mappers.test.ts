@@ -23,7 +23,10 @@ const row = (over: Partial<Tables<'jobs'>> = {}): Tables<'jobs'> => ({
 
 const joined = (over: Partial<JobRowWithSchool> = {}): JobRowWithSchool => ({
   ...row(),
-  schools: { name: 'Greenfield Academy', school_type: 'private', curricula: ['cbc'] },
+  schools: {
+    name: 'Greenfield Academy', school_type: 'private', curricula: ['cbc'],
+    verification: 'verified',
+  },
   ...over,
 });
 
@@ -100,5 +103,34 @@ describe('parseJobsWithSchools', () => {
     const { jobs } = parseJobsWithSchools([joined()]);
     expect(jobs[0]?.schoolName).toBe('Greenfield Academy');
     expect(jobs[0]?.schoolCurricula).toEqual(['cbc']);
+  });
+});
+
+describe('parseJobsWithSchools — verification reaches the job', () => {
+  it('carries a verified school through', () => {
+    const { jobs } = parseJobsWithSchools([joined()]);
+    expect(jobs[0]?.schoolVerification).toBe('verified');
+  });
+
+  it('carries an unverified one through rather than dropping it', () => {
+    // The gap this closes: the schools directory said "Unverified" while the
+    // vacancy said nothing, and the vacancy is where a teacher decides whether
+    // to send their documents.
+    const { jobs } = parseJobsWithSchools([
+      joined({
+        schools: {
+          name: 'Westgate Hills Academy', school_type: 'private',
+          curricula: ['cbc'], verification: 'unverified',
+        },
+      }),
+    ]);
+    expect(jobs[0]?.schoolVerification).toBe('unverified');
+  });
+
+  it('is null for a listing with no school at all', () => {
+    const { jobs } = parseJobsWithSchools([
+      joined({ schools: null, school_id: null, poster_kind: 'individual' }),
+    ]);
+    expect(jobs[0]?.schoolVerification).toBeNull();
   });
 });

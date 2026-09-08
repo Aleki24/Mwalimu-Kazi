@@ -1,6 +1,7 @@
 import { parseJobsWithSchools, type JobRowWithSchool, type JobWithSchool } from '@mwalimu/core';
 import type { Tables } from '@mwalimu/types';
 import { supabase } from './supabase';
+import { JOB_SELECT } from './job-select';
 
 /**
  * Applications. RLS scopes reads to the signed-in teacher (and, separately, to
@@ -8,12 +9,6 @@ import { supabase } from './supabase';
  * does it.
  */
 
-const JOB_SELECT = `
-  id, school_id, title, subjects, job_type, county,
-  salary_min, salary_max, requirements, published,
-  posted_at, closes_at, created_at,
-  schools ( name, school_type, curricula )
-` as const;
 
 /** Postgres unique_violation. A second apply is the same outcome as the first. */
 const UNIQUE_VIOLATION = '23505';

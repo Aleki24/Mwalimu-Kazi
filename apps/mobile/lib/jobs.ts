@@ -4,6 +4,7 @@ import {
 } from '@mwalimu/core';
 import type { TeacherProfile } from '@mwalimu/types';
 import { supabase } from './supabase';
+import { JOB_SELECT } from './job-select';
 
 /**
  * Job reads.
@@ -14,12 +15,6 @@ import { supabase } from './supabase';
  * order.
  */
 
-const JOB_SELECT = `
-  id, school_id, title, subjects, job_type, county,
-  salary_min, salary_max, requirements, published,
-  posted_at, closes_at, created_at,
-  schools ( name, school_type, curricula )
-` as const;
 
 export interface JobsResult {
   readonly jobs: readonly RankedJob[];

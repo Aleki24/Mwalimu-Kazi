@@ -1,6 +1,7 @@
 import { parseJobsWithSchools, type JobRowWithSchool, type JobWithSchool } from '@mwalimu/core';
 import type { Tables } from '@mwalimu/types';
 import { supabase } from './supabase';
+import { JOB_SELECT } from './job-select';
 
 /** RLS scopes these to the signed-in teacher; no user filter is needed here. */
 
@@ -17,12 +18,6 @@ export interface NotificationFeed {
   readonly jobs: ReadonlyMap<string, JobWithSchool>;
 }
 
-const JOB_SELECT = `
-  id, school_id, title, subjects, job_type, county,
-  salary_min, salary_max, requirements, published,
-  posted_at, closes_at, created_at,
-  schools ( name, school_type, curricula )
-` as const;
 
 /**
  * The job a `job_match` notification points at. Null for every other kind, and

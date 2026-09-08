@@ -1,17 +1,12 @@
 import { parseJobsWithSchools, type JobRowWithSchool, type JobWithSchool } from '@mwalimu/core';
 import { supabase } from './supabase';
+import { JOB_SELECT } from './job-select';
 
 /**
  * Saved jobs. RLS scopes every one of these to the signed-in teacher, so no
  * query here filters by user id — the database does it.
  */
 
-const JOB_SELECT = `
-  id, school_id, title, subjects, job_type, county,
-  salary_min, salary_max, requirements, published,
-  posted_at, closes_at, created_at,
-  schools ( name, school_type, curricula )
-` as const;
 
 export async function fetchSavedJobIds(): Promise<ReadonlySet<string>> {
   const { data, error } = await supabase.from('saved_jobs').select('job_id');

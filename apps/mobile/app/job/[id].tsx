@@ -161,6 +161,13 @@ export default function JobDetailScreen() {
               teaching job.
             </Text>
           </NoticeStrip>
+        ) : entry.schoolVerification !== null && entry.schoolVerification !== 'verified' ? (
+          <NoticeStrip tone="warning">
+            <Text className="text-[11.5px] leading-4 text-mutedForeground">
+              {schoolName} has not been verified by us yet. The listing may be genuine — but
+              never pay a fee to apply for a teaching job.
+            </Text>
+          </NoticeStrip>
         ) : null}
 
         <Card className="px-3.5 py-3">

@@ -1,8 +1,10 @@
 import { Link } from 'expo-router';
+import Feather from '@expo/vector-icons/Feather';
 import { Pressable, Text, View } from 'react-native';
 import {
   formatClosing, formatLabel, formatPostedAge, formatSalary, matchBand, type RankedJob,
 } from '@mwalimu/core';
+import { colors } from '@mwalimu/ui';
 import { Badge, Card, SchoolMark, Tag, tabularNums } from './ui';
 
 /**
@@ -17,7 +19,13 @@ const SCORE_COLOUR = {
 } as const;
 
 export function JobCard({ entry, now }: { entry: RankedJob; now: Date }) {
-  const { job, schoolName, match } = entry;
+  const { job, schoolName, match, schoolVerification, posterKind } = entry;
+  // One line, both cases: a listing is either from a checked school or it is
+  // not, and a teacher deciding whether to send documents needs that either
+  // way. 'pending' and 'under_review' are not verified yet, so they say so.
+  const unchecked = posterKind !== 'school'
+    ? 'Posted by an individual'
+    : schoolVerification !== 'verified' ? 'Unverified school' : null;
   const closing = formatClosing(job.closesAt, now);
   const urgent = closing === 'Closes today' || closing === 'Closes tomorrow';
 
@@ -31,12 +39,26 @@ export function JobCard({ entry, now }: { entry: RankedJob; now: Date }) {
               <Text numberOfLines={1} className="text-sm font-medium text-foreground">
                 {job.title}
               </Text>
-              <Text numberOfLines={1} className="text-[12.5px] text-mutedForeground">
-                {schoolName}
-              </Text>
+              <View className="flex-row items-center gap-1.5">
+                <Text numberOfLines={1} className="shrink text-[12.5px] text-mutedForeground">
+                  {schoolName}
+                </Text>
+                {schoolVerification === 'verified' ? (
+                  <Feather name="check-circle" size={11} color={colors.successForeground} />
+                ) : null}
+              </View>
               <Text className="text-[11.5px] text-mutedForeground">
                 {formatSalary(job.salary)} · {formatLabel(job.county)}
               </Text>
+              {unchecked === null ? null : (
+                <View className="mt-0.5 flex-row items-center gap-1">
+                  <View
+                    style={{ width: 5, height: 5, borderRadius: 999 }}
+                    className="bg-warningForeground"
+                  />
+                  <Text className="text-[11px] text-warningForeground">{unchecked}</Text>
+                </View>
+              )}
             </View>
             <View className="items-end">
               <Text

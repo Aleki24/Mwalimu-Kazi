@@ -8,6 +8,7 @@ const entry = (over: Partial<JobWithSchool> & { job: JobWithSchool['job'] }): Jo
   schoolName: 'Greenfield Academy',
   schoolType: 'private',
   schoolCurricula: ['cbc'],
+  schoolVerification: 'verified',
   posterKind: 'school',
   ...over,
 });
