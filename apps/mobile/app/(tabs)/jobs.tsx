@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, FlatList, Pressable, ScrollView, Text, View } from 'react-native';
+import { ActivityIndicator, FlatList, ScrollView, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { filterJobs, rankJobs, type JobFilters, type JobWithSchool } from '@mwalimu/core';
 import { colors } from '@mwalimu/ui';
@@ -112,9 +112,12 @@ export default function JobsScreen() {
           contentContainerStyle={{ paddingHorizontal: 16, gap: 8 }}
         >
           {quickFilters.map((f) => (
-            <Pressable key={f.key} onPress={() => toggle(f.key)} accessibilityRole="button">
-              <Chip label={f.label} selected={active.has(f.key)} />
-            </Pressable>
+            <Chip
+              key={f.key}
+              label={f.label}
+              selected={active.has(f.key)}
+              onPress={() => toggle(f.key)}
+            />
           ))}
         </ScrollView>
       </View>

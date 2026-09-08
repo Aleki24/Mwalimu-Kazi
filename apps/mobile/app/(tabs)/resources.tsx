@@ -75,9 +75,7 @@ export default function ResourcesScreen() {
         />
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
           {KINDS.map((k) => (
-            <Pressable key={k.key} onPress={() => setKind(k.key)} accessibilityRole="button">
-              <Chip label={k.label} selected={kind === k.key} />
-            </Pressable>
+            <Chip key={k.key} label={k.label} selected={kind === k.key} onPress={() => setKind(k.key)} />
           ))}
         </ScrollView>
       </View>

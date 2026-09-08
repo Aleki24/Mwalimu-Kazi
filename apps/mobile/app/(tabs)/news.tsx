@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, FlatList, Pressable, ScrollView, Text, View } from 'react-native';
+import { ActivityIndicator, FlatList, ScrollView, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { formatPostedAge, formatLabel } from '@mwalimu/core';
 import { colors } from '@mwalimu/ui';
@@ -57,9 +57,7 @@ export default function NewsScreen() {
       <View className="bg-card px-5 pb-3">
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
           {TOPICS.map((t) => (
-            <Pressable key={t.key} onPress={() => setTopic(t.key)} accessibilityRole="button">
-              <Chip label={t.label} selected={topic === t.key} />
-            </Pressable>
+            <Chip key={t.key} label={t.label} selected={topic === t.key} onPress={() => setTopic(t.key)} />
           ))}
         </ScrollView>
       </View>

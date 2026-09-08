@@ -181,18 +181,28 @@ export default function SchoolDetailScreen() {
             {openings.map((job) => {
               const closing = formatClosing(job.closes_at === null ? undefined : new Date(job.closes_at), now);
               return (
-                <View key={job.id} className="border-t border-border py-2">
-                  <Text className="text-[12.5px] font-medium text-foreground">{job.title}</Text>
-                  <Text className="mt-0.5 text-[11px] text-mutedForeground">
-                    {formatSalary(
-                      job.salary_min === null ? undefined : {
-                        min: job.salary_min,
-                        ...(job.salary_max === null ? {} : { max: job.salary_max }),
-                      },
-                    )}
-                    {closing === null ? '' : ` · ${closing}`}
-                  </Text>
-                </View>
+                // Listing a vacancy and then not opening it is the page
+                // failing at the only thing the reader came for.
+                <Link key={job.id} href={{ pathname: '/job/[id]', params: { id: job.id } }} asChild>
+                  <Pressable
+                    accessibilityRole="link"
+                    className="flex-row items-center gap-2 border-t border-border py-2.5"
+                  >
+                    <View className="min-w-0 flex-1">
+                      <Text className="text-[12.5px] font-medium text-foreground">{job.title}</Text>
+                      <Text className="mt-0.5 text-[11px] text-mutedForeground">
+                        {formatSalary(
+                          job.salary_min === null ? undefined : {
+                            min: job.salary_min,
+                            ...(job.salary_max === null ? {} : { max: job.salary_max }),
+                          },
+                        )}
+                        {closing === null ? '' : ` · ${closing}`}
+                      </Text>
+                    </View>
+                    <Feather name="chevron-right" size={15} color={colors.mutedForeground} />
+                  </Pressable>
+                </Link>
               );
             })}
           </Card>

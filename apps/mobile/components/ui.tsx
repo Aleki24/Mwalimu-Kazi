@@ -86,6 +86,29 @@ export function Badge({ label, tone = 'neutral' }: { label: string; tone?: Tone 
   );
 }
 
+/**
+ * Why the button above it will not press.
+ *
+ * A greyed-out control with no explanation is indistinguishable from a broken
+ * one, and these forms grey the action while every field still shows its
+ * placeholder — which reads as filled in. Naming what is outstanding costs one
+ * line and turns "this app is broken" into "oh, the title".
+ *
+ * Renders nothing when nothing is missing, so the caller can mount it
+ * unconditionally beside the button it explains.
+ */
+export function WhyDisabled({ missing }: { missing: readonly string[] }) {
+  if (missing.length === 0) return null;
+  const list =
+    missing.length === 1 ? missing[0]
+    : `${missing.slice(0, -1).join(', ')} and ${missing[missing.length - 1]}`;
+  return (
+    <Text className="px-2 text-center text-[11px] leading-4 text-mutedForeground">
+      Add {list} to continue.
+    </Text>
+  );
+}
+
 /** A quiet metadata tag: flat grey, no border, no colour. */
 export function Tag({ label }: { label: string }) {
   return (
@@ -96,9 +119,19 @@ export function Tag({ label }: { label: string }) {
 }
 
 /** Everything clickable that is not a card is a pill. */
+/**
+ * A chip is a control, so `onPress` is required rather than optional.
+ *
+ * That is not pedantry: a Chip is itself a Pressable, and wrapping one in
+ * another Pressable to add the handler puts a hit target on top of the
+ * handler — the press lands on the inner Chip, which does nothing. That bug
+ * shipped on onboarding once and was still live on Jobs, News and Resources.
+ * Making the handler mandatory turns the next occurrence into a type error.
+ * For a chip-shaped thing that is only a label, use `Tag`.
+ */
 export function Chip({
   label, selected = false, onPress,
-}: { label: string; selected?: boolean; onPress?: PressableProps['onPress'] }) {
+}: { label: string; selected?: boolean; onPress: PressableProps['onPress'] }) {
   return (
     <Pressable
       accessibilityRole="button"

@@ -5,7 +5,7 @@ import { Stack, router, useLocalSearchParams } from 'expo-router';
 import { County, JobType } from '@mwalimu/types';
 import { formatLabel } from '@mwalimu/core';
 import { colors } from '@mwalimu/ui';
-import { Button, Card, Chip, ErrorBanner, NoticeStrip } from '../../components/ui';
+import { Button, Card, Chip, ErrorBanner, NoticeStrip, WhyDisabled } from '../../components/ui';
 import { useTeacher } from '../../lib/auth';
 import { fetchPostableSchools, postJob } from '../../lib/post-job';
 
@@ -51,7 +51,11 @@ export default function NewJobScreen() {
   const [sent, setSent] = useState(false);
 
   const subjectList = subjects.split(',').map((s) => s.trim().toLowerCase()).filter((s) => s !== '');
-  const ready = title.trim().length >= 3 && subjectList.length > 0;
+  const missing = [
+    ...(title.trim().length >= 3 ? [] : ['a role title']),
+    ...(subjectList.length > 0 ? [] : ['at least one subject']),
+  ];
+  const ready = missing.length === 0;
 
   const submit = async () => {
     setSaving(true);
@@ -206,7 +210,10 @@ export default function NewJobScreen() {
         {saving ? (
           <ActivityIndicator color={colors.mutedForeground} className="py-3" />
         ) : (
-          <Button label="Post this role" disabled={!ready} onPress={() => void submit()} />
+          <View className="gap-2">
+            <Button label="Post this role" disabled={!ready} onPress={() => void submit()} />
+            <WhyDisabled missing={missing} />
+          </View>
         )}
       </ScrollView>
     </View>

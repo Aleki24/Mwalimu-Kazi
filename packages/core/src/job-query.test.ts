@@ -6,6 +6,7 @@ const NOW = new Date('2026-09-05T09:00:00Z');
 
 const entry = (over: Partial<JobWithSchool> & { job: JobWithSchool['job'] }): JobWithSchool => ({
   schoolName: 'Greenfield Academy',
+  schoolSlug: 'greenfield-academy',
   schoolType: 'private',
   schoolCurricula: ['cbc'],
   schoolVerification: 'verified',

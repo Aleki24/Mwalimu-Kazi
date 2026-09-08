@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, Text, View } from 'react-native';
 import Feather from '@expo/vector-icons/Feather';
-import { Stack, useLocalSearchParams } from 'expo-router';
+import { Link, Stack, useLocalSearchParams } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   formatClosing, formatLabel, formatPostedAge, formatSalaryFull, matchScore,
@@ -17,6 +17,29 @@ import { addJobComment, fetchJobComments } from '../../lib/social';
 import { CommentThread } from '../../components/comment-thread';
 import { NoticeStrip } from '../../components/ui';
 import { useTeacher } from '../../lib/auth';
+
+function SchoolHeader({ name, slug, meta }: {
+  name: string; slug: string | null; meta: string;
+}) {
+  const row = (
+    <View className="flex-row items-center gap-3">
+      <SchoolMark name={name} size={44} />
+      <View className="min-w-0 flex-1">
+        <Text className="text-sm font-medium text-foreground">{name}</Text>
+        <Text className="mt-0.5 text-[11.5px] text-mutedForeground">{meta}</Text>
+      </View>
+      {slug === null ? null : (
+        <Feather name="chevron-right" size={16} color={colors.mutedForeground} />
+      )}
+    </View>
+  );
+  if (slug === null) return row;
+  return (
+    <Link href={{ pathname: '/school/[slug]', params: { slug } }} asChild>
+      <Pressable accessibilityRole="link">{row}</Pressable>
+    </Link>
+  );
+}
 
 export default function JobDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -113,15 +136,18 @@ export default function JobDetailScreen() {
       <Stack.Screen options={{ title: job.title }} />
 
       <ScrollView contentContainerStyle={{ padding: 16, gap: 12, paddingBottom: actionBarClearance }}>
-        <View className="flex-row items-center gap-3">
-          <SchoolMark name={schoolName} size={44} />
-          <View className="min-w-0 flex-1">
-            <Text className="text-sm font-medium text-foreground">{schoolName}</Text>
-            <Text className="mt-0.5 text-[11.5px] text-mutedForeground">
-              {formatLabel(job.county)} · posted {formatPostedAge(job.postedAt, now)}
-            </Text>
-          </View>
-        </View>
+        {/*
+          Reading what teachers said about a school before applying is the
+          reason this app exists, and the vacancy is where that decision gets
+          made — so the header is the way there. An independent listing has no
+          page to open, and stays a plain row rather than a link that does
+          nothing.
+        */}
+        <SchoolHeader
+          name={schoolName}
+          slug={entry.schoolSlug}
+          meta={`${formatLabel(job.county)} · posted ${formatPostedAge(job.postedAt, now)}`}
+        />
 
         <MatchBreakdown match={match} />
 

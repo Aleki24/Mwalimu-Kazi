@@ -33,6 +33,12 @@ export interface JobWithSchool {
   /** The school's name, or a label for a listing that has no school. */
   readonly schoolName: string;
   /**
+   * Null for a listing with no school. Carried so a vacancy can link to the
+   * school's page: a teacher reading the reviews before applying is the whole
+   * pitch, and the job screen is where they are standing when they want them.
+   */
+  readonly schoolSlug: string | null;
+  /**
    * Null for a job posted by an individual. Since 0008 a listing need not
    * belong to a school, and a missing school is not the same as an unknown
    * one — a school-type filter must exclude these rather than guess.

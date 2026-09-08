@@ -24,8 +24,8 @@ const row = (over: Partial<Tables<'jobs'>> = {}): Tables<'jobs'> => ({
 const joined = (over: Partial<JobRowWithSchool> = {}): JobRowWithSchool => ({
   ...row(),
   schools: {
-    name: 'Greenfield Academy', school_type: 'private', curricula: ['cbc'],
-    verification: 'verified',
+    name: 'Greenfield Academy', slug: 'greenfield-academy', school_type: 'private',
+    curricula: ['cbc'], verification: 'verified',
   },
   ...over,
 });
@@ -119,8 +119,8 @@ describe('parseJobsWithSchools — verification reaches the job', () => {
     const { jobs } = parseJobsWithSchools([
       joined({
         schools: {
-          name: 'Westgate Hills Academy', school_type: 'private',
-          curricula: ['cbc'], verification: 'unverified',
+          name: 'Westgate Hills Academy', slug: 'westgate-hills-academy',
+          school_type: 'private', curricula: ['cbc'], verification: 'unverified',
         },
       }),
     ]);

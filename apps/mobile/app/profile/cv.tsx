@@ -8,7 +8,7 @@ import {
   type CvTemplate,
 } from '@mwalimu/core';
 import { colors, radius } from '@mwalimu/ui';
-import { Button, Card, Chip, ErrorBanner, NoticeStrip, ToggleRow } from '../../components/ui';
+import { Button, Card, Chip, ErrorBanner, NoticeStrip, ToggleRow, WhyDisabled } from '../../components/ui';
 import { useTeacher } from '../../lib/auth';
 import {
   deleteCvEntry, fetchCv, saveCvDetails, saveEducation, saveExperience, saveReferee,
@@ -90,6 +90,19 @@ export default function CvScreen() {
   const [edu, setEdu] = useState({ institution: '', qualification: '', start: '', end: '', grade: '' });
   const [exp, setExp] = useState({ organisation: '', role: '', start: '', end: '', current: false, description: '' });
   const [ref, setRef] = useState({ name: '', title: '', organisation: '', phone: '', email: '' });
+
+  // What each Add button is still waiting for. Every field here shows a
+  // placeholder, which reads as filled in, so a greyed button with no reason
+  // looks broken rather than unfinished.
+  const expMissing = [
+    ...(exp.role.trim() === '' ? ['a role'] : []),
+    ...(exp.organisation.trim() === '' ? ['a school or organisation'] : []),
+  ];
+  const eduMissing = [
+    ...(edu.qualification.trim() === '' ? ['a qualification'] : []),
+    ...(edu.institution.trim() === '' ? ['an institution'] : []),
+  ];
+  const refMissing = ref.name.trim() === '' ? ['a name'] : [];
 
   const load = useCallback(async () => {
     try {
@@ -232,7 +245,7 @@ export default function CvScreen() {
           <Button
             label="Add role"
             variant="secondary"
-            disabled={exp.role.trim() === '' || exp.organisation.trim() === ''}
+            disabled={expMissing.length > 0}
             onPress={() => void run(async () => {
               await saveExperience({
                 user_id: teacher.id,
@@ -246,6 +259,7 @@ export default function CvScreen() {
               setExp({ organisation: '', role: '', start: '', end: '', current: false, description: '' });
             }, 'Could not add that role')}
           />
+          <WhyDisabled missing={expMissing} />
         </Card>
 
         {/* ------------------------------------------------------- education */}
@@ -277,7 +291,7 @@ export default function CvScreen() {
           <Button
             label="Add qualification"
             variant="secondary"
-            disabled={edu.qualification.trim() === '' || edu.institution.trim() === ''}
+            disabled={eduMissing.length > 0}
             onPress={() => void run(async () => {
               await saveEducation({
                 user_id: teacher.id,
@@ -290,6 +304,7 @@ export default function CvScreen() {
               setEdu({ institution: '', qualification: '', start: '', end: '', grade: '' });
             }, 'Could not add that qualification')}
           />
+          <WhyDisabled missing={eduMissing} />
         </Card>
 
         {/* -------------------------------------------------------- referees */}
@@ -317,7 +332,7 @@ export default function CvScreen() {
           <Button
             label="Add referee"
             variant="secondary"
-            disabled={ref.name.trim() === ''}
+            disabled={refMissing.length > 0}
             onPress={() => void run(async () => {
               await saveReferee({
                 user_id: teacher.id,
@@ -330,6 +345,7 @@ export default function CvScreen() {
               setRef({ name: '', title: '', organisation: '', phone: '', email: '' });
             }, 'Could not add that referee')}
           />
+          <WhyDisabled missing={refMissing} />
         </Card>
 
         {/* -------------------------------------------------------- download */}
