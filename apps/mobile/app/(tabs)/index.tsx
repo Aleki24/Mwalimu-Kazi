@@ -3,24 +3,34 @@ import { ActivityIndicator, Pressable, RefreshControl, ScrollView, Text, View } 
 import { Link, router } from 'expo-router';
 import Feather from '@expo/vector-icons/Feather';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { closingSoon, rankJobs, type JobWithSchool, type RankedJob } from '@mwalimu/core';
+import { closingSoon, formatLabel, rankJobs, type JobWithSchool, type RankedJob } from '@mwalimu/core';
 import { colors } from '@mwalimu/ui';
 import {
-  Avatar, Card, EmptyState, ErrorBanner, NoticeStrip, tabularNums,
+  Avatar, Card, centredContent, EmptyState, ErrorBanner, NoticeStrip, tabularNums,
 } from '../../components/ui';
+import { HeroCard, HeroAction } from '../../components/hero-card';
+import { ProgressRing } from '../../components/progress-ring';
+import { PIPELINE_STAGES, pipelineProgress } from '../../components/pipeline';
 import { useTabBarClearance } from '../../components/floating-tab-bar';
 import { JobCard } from '../../components/job-card';
 import { fetchOpenJobs } from '../../lib/jobs';
-import { fetchCareerSnapshot, type CareerSnapshot } from '../../lib/career';
+import { fetchCareerSnapshot, type CareerSnapshot, type LeadApplication } from '../../lib/career';
 import { fetchRule } from '../../lib/auto-apply';
 import { useTeacher } from '../../lib/auth';
 
-/** Routes with no tab of their own; the grid is how a teacher reaches them. */
-const QUICK_ACCESS = [
-  { href: '/saved', label: 'Saved jobs', icon: 'bookmark' },
-  { href: '/applications', label: 'Applications', icon: 'send' },
-  { href: '/notifications', label: 'Alerts', icon: 'bell' },
-  { href: '/messages', label: 'Messages', icon: 'mail' },
+/**
+ * The things a teacher comes back for. Saved jobs, alerts and messages are one
+ * tap away in the header rather than taking tiles: they are places you check,
+ * and the grid is for things you go and do.
+ *
+ * Every route without a tab of its own has to appear in one of those two
+ * places or it is unreachable — which is what nearly happened to Messages.
+ */
+const QUICK_ACTIONS = [
+  { href: '/(tabs)/jobs', label: 'Find jobs', icon: 'search' },
+  { href: '/applications', label: 'My applications', icon: 'send' },
+  { href: '/profile/cv', label: 'Documents', icon: 'file-text' },
+  { href: '/(tabs)/schools', label: 'Schools', icon: 'map-pin' },
   { href: '/feed', label: 'Staffroom', icon: 'message-square' },
 ] as const satisfies ReadonlyArray<{
   href: string;
@@ -64,26 +74,34 @@ export default function HomeScreen() {
 
   const ranked: readonly RankedJob[] = useMemo(
     () => rankJobs(all, teacher, now),
-    [all, now],
+    [all, teacher, now],
   );
   const urgent = useMemo(() => closingSoon(all, now), [all, now]);
-  const topMatches = ranked.slice(0, 3);
+  // Two, not three: the hero already spent the top of the screen, and a
+  // shortlist you can take in at a glance is the point of a shortlist.
+  const topMatches = ranked.slice(0, 2);
 
   return (
     <View className="flex-1 bg-background" style={{ paddingTop: insets.top }}>
-      <View className="flex-row items-center gap-3 bg-card px-5 pb-4 pt-2">
+      <View className="flex-row items-center gap-1 bg-card px-5 pb-4 pt-2">
         <View className="min-w-0 flex-1">
-          <Text className="text-2xl font-medium tracking-tight text-foreground">
-            {`Good morning, ${teacher.fullName.split(' ')[0]}`}
+          <Text numberOfLines={1} className="text-2xl font-medium tracking-tight text-foreground">
+            {`Hi, ${teacher.fullName.split(' ')[0] ?? teacher.fullName}`}
           </Text>
           <Text className="mt-1 text-sm text-mutedForeground">Your career dashboard</Text>
         </View>
-        {/* Profile has no tab any more; this is the way in. */}
-        <Avatar name={teacher.fullName} size={40} onPress={() => router.push('/profile')} label="Your profile" />
+
+        <HeaderIcon href="/saved" icon="bookmark" label="Saved jobs" />
+        <HeaderIcon href="/messages" icon="mail" label="Messages" />
+        <HeaderIcon href="/notifications" icon="bell" label="Alerts" />
+        <View className="pl-1.5">
+          {/* Profile has no tab of its own; this is the way in. */}
+          <Avatar name={teacher.fullName} size={40} onPress={() => router.push('/profile')} label="Your profile" />
+        </View>
       </View>
 
       <ScrollView
-        contentContainerStyle={{ padding: 16, gap: 12, paddingBottom: tabBarClearance }}
+        contentContainerStyle={{ padding: 16, gap: 12, paddingBottom: tabBarClearance, ...centredContent }}
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
@@ -94,13 +112,61 @@ export default function HomeScreen() {
       >
         {error !== null ? <ErrorBanner message={error} /> : null}
 
+        {/*
+          The hero says the single most important true thing. That is the
+          application furthest along if there is one, and otherwise the strongest
+          open role — never an invented appointment.
+        */}
+        {snapshot?.lead != null ? (
+          <LeadHero lead={snapshot.lead} />
+        ) : topMatches[0] !== undefined ? (
+          <HeroCard
+            eyebrow="Your strongest match"
+            title={topMatches[0].job.title}
+            meta={`${topMatches[0].schoolName} · ${formatLabel(topMatches[0].job.county)}`}
+            right={
+              <ProgressRing
+                step={topMatches[0].match.score}
+                total={100}
+                label={`${topMatches[0].match.score}%`}
+                onDark
+              />
+            }
+            footer={<HeroAction label="Read the role" />}
+            onPress={() => router.push({ pathname: '/job/[id]', params: { id: topMatches[0]!.job.id } })}
+          />
+        ) : null}
+
         {urgent.length > 0 ? (
-          <NoticeStrip tone="warning">
+          <NoticeStrip tone="urgent">
             <Text className="text-sm text-foreground">
               {urgent.length === 1 ? '1 role closes today' : `${urgent.length} roles close today`}
             </Text>
           </NoticeStrip>
         ) : null}
+
+        {/*
+          Tiles wrap rather than sitting on a fixed 48.5% width, so the grid is
+          2×2 on a phone and one row on a tablet without a width listener.
+        */}
+        <View className="flex-row flex-wrap gap-2.5">
+          {QUICK_ACTIONS.map((item) => (
+            <Link key={item.href} href={item.href} asChild>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={item.label}
+                style={{ flexBasis: '47%', flexGrow: 1 }}
+              >
+                <Card className="items-center gap-2 px-2 py-4">
+                  <Feather name={item.icon} size={19} color={colors.primary} />
+                  <Text numberOfLines={1} className="text-[11.5px] font-medium text-foreground">
+                    {item.label}
+                  </Text>
+                </Card>
+              </Pressable>
+            </Link>
+          ))}
+        </View>
 
         {/*
           Real counts, not a dashboard for its own sake. Applications, interviews
@@ -175,22 +241,9 @@ export default function HomeScreen() {
           </Pressable>
         </Link>
 
-        <View className="flex-row flex-wrap gap-2.5">
-          {QUICK_ACCESS.map((item) => (
-            <Link key={item.href} href={item.href} asChild>
-              <Pressable accessibilityRole="button" style={{ width: '48.5%' }}>
-                <Card className="items-center gap-1.5 px-2 py-3">
-                  <Feather name={item.icon} size={19} color={colors.foreground} />
-                  <Text className="text-[11.5px] font-medium text-foreground">{item.label}</Text>
-                </Card>
-              </Pressable>
-            </Link>
-          ))}
-        </View>
-
         <View className="flex-row items-baseline justify-between">
-          <Text className="text-[15px] font-medium tracking-tight text-foreground">Top matches for you</Text>
-          <Link href="/(tabs)/jobs" className="text-xs font-medium text-foreground">See all</Link>
+          <Text className="text-[15px] font-medium tracking-tight text-foreground">Matched for you</Text>
+          <Link href="/(tabs)/jobs" className="text-xs font-medium text-primary">See all</Link>
         </View>
 
         {loading ? (
@@ -201,7 +254,50 @@ export default function HomeScreen() {
           topMatches.map((entry) => <JobCard key={entry.job.id} entry={entry} now={now} />)
         )}
       </ScrollView>
-
     </View>
+  );
+}
+
+/**
+ * The hero when there is a live application: which school, how far along, and
+ * a ring showing the position on the four-stage pipeline.
+ */
+function LeadHero({ lead }: { readonly lead: LeadApplication }) {
+  const progress = pipelineProgress(lead.stage);
+
+  return (
+    <HeroCard
+      eyebrow={formatLabel(lead.stage)}
+      title={lead.schoolName}
+      meta={lead.jobTitle}
+      right={<ProgressRing step={progress.reached} total={PIPELINE_STAGES.length} onDark />}
+      footer={<HeroAction label="Track this application" />}
+      onPress={() => router.push('/applications')}
+      accessibilityLabel={`${formatLabel(lead.stage)} at ${lead.schoolName} for ${lead.jobTitle}. Track this application.`}
+    />
+  );
+}
+
+/** A quiet round icon button in the header. */
+function HeaderIcon({
+  href, icon, label,
+}: {
+  // The router's own href type, not `string`: a typo in a route should fail
+  // the build rather than render a link that goes nowhere.
+  readonly href: React.ComponentProps<typeof Link>['href'];
+  readonly icon: React.ComponentProps<typeof Feather>['name'];
+  readonly label: string;
+}) {
+  return (
+    <Link href={href} asChild>
+      <Pressable
+        accessibilityRole="link"
+        accessibilityLabel={label}
+        hitSlop={8}
+        className="h-10 w-10 items-center justify-center"
+      >
+        <Feather name={icon} size={19} color={colors.mutedForeground} />
+      </Pressable>
+    </Link>
   );
 }

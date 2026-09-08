@@ -77,9 +77,11 @@ export function FloatingTabBar({ state, descriptors, navigation }: TabBarProps) 
           const { options } = descriptor;
           const focused = state.index === index;
           const label = options.title ?? route.name;
-          // The accent is already spent on the primary action, so an active tab
-          // is ink on a wash pill, never a coloured fill.
-          const tint = focused ? colors.foreground : colors.mutedForeground;
+          // Indigo on an indigo tint. The active tab is the one place the
+          // brand colour appears without also being a thing you press to
+          // commit to something, which is what makes it read as "you are
+          // here" rather than as another call to action.
+          const tint = focused ? colors.primary : colors.mutedForeground;
 
           const onPress = () => {
             const event = navigation.emit({ type: 'tabPress', target: route.key, canPreventDefault: true });
@@ -101,7 +103,7 @@ export function FloatingTabBar({ state, descriptors, navigation }: TabBarProps) 
                 justifyContent: 'center',
                 gap: 2,
                 borderRadius: radius.pill,
-                backgroundColor: focused ? colors.wash : 'transparent',
+                backgroundColor: focused ? colors.primarySurface : 'transparent',
               }}
             >
               {options.tabBarIcon?.({ focused, color: tint, size: 19 })}

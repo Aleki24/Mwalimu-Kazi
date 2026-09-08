@@ -53,13 +53,16 @@ export function ComposeFab() {
           height: 52,
           width: 52,
           borderRadius: radius.pill,
-          backgroundColor: colors.primary,
+          // Charcoal, not indigo. The button floats over screens whose primary
+          // action is already indigo, and two indigo circles competing for the
+          // same corner is how people tap the wrong one.
+          backgroundColor: colors.foreground,
           alignItems: 'center',
           justifyContent: 'center',
           ...shadow.floating,
         }}
       >
-        <Feather name="plus" size={23} color={colors.primaryForeground} />
+        <Feather name="plus" size={23} color={colors.card} />
       </Pressable>
 
       <Modal visible={open} transparent animationType="fade" onRequestClose={() => setOpen(false)}>
@@ -67,7 +70,7 @@ export function ComposeFab() {
         <Pressable
           onPress={() => setOpen(false)}
           accessibilityLabel="Close"
-          style={{ flex: 1, backgroundColor: 'rgba(41,41,41,0.35)', justifyContent: 'flex-end' }}
+          style={{ flex: 1, backgroundColor: 'rgba(26,26,26,0.38)', justifyContent: 'flex-end' }}
         >
           <Pressable
             onPress={(e) => e.stopPropagation()}
