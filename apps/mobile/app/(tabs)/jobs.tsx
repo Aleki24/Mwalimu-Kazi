@@ -3,10 +3,11 @@ import { ActivityIndicator, FlatList, Pressable, ScrollView, Text, View } from '
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { filterJobs, rankJobs, type JobFilters, type JobWithSchool } from '@mwalimu/core';
 import { colors } from '@mwalimu/ui';
-import { Chip, EmptyState, ErrorBanner, ScreenHeader } from '../../components/ui';
+import { Chip, EmptyState, ErrorBanner, ScreenHeader, SearchBar } from '../../components/ui';
 import { useTabBarClearance } from '../../components/floating-tab-bar';
 import { JobCard } from '../../components/job-card';
 import { fetchJobsPage, type JobsCursor } from '../../lib/jobs';
+import { fetchSavedJobIds, saveJob, unsaveJob } from '../../lib/saved';
 import { useTeacher } from '../../lib/auth';
 
 interface QuickFilter {
@@ -22,6 +23,8 @@ export default function JobsScreen() {
   const [all, setAll] = useState<readonly JobWithSchool[]>([]);
   const [skipped, setSkipped] = useState<readonly string[]>([]);
   const [active, setActive] = useState<ReadonlySet<string>>(new Set());
+  const [query, setQuery] = useState('');
+  const [savedIds, setSavedIds] = useState<ReadonlySet<string>>(new Set());
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
@@ -31,9 +34,12 @@ export default function JobsScreen() {
 
   const load = useCallback(async () => {
     try {
-      const page = await fetchJobsPage(null);
+      // The saved set is secondary — a bookmark drawn a beat late is far
+      // better than a list that waits on it.
+      const [page, saved] = await Promise.all([fetchJobsPage(null), fetchSavedJobIds()]);
       setAll(page.jobs);
       setSkipped(page.skipped);
+      setSavedIds(saved);
       setCursor(page.next);
       setDone(page.next === null);
       setNow(new Date());
@@ -78,13 +84,16 @@ export default function JobsScreen() {
     { key: 'tsc', label: 'TSC roles', patch: { tscOnly: true } },
   ], [teacher]);
 
-  const filters: JobFilters = useMemo(
-    () => quickFilters.reduce<JobFilters>(
+  // The typed query is just another field on the same filter object, so the
+  // chips and the search box cannot end up filtering through different paths.
+  const filters: JobFilters = useMemo(() => {
+    const fromChips = quickFilters.reduce<JobFilters>(
       (acc, f) => (active.has(f.key) ? { ...acc, ...f.patch } : acc),
       {},
-    ),
-    [active, quickFilters],
-  );
+    );
+    const trimmed = query.trim();
+    return trimmed === '' ? fromChips : { ...fromChips, query: trimmed };
+  }, [active, quickFilters, query]);
 
   const results = useMemo(
     () => rankJobs(filterJobs(all, filters), teacher, now),
@@ -98,18 +107,57 @@ export default function JobsScreen() {
       return next;
     });
 
+  /**
+   * The bookmark flips immediately and rolls back if the write fails. Waiting
+   * on a round trip to fill in an icon makes a fast list feel broken; silently
+   * keeping a save that did not happen is worse.
+   */
+  const toggleSave = async (jobId: string) => {
+    const wasSaved = savedIds.has(jobId);
+    setSavedIds((prev) => {
+      const next = new Set(prev);
+      if (wasSaved) next.delete(jobId); else next.add(jobId);
+      return next;
+    });
+    try {
+      if (wasSaved) await unsaveJob(teacher.id, jobId);
+      else await saveJob(teacher.id, jobId);
+    } catch (cause) {
+      setSavedIds((prev) => {
+        const next = new Set(prev);
+        if (wasSaved) next.add(jobId); else next.delete(jobId);
+        return next;
+      });
+      setError(cause instanceof Error ? cause.message : 'Could not update your saved jobs');
+    }
+  };
+
   return (
     <View className="flex-1 bg-background" style={{ paddingTop: insets.top }}>
-      <ScreenHeader
-        title="Jobs"
-        subtitle={loading ? 'Loading…' : `${results.length} of ${all.length} open roles`}
-      />
+      {/*
+        Search and filters stay pinned above the list rather than scrolling
+        away with it: they are how you change what you are looking at, and
+        having to scroll back up to narrow a long feed is the whole reason
+        people give up on one.
+      */}
+      <View className="border-b border-border bg-card">
+        <ScreenHeader
+          title="Jobs"
+          subtitle={loading ? 'Loading…' : `${results.length} of ${all.length} open roles`}
+        />
 
-      <View className="border-b border-border bg-card pb-3">
+        <View className="px-4 pb-3">
+          <SearchBar
+            value={query}
+            onChangeText={setQuery}
+            placeholder="Search role, school or county"
+          />
+        </View>
+
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
-          contentContainerStyle={{ paddingHorizontal: 16, gap: 8 }}
+          contentContainerStyle={{ paddingHorizontal: 16, gap: 8, paddingBottom: 12 }}
         >
           {quickFilters.map((f) => (
             <Pressable key={f.key} onPress={() => toggle(f.key)} accessibilityRole="button">
@@ -126,6 +174,8 @@ export default function JobsScreen() {
           data={results}
           keyExtractor={(entry) => entry.job.id}
           contentContainerStyle={{ padding: 16, gap: 12, paddingBottom: tabBarClearance }}
+          keyboardDismissMode="on-drag"
+          keyboardShouldPersistTaps="handled"
           onEndReachedThreshold={0.6}
           onEndReached={() => void loadMore()}
           ListFooterComponent={
@@ -136,7 +186,14 @@ export default function JobsScreen() {
                 </Text>
               : null
           }
-          renderItem={({ item }) => <JobCard entry={item} now={now} />}
+          renderItem={({ item }) => (
+            <JobCard
+              entry={item}
+              now={now}
+              saved={savedIds.has(item.job.id)}
+              onToggleSave={(jobId) => void toggleSave(jobId)}
+            />
+          )}
           ListHeaderComponent={
             <View className="gap-3">
               {error !== null ? <ErrorBanner message={error} /> : null}
@@ -149,7 +206,7 @@ export default function JobsScreen() {
           }
           ListEmptyComponent={
             <EmptyState
-              title="Nothing matches those filters"
+              title={query.trim() === '' ? 'Nothing matches those filters' : `No roles match “${query.trim()}”`}
               body="Try removing a filter — every open role is still here."
             />
           }

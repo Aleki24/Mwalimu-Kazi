@@ -1,6 +1,6 @@
-// Colours come from packages/ui/tokens.json — the OA Design token block ported
-// from .claude/skills/oa-design/_root.css — so the Tailwind theme and the
-// TypeScript tokens cannot drift apart.
+// Colours, radii and fonts come from packages/ui/tokens.json — the single
+// source the TypeScript tokens also read — so the Tailwind theme and the
+// typed palette cannot drift apart. Add a colour there, not here.
 const tokens = require('@mwalimu/ui/tokens.json');
 
 /** @type {import('tailwindcss').Config} */
