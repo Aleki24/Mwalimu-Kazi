@@ -1,13 +1,13 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { ActivityIndicator, ScrollView, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Stack, router } from 'expo-router';
+import { Stack, router, useLocalSearchParams } from 'expo-router';
 import { County, JobType } from '@mwalimu/types';
 import { formatLabel } from '@mwalimu/core';
 import { colors } from '@mwalimu/ui';
 import { Button, Card, Chip, ErrorBanner, NoticeStrip } from '../../components/ui';
 import { useTeacher } from '../../lib/auth';
-import { postIndependentJob } from '../../lib/post-job';
+import { fetchPostableSchools, postJob } from '../../lib/post-job';
 
 /**
  * Post a vacancy as an individual.
@@ -20,6 +20,25 @@ import { postIndependentJob } from '../../lib/post-job';
 export default function NewJobScreen() {
   const teacher = useTeacher();
   const insets = useSafeAreaInsets();
+  const params = useLocalSearchParams<{ schoolId?: string }>();
+
+  const [schools, setSchools] = useState<ReadonlyArray<{ id: string; name: string }>>([]);
+  const [schoolId, setSchoolId] = useState<string | null>(params.schoolId ?? null);
+
+  useEffect(() => {
+    void (async () => {
+      try {
+        const mine = await fetchPostableSchools();
+        setSchools(mine);
+        // Default to the school when there is exactly one and nothing was
+        // passed: a recruiter with one school almost never means "individual".
+        setSchoolId((prev) => prev ?? (mine.length === 1 ? (mine[0]?.id ?? null) : null));
+      } catch {
+        // Not being able to list schools is not a reason to block posting as
+        // an individual, which is what most people are doing here.
+      }
+    })();
+  }, []);
 
   const [title, setTitle] = useState('');
   const [county, setCounty] = useState<County>(teacher.county);
@@ -38,7 +57,8 @@ export default function NewJobScreen() {
     setSaving(true);
     setError(null);
     try {
-      await postIndependentJob({
+      await postJob({
+        schoolId,
         title: title.trim(),
         county,
         subjects: subjectList,
@@ -60,8 +80,9 @@ export default function NewJobScreen() {
         <Stack.Screen options={{ title: 'Posted' }} />
         <Text className="text-center text-[15px] font-medium text-foreground">Your role is live</Text>
         <Text className="text-center text-[12.5px] leading-5 text-mutedForeground">
-          It is labelled as posted by an individual rather than a verified school, so teachers
-          know who they are dealing with.
+          {schoolId === null
+            ? 'It is labelled as posted by an individual rather than a verified school, so teachers know who they are dealing with.'
+            : 'Matching teachers have been notified, and anyone who applies will appear under For schools.'}
         </Text>
         <Button label="Done" onPress={() => (router.canGoBack() ? router.back() : router.replace('/jobs'))} />
       </View>
@@ -75,12 +96,42 @@ export default function NewJobScreen() {
         contentContainerStyle={{ padding: 16, gap: 14, paddingBottom: insets.bottom + 32 }}
         keyboardShouldPersistTaps="handled"
       >
-        <NoticeStrip tone="warning">
-          <Text className="text-[11.5px] leading-4 text-mutedForeground">
-            This will be shown as posted by an individual, not a verified school. Asking a
-            teacher for money to apply will get the listing removed.
-          </Text>
-        </NoticeStrip>
+        {schools.length === 0 ? null : (
+          <View className="gap-2">
+            <Text className="text-[13px] font-medium text-foreground">Posting as</Text>
+            <View className="flex-row flex-wrap gap-1.5">
+              {schools.map((s) => (
+                <Chip
+                  key={s.id}
+                  label={s.name}
+                  selected={schoolId === s.id}
+                  onPress={() => setSchoolId(s.id)}
+                />
+              ))}
+              <Chip
+                label="An individual"
+                selected={schoolId === null}
+                onPress={() => setSchoolId(null)}
+              />
+            </View>
+          </View>
+        )}
+
+        {schoolId === null ? (
+          <NoticeStrip tone="warning">
+            <Text className="text-[11.5px] leading-4 text-mutedForeground">
+              This will be shown as posted by an individual, not a verified school. Asking a
+              teacher for money to apply will get the listing removed.
+            </Text>
+          </NoticeStrip>
+        ) : (
+          <NoticeStrip>
+            <Text className="text-[11.5px] leading-4 text-mutedForeground">
+              Posted in your school's name. Teachers matching the subjects and county are
+              notified, and applicants appear under For schools.
+            </Text>
+          </NoticeStrip>
+        )}
 
         <View className="gap-2">
           <Text className="text-[13px] font-medium text-foreground">Role title</Text>

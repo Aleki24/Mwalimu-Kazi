@@ -57,6 +57,8 @@ function RootNavigator() {
         <Stack.Screen name="post/new" options={{ title: 'Post a role' }} />
         <Stack.Screen name="feed" options={{ title: 'Staffroom' }} />
         <Stack.Screen name="auto-apply" options={{ title: 'Auto-Apply' }} />
+        <Stack.Screen name="recruiter/index" options={{ title: 'For schools' }} />
+        <Stack.Screen name="recruiter/[schoolId]" options={{ title: 'Applicants' }} />
         <Stack.Screen name="profile/index" options={{ title: 'Your profile' }} />
         <Stack.Screen name="profile/edit" options={{ title: 'Edit profile' }} />
         <Stack.Screen name="profile/cv" options={{ title: 'Your CV' }} />

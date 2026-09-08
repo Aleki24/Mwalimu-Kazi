@@ -93,6 +93,10 @@ export default function ProfileScreen() {
               hint: 'Name, subjects, county, TSC number' },
             { href: '/profile/cv', icon: 'file-text', label: 'Your CV',
               hint: 'Build it once, download as PDF or Word' },
+            // Not a separate account type: a head of department is often also
+            // a teacher looking for their own next role.
+            { href: '/recruiter', icon: 'briefcase', label: 'For schools',
+              hint: 'Post roles and see who applied' },
           ] as const).map((item) => (
             <Link key={item.href} href={item.href} asChild>
               <Pressable accessibilityRole="link">

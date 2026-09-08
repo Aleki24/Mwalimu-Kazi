@@ -927,6 +927,15 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      create_school: {
+        Args: {
+          p_county: string
+          p_curricula?: Database["public"]["Enums"]["curriculum"][]
+          p_name: string
+          p_school_type: Database["public"]["Enums"]["school_type"]
+        }
+        Returns: string
+      }
       submit_school_review: {
         Args: {
           p_body: string
