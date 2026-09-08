@@ -5,7 +5,7 @@ import { formatPostedAge, matchBand, matchScore, type JobWithSchool } from '@mwa
 import { colors } from '@mwalimu/ui';
 import type { Tables } from '@mwalimu/types';
 import { EmptyState, ErrorBanner } from '../components/ui';
-import { fetchNotifications, jobIdOf, markAllRead } from '../lib/notifications';
+import { fetchNotifications, jobIdOf, markAllRead, threadIdOf } from '../lib/notifications';
 import { useTeacher } from '../lib/auth';
 import { playNotificationSound } from '../lib/sound';
 
@@ -28,6 +28,7 @@ const TONE: Readonly<Record<Kind, { fg: string; mark: string }>> = {
   followed_school_job: { fg: 'text-foreground', mark: '◆' },
   news:                { fg: 'text-infoForeground', mark: '▤' },
   resource:            { fg: 'text-foreground', mark: '▤' },
+  message:             { fg: 'text-foreground', mark: '✉' },
 };
 
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -159,11 +160,17 @@ export default function NotificationsScreen() {
               </View>
             );
 
-            // Telling a teacher about a vacancy and then making them go and
-            // find it is the whole feature failing at the last step.
-            if (jobId === null) return row;
+            // Telling someone about a vacancy — or that a school has written
+            // to them — and then making them go and find it is the whole
+            // feature failing at the last step.
+            const threadId = threadIdOf(item);
+            const href =
+              jobId !== null ? { pathname: '/job/[id]' as const, params: { id: jobId } }
+              : threadId !== null ? { pathname: '/messages/[threadId]' as const, params: { threadId } }
+              : null;
+            if (href === null) return row;
             return (
-              <Link href={{ pathname: '/job/[id]', params: { id: jobId } }} asChild>
+              <Link href={href} asChild>
                 <Pressable accessibilityRole="link">{row}</Pressable>
               </Link>
             );

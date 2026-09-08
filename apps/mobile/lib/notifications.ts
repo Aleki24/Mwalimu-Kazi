@@ -24,11 +24,17 @@ export interface NotificationFeed {
  * for a malformed payload — one source of truth for reading that key, so the
  * fetch and the screen can never disagree about which rows carry a job.
  */
-export const jobIdOf = (n: Tables<'notifications'>): string | null => {
-  if (n.kind !== 'job_match') return null;
-  const id = (n.payload as { job_id?: unknown }).job_id;
+/** The payload is jsonb, so nothing about it is guaranteed at the type level. */
+const idIn = (n: Tables<'notifications'>, key: string): string | null => {
+  const id = (n.payload as Record<string, unknown>)[key];
   return typeof id === 'string' ? id : null;
 };
+
+export const jobIdOf = (n: Tables<'notifications'>): string | null =>
+  n.kind === 'job_match' ? idIn(n, 'job_id') : null;
+
+export const threadIdOf = (n: Tables<'notifications'>): string | null =>
+  n.kind === 'message' ? idIn(n, 'thread_id') : null;
 
 export async function fetchNotifications(): Promise<NotificationFeed> {
   const { data, error } = await supabase

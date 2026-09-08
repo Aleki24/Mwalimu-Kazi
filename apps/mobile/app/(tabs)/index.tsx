@@ -20,6 +20,7 @@ const QUICK_ACCESS = [
   { href: '/saved', label: 'Saved jobs', icon: 'bookmark' },
   { href: '/applications', label: 'Applications', icon: 'send' },
   { href: '/notifications', label: 'Alerts', icon: 'bell' },
+  { href: '/messages', label: 'Messages', icon: 'mail' },
   { href: '/feed', label: 'Staffroom', icon: 'message-square' },
 ] as const satisfies ReadonlyArray<{
   href: string;

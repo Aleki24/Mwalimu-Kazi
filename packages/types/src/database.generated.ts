@@ -219,6 +219,74 @@ export type Database = {
           },
         ]
       }
+      message_threads: {
+        Row: {
+          application_id: string
+          created_at: string
+          id: string
+        }
+        Insert: {
+          application_id: string
+          created_at?: string
+          id?: string
+        }
+        Update: {
+          application_id?: string
+          created_at?: string
+          id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "message_threads_application_id_fkey"
+            columns: ["application_id"]
+            isOneToOne: true
+            referencedRelation: "applications"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      messages: {
+        Row: {
+          body: string
+          created_at: string
+          id: string
+          read_at: string | null
+          sender_id: string
+          thread_id: string
+        }
+        Insert: {
+          body: string
+          created_at?: string
+          id?: string
+          read_at?: string | null
+          sender_id: string
+          thread_id: string
+        }
+        Update: {
+          body?: string
+          created_at?: string
+          id?: string
+          read_at?: string | null
+          sender_id?: string
+          thread_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "messages_thread_id_fkey"
+            columns: ["thread_id"]
+            isOneToOne: false
+            referencedRelation: "message_threads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "messages_sender_id_fkey"
+            columns: ["sender_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       news_articles: {
         Row: {
           body: string | null
@@ -984,6 +1052,7 @@ export type Database = {
         | "followed_school_job"
         | "news"
         | "resource"
+        | "message"
       red_flag_kind:
         | "salary_delays"
         | "excessive_workload"
@@ -1185,6 +1254,7 @@ export const Constants = {
         "followed_school_job",
         "news",
         "resource",
+        "message",
       ],
       red_flag_kind: [
         "salary_delays",

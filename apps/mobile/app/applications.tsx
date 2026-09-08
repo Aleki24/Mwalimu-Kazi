@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
-import { ActivityIndicator, FlatList, Text, View } from 'react-native';
-import { Stack } from 'expo-router';
+import { ActivityIndicator, FlatList, Pressable, Text, View } from 'react-native';
+import { Stack, router } from 'expo-router';
 import { formatLabel, formatPostedAge } from '@mwalimu/core';
 import { colors } from '@mwalimu/ui';
 import type { Tables } from '@mwalimu/types';
@@ -8,6 +8,7 @@ import { EmptyState, ErrorBanner } from '../components/ui';
 import { JobCard } from '../components/job-card';
 import { fetchApplications, type AppliedJob } from '../lib/applications';
 import { useTeacher } from '../lib/auth';
+import { openThread } from '../lib/messages';
 import { matchScore } from '@mwalimu/core';
 
 type Stage = Tables<'applications'>['stage'];
@@ -34,6 +35,15 @@ export default function ApplicationsScreen() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [now] = useState(() => new Date());
+
+  const message = async (applicationId: string) => {
+    try {
+      const threadId = await openThread(applicationId);
+      router.push({ pathname: '/messages/[threadId]', params: { threadId } });
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : 'Could not open that conversation');
+    }
+  };
 
   const load = useCallback(async () => {
     try {
@@ -75,6 +85,13 @@ export default function ApplicationsScreen() {
                 <Text className={`text-[11.5px] font-medium ${STAGE_TONE[item.application.stage]}`}>
                   {formatLabel(item.application.stage)}
                 </Text>
+                <Pressable
+                  accessibilityRole="button"
+                  onPress={() => void message(item.application.id)}
+                  hitSlop={6}
+                >
+                  <Text className="text-[11.5px] font-medium text-primary">Message</Text>
+                </Pressable>
                 <Text className="text-[11px] text-mutedForeground">
                   {/*
                     The score the school received, not today's. It was frozen at

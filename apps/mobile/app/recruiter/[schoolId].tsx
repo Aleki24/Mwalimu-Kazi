@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Link, Stack, useLocalSearchParams } from 'expo-router';
+import { Link, Stack, router, useLocalSearchParams } from 'expo-router';
 import Feather from '@expo/vector-icons/Feather';
 import {
   formatLabel, formatPostedAge, formatSalary, matchBand,
@@ -15,6 +15,7 @@ import {
   fetchApplicants, fetchSchoolRoles, setApplicationStage,
   type Applicant, type SchoolRole,
 } from '../../lib/recruiter';
+import { openThread } from '../../lib/messages';
 
 type Stage = Tables<'applications'>['stage'];
 
@@ -36,9 +37,10 @@ const STAGE_TONE: Readonly<Record<string, string>> = {
   rejected: 'text-mutedForeground',
 };
 
-function ApplicantCard({ item, onStage, now }: {
+function ApplicantCard({ item, onStage, onMessage, now }: {
   item: Applicant;
   onStage: (stage: Stage) => void;
+  onMessage: () => void;
   now: Date;
 }) {
   const [open, setOpen] = useState(false);
@@ -110,15 +112,27 @@ function ApplicantCard({ item, onStage, now }: {
       </Pressable>
 
       {open ? (
-        <View className="flex-row flex-wrap gap-1.5">
-          {STAGES.map((s) => (
-            <Chip
-              key={s}
-              label={formatLabel(s)}
-              selected={item.application.stage === s}
-              onPress={() => onStage(s)}
-            />
-          ))}
+        <View className="gap-2.5">
+          <View className="flex-row flex-wrap gap-1.5">
+            {STAGES.map((s) => (
+              <Chip
+                key={s}
+                label={formatLabel(s)}
+                selected={item.application.stage === s}
+                onPress={() => onStage(s)}
+              />
+            ))}
+          </View>
+          <Pressable
+            accessibilityRole="button"
+            onPress={onMessage}
+            className="flex-row items-center gap-1.5"
+          >
+            <Feather name="mail" size={13} color={colors.primary} />
+            <Text className="text-[12px] font-medium text-primary">
+              Message {item.teacher?.fullName.split(' ')[0] ?? 'this teacher'}
+            </Text>
+          </Pressable>
         </View>
       ) : null}
     </Card>
@@ -171,6 +185,15 @@ export default function RecruiterSchoolScreen() {
     })();
     return () => { cancelled = true; };
   }, [selected]);
+
+  const message = async (applicationId: string) => {
+    try {
+      const threadId = await openThread(applicationId);
+      router.push({ pathname: '/messages/[threadId]', params: { threadId } });
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : 'Could not open that conversation');
+    }
+  };
 
   const move = async (applicationId: string, stage: Stage) => {
     // Optimistic: a recruiter triaging twenty people should not wait on each.
@@ -272,6 +295,7 @@ export default function RecruiterSchoolScreen() {
                   item={a}
                   now={now}
                   onStage={(stage) => void move(a.application.id, stage)}
+                  onMessage={() => void message(a.application.id)}
                 />
               ))
             )}
