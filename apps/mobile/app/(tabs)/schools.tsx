@@ -4,7 +4,11 @@ import { Link } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { formatLabel } from '@mwalimu/core';
 import { colors } from '@mwalimu/ui';
-import { Badge, Chip, EmptyState, ErrorBanner, SchoolMark, ScreenHeader } from '../../components/ui';
+import Feather from '@expo/vector-icons/Feather';
+import {
+  Badge, Card, centredContent, Chip, EmptyState, ErrorBanner, SchoolMark, ScreenHeader,
+  tabularNums,
+} from '../../components/ui';
 import { useTabBarClearance } from '../../components/floating-tab-bar';
 import { fetchSchools, type SchoolListing } from '../../lib/schools';
 import { useTeacher } from '../../lib/auth';
@@ -78,15 +82,18 @@ export default function SchoolsScreen() {
         <FlatList
           data={visible}
           keyExtractor={(l) => l.school.id}
-          contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: tabBarClearance }}
+          contentContainerStyle={{
+            paddingHorizontal: 16, paddingTop: 12, gap: 10,
+            paddingBottom: tabBarClearance, ...centredContent,
+          }}
           ListHeaderComponent={error !== null ? <View className="pt-4"><ErrorBanner message={error} /></View> : null}
           ListEmptyComponent={
             <EmptyState title="No schools match" body="Try a different search or tab." />
           }
           renderItem={({ item }) => (
             <Link href={{ pathname: '/school/[slug]', params: { slug: item.school.slug } }} asChild>
-              <Pressable accessibilityRole="button">
-                <View className="flex-row items-center gap-3 border-b border-border py-3">
+              <Pressable accessibilityRole="link">
+                <Card className="flex-row items-center gap-3 p-3">
                   <SchoolMark name={item.school.name} size={44} />
                   <View className="min-w-0 flex-1">
                     <View className="flex-row items-center gap-1.5">
@@ -100,11 +107,24 @@ export default function SchoolsScreen() {
                     <Text className="mt-0.5 text-[11.5px] text-mutedForeground">
                       {formatLabel(item.school.school_type)} · {item.school.curricula.map(formatLabel).join(', ')} · {formatLabel(item.school.county)}
                     </Text>
-                    <View className="mt-1.5 flex-row items-center gap-2">
-                      {item.rating === null ? (
-                        <Text className="text-[11px] text-mutedForeground">No reviews yet</Text>
-                      ) : (
-                        <Text className="text-[11px] font-medium text-foreground">
+                    {/*
+                      Every row used to spend its most valuable line saying "No
+                      reviews yet", seven times down the screen. The line is now
+                      whichever of these is actually true, with the red flags
+                      first: a teacher scanning the directory stops for those,
+                      not for a star.
+                    */}
+                    <View className="mt-1.5 flex-row flex-wrap items-center gap-x-2 gap-y-1">
+                      {item.redFlagCount > 0 ? (
+                        <View className="flex-row items-center gap-1">
+                          <Feather name="flag" size={10} color={colors.destructiveForeground} />
+                          <Text className="text-[11px] font-medium text-destructiveForeground">
+                            {item.redFlagCount} red flag{item.redFlagCount === 1 ? '' : 's'}
+                          </Text>
+                        </View>
+                      ) : null}
+                      {item.rating === null ? null : (
+                        <Text style={tabularNums} className="text-[11px] font-medium text-foreground">
                           ★ {item.rating.toFixed(1)}{' '}
                           <Text className="font-normal text-mutedForeground">({item.reviewCount})</Text>
                         </Text>
@@ -117,9 +137,13 @@ export default function SchoolsScreen() {
                       {item.school.verification !== 'verified' ? (
                         <Badge label="Unverified" tone="warning" />
                       ) : null}
+                      {item.rating === null && item.openings === 0
+                        && item.school.verification === 'verified' ? (
+                          <Text className="text-[11px] text-mutedForeground">No reviews yet</Text>
+                        ) : null}
                     </View>
                   </View>
-                </View>
+                </Card>
               </Pressable>
             </Link>
           )}

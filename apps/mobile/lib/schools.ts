@@ -8,20 +8,58 @@ export interface SchoolListing {
   readonly openings: number;
   readonly rating: number | null;
   readonly reviewCount: number;
+  /**
+   * Distinct kinds of open red flag. On the row it is the one number a teacher
+   * scanning the directory would stop for, and it was not there at all — every
+   * row said "No reviews yet" whether or not that was the interesting fact.
+   */
+  readonly redFlagCount: number;
 }
 
+// One select for every surface that shows reviews: the directory row, the
+// school page, the reviews list, and the summary on a vacancy. Four places
+// showing different subsets of the same review is how they drift apart.
 const REVIEW_SELECT = `
-  id, created_at,
+  id, created_at, role_title, body, employment_verified,
   review_ratings ( category, score ),
-  review_red_flags ( kind, occurred_on )
+  review_red_flags ( kind, reason, occurred_on )
 ` as const;
 
 interface ReviewRow {
   readonly id: string;
   readonly created_at: string;
+  readonly role_title: string | null;
+  readonly body: string;
+  readonly employment_verified: boolean;
   readonly review_ratings: ReadonlyArray<{ category: RatedReview['ratings'][number]['category']; score: number }> | null;
-  readonly review_red_flags: ReadonlyArray<{ kind: RatedReview['redFlags'][number]['kind']; occurred_on: string | null }> | null;
+  readonly review_red_flags: ReadonlyArray<{
+    kind: RatedReview['redFlags'][number]['kind'];
+    reason: string;
+    occurred_on: string | null;
+  }> | null;
 }
+
+/** A review as a reader sees it: what was said, by whom in what role. */
+export interface WrittenReview {
+  readonly id: string;
+  readonly createdAt: Date;
+  readonly roleTitle: string | null;
+  readonly body: string;
+  /** Whether the platform confirmed the author actually taught there. */
+  readonly employmentVerified: boolean;
+  readonly ratings: RatedReview['ratings'];
+  readonly redFlags: ReadonlyArray<{ kind: RatedReview['redFlags'][number]['kind']; reason: string }>;
+}
+
+const toWrittenReview = (row: ReviewRow): WrittenReview => ({
+  id: row.id,
+  createdAt: new Date(row.created_at),
+  roleTitle: row.role_title,
+  body: row.body,
+  employmentVerified: row.employment_verified,
+  ratings: row.review_ratings ?? [],
+  redFlags: (row.review_red_flags ?? []).map((f) => ({ kind: f.kind, reason: f.reason })),
+});
 
 const toRatedReview = (row: ReviewRow): RatedReview => ({
   id: row.id,
@@ -62,13 +100,16 @@ export async function fetchSchools(): Promise<readonly SchoolListing[]> {
     bySchool.set(row.school_id, list);
   }
 
+  const now = new Date();
   return (schools.data ?? []).map((school) => {
-    const ratings = aggregateSchoolRatings(bySchool.get(school.id) ?? []);
+    const rated = bySchool.get(school.id) ?? [];
+    const ratings = aggregateSchoolRatings(rated);
     return {
       school,
       openings: openings.get(school.id) ?? 0,
       rating: ratings.overall,
       reviewCount: ratings.reviewCount,
+      redFlagCount: summariseRedFlags(rated, now).length,
     };
   });
 }
@@ -79,6 +120,33 @@ export interface SchoolDetail {
   readonly ratings: ReturnType<typeof aggregateSchoolRatings>;
   readonly redFlags: ReturnType<typeof summariseRedFlags>;
   readonly reviews: readonly RatedReview[];
+  /** The same reviews with their text, for the list a reader actually reads. */
+  readonly written: readonly WrittenReview[];
+}
+
+/**
+ * A school's reputation, by id.
+ *
+ * For the vacancy screen: reading what teachers said before applying is the
+ * reason this app exists, and the job is where the decision gets made. Same
+ * select and same two aggregations as the school page, so the summary on the
+ * vacancy and the detail behind it cannot disagree.
+ */
+export interface SchoolReputation {
+  readonly ratings: ReturnType<typeof aggregateSchoolRatings>;
+  readonly redFlags: ReturnType<typeof summariseRedFlags>;
+}
+
+export async function fetchSchoolReputation(
+  schoolId: string, now: Date,
+): Promise<SchoolReputation> {
+  const { data, error } = await supabase
+    .from('school_reviews').select(REVIEW_SELECT)
+    .eq('school_id', schoolId).eq('moderation', 'approved');
+
+  if (error !== null) throw new Error(error.message);
+  const rated = ((data ?? []) as unknown as ReviewRow[]).map(toRatedReview);
+  return { ratings: aggregateSchoolRatings(rated), redFlags: summariseRedFlags(rated, now) };
 }
 
 export async function fetchSchoolBySlug(slug: string, now: Date): Promise<SchoolDetail | null> {
@@ -107,5 +175,6 @@ export async function fetchSchoolBySlug(slug: string, now: Date): Promise<School
     ratings: aggregateSchoolRatings(rated),
     redFlags: summariseRedFlags(rated, now),
     reviews: rated,
+    written: ((reviews.data ?? []) as unknown as ReviewRow[]).map(toWrittenReview),
   };
 }

@@ -136,6 +136,12 @@ export default function SchoolDetailScreen() {
             <Text className="mt-2 text-[10.5px] leading-4 text-mutedForeground">
               Each report is reviewed by a moderator before it appears, and the school can respond.
             </Text>
+            <Link href={{ pathname: '/school/[slug]/reviews', params: { slug: school.slug } }} asChild>
+              <Pressable accessibilityRole="link" className="mt-2 flex-row items-center gap-1.5">
+                <Text className="text-[12px] font-medium text-primary">Read the reports</Text>
+                <Feather name="chevron-right" size={13} color={colors.primary} />
+              </Pressable>
+            </Link>
           </Card>
         ) : null}
 
@@ -149,6 +155,15 @@ export default function SchoolDetailScreen() {
                 <CategoryBar key={c.category} label={REVIEW_CATEGORY_LABEL[c.category]} average={c.average} />
               ))}
             </View>
+            {/* The bars are an impression; this is where you can check it. */}
+            <Link href={{ pathname: '/school/[slug]/reviews', params: { slug: school.slug } }} asChild>
+              <Pressable accessibilityRole="link" className="mt-3 flex-row items-center gap-1.5">
+                <Feather name="book-open" size={13} color={colors.primary} />
+                <Text className="text-[12px] font-medium text-primary">
+                  Read all {ratings.reviewCount} review{ratings.reviewCount === 1 ? '' : 's'}
+                </Text>
+              </Pressable>
+            </Link>
             <ReviewLink schoolId={school.id} schoolName={school.name} label="Add your review" />
           </Card>
         ) : (

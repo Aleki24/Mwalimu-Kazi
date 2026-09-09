@@ -56,10 +56,17 @@ export async function fetchJobById(id: string): Promise<JobWithSchool | null> {
     .maybeSingle();
 
   if (error !== null) throw new Error(error.message);
+  // Null means no such row, and the screen says the role has closed.
   if (data === null) return null;
 
-  const { jobs } = parseJobsWithSchools([data as unknown as JobRowWithSchool]);
-  return jobs[0] ?? null;
+  const { jobs, skipped } = parseJobsWithSchools([data as unknown as JobRowWithSchool]);
+  const job = jobs[0];
+  // A row that exists but will not parse is a data fault, not a closed
+  // vacancy. Returning null for both made a malformed job indistinguishable
+  // from a deleted one — "Role not found" for a role that is right there —
+  // which is the same mistake the profile loader was making.
+  if (job === undefined) throw new Error(skipped[0] ?? `job ${id} could not be read`);
+  return job;
 }
 
 /** How many rows one scroll-page pulls. */

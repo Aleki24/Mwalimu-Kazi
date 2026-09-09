@@ -5,18 +5,93 @@ import { Link, Stack, useLocalSearchParams } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   formatClosing, formatLabel, formatPostedAge, formatSalaryFull, matchScore,
-  type JobWithSchool, type MatchResult,
+  RED_FLAG_LABEL, type JobWithSchool, type MatchResult,
 } from '@mwalimu/core';
 import { colors, radius, shadow } from '@mwalimu/ui';
-import { Card, EmptyState, ErrorBanner, SchoolMark, Tag } from '../../components/ui';
+import { Card, EmptyState, ErrorBanner, SchoolMark, Tag, tabularNums } from '../../components/ui';
 import { MatchBreakdown } from '../../components/match-breakdown';
 import { fetchJobById } from '../../lib/jobs';
+import { fetchSchoolReputation, type SchoolReputation } from '../../lib/schools';
 import { fetchSavedJobIds, saveJob, unsaveJob } from '../../lib/saved';
 import { applyToJob, fetchAppliedJobIds } from '../../lib/applications';
 import { addJobComment, fetchJobComments } from '../../lib/social';
 import { CommentThread } from '../../components/comment-thread';
 import { NoticeStrip } from '../../components/ui';
 import { useTeacher } from '../../lib/auth';
+
+/**
+ * What teachers said about this school, on the vacancy itself.
+ *
+ * The school page has carried this since the beginning, and the job screen —
+ * where somebody actually decides whether to send their documents — said
+ * nothing about it. Same select and same two aggregations as the school page,
+ * so the summary here and the detail behind it cannot disagree.
+ *
+ * The empty case is not hidden. "Nobody has written about this school" is
+ * itself worth knowing before you apply, and it is the only moment when asking
+ * for the first review costs the reader nothing.
+ */
+function Reputation({ slug, reputation }: {
+  slug: string | null;
+  reputation: SchoolReputation | null;
+}) {
+  if (slug === null || reputation === null) return null;
+  const { ratings, redFlags } = reputation;
+
+  const inner = (
+    <Card className="gap-2 p-3.5">
+      <View className="flex-row items-center gap-2">
+        <Text className="flex-1 text-[12.5px] font-medium text-foreground">
+          What teachers said
+        </Text>
+        {ratings.overall === null ? null : (
+          <Text
+            style={tabularNums}
+            className="text-[15px] font-medium tracking-tight text-foreground"
+          >
+            {ratings.overall.toFixed(1)}
+            <Text className="text-[11px] text-mutedForeground"> / 5</Text>
+          </Text>
+        )}
+        <Feather name="chevron-right" size={15} color={colors.mutedForeground} />
+      </View>
+
+      {ratings.reviewCount === 0 ? (
+        <Text className="text-[11.5px] leading-4 text-mutedForeground">
+          Nobody has written about this school yet. If you have taught here, yours would be
+          the first.
+        </Text>
+      ) : (
+        <Text className="text-[11.5px] text-mutedForeground">
+          {ratings.reviewCount} review{ratings.reviewCount === 1 ? '' : 's'}
+          {redFlags.length === 0 ? ' · nothing reported' : ''}
+        </Text>
+      )}
+
+      {redFlags.length > 0 ? (
+        <View className="gap-1">
+          {redFlags.slice(0, 3).map((flag) => (
+            <View key={flag.kind} className="flex-row items-center gap-1.5">
+              <Feather name="flag" size={10} color={colors.destructiveForeground} />
+              <Text className="flex-1 text-[11.5px] font-medium text-destructiveForeground">
+                {RED_FLAG_LABEL[flag.kind]}
+              </Text>
+              <Text className="text-[11px] text-destructiveForeground">
+                {flag.count}
+              </Text>
+            </View>
+          ))}
+        </View>
+      ) : null}
+    </Card>
+  );
+
+  return (
+    <Link href={{ pathname: '/school/[slug]/reviews', params: { slug } }} asChild>
+      <Pressable accessibilityRole="link">{inner}</Pressable>
+    </Link>
+  );
+}
 
 function SchoolHeader({ name, slug, meta }: {
   name: string; slug: string | null; meta: string;
@@ -52,6 +127,7 @@ export default function JobDetailScreen() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [now] = useState(() => new Date());
+  const [reputation, setReputation] = useState<SchoolReputation | null>(null);
   const [saved, setSaved] = useState(false);
   const [applied, setApplied] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -74,6 +150,14 @@ export default function JobDetailScreen() {
         setMatch(found === null ? null : matchScore(found.job, teacher));
         setSaved(savedIds.has(id));
         setApplied(appliedIds.has(id));
+
+        // Second round trip on purpose: the vacancy renders immediately and
+        // the reputation lands under it, rather than the whole screen waiting
+        // on reviews the reader may not scroll to.
+        if (found?.job.schoolId != null) {
+          const rep = await fetchSchoolReputation(found.job.schoolId, now);
+          if (!cancelled) setReputation(rep);
+        }
       } catch (cause) {
         if (!cancelled) setError(cause instanceof Error ? cause.message : 'Could not load this role');
       } finally {
@@ -150,6 +234,8 @@ export default function JobDetailScreen() {
         />
 
         <MatchBreakdown match={match} />
+
+        <Reputation slug={entry.schoolSlug} reputation={reputation} />
 
         <Card className="px-3.5 py-3">
           <View className="flex-row gap-3">

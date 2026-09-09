@@ -91,7 +91,12 @@ values
   ('00000000-0000-4000-8000-0000000000fc', '00000000-0000-4000-8000-0000000000fa',
    'Mathematics Teacher — Form 3', array['mathematics','physics'], 'full_time', 'nairobi',
    52000, 78000,
-   '[{"kind":"tsc_number","label":"TSC registration"},{"kind":"experience_years","label":"3 years teaching","value":3}]'::jsonb,
+   -- JobRequirement needs kind, a string value and a label; `tsc_number` is
+   -- not a RequirementKind and a numeric value fails z.string(). Get this
+   -- wrong and the vacancy will not parse at all.
+   '[{"kind":"tsc_registration","value":"required","label":"TSC registration","mustHave":true},
+     {"kind":"subject","value":"mathematics","label":"Teaches mathematics","mustHave":true},
+     {"kind":"experience_years","value":"3","label":"At least 3 years teaching","weight":2}]'::jsonb,
    true, now() + interval '12 days', '00000000-0000-4000-8000-0000000000f2', 'school');
 
 insert into applications (id, job_id, teacher_id, stage, match_score, source)
