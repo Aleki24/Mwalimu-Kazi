@@ -8,13 +8,28 @@
 -- Written because the same fixtures were hand-rebuilt three times in one
 -- session, and a rig you retype is a rig you get subtly wrong.
 --
--- Every account's password is `fixture-pw-2026`.
+-- The password is NOT in this file. Set it for the session first:
+--
+--   select set_config('fixture.password', '<a throwaway password>', false);
+--
+-- It lived here as a literal until GitGuardian flagged the commit, correctly:
+-- a password in a repo is a password in the repo's history, and this one would
+-- have recreated known-credential accounts every time somebody ran the file.
 --
 -- The auth.users insert fills the token columns with '' rather than leaving
 -- them NULL: GoTrue scans them into non-nullable Go strings, and a NULL there
 -- makes every sign-in fail with "Database error querying schema".
 
 begin;
+
+-- Fail loudly rather than seeding accounts with an empty password.
+do $$
+begin
+  if coalesce(current_setting('fixture.password', true), '') = '' then
+    raise exception
+      'set the fixture password first: select set_config(''fixture.password'', ''<throwaway>'', false);';
+  end if;
+end $$;
 
 -- ---------------------------------------------------------------- teardown
 delete from schools where slug like 'fixture-%';
@@ -35,7 +50,8 @@ insert into auth.users (
   reauthentication_token
 )
 select '00000000-0000-0000-0000-000000000000', f.id, 'authenticated', 'authenticated',
-       f.email, extensions.crypt('fixture-pw-2026', extensions.gen_salt('bf')), now(),
+       f.email,
+       extensions.crypt(current_setting('fixture.password'), extensions.gen_salt('bf')), now(),
        '{"provider":"email","providers":["email"]}'::jsonb, '{}'::jsonb, now(), now(),
        '', '', '', '', '', '', '', ''
 from fx f;
@@ -133,5 +149,6 @@ insert into review_red_flags (review_id, kind, reason, occurred_on) values
 
 commit;
 
-select 'signed-in accounts' as note, email, 'fixture-pw-2026' as password
+select 'signed-in accounts' as note, email,
+       'the fixture.password you set' as password
 from auth.users where email like 'alexotieno293+fx%' order by email;

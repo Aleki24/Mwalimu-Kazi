@@ -14,7 +14,8 @@
  *   cd apps/mobile && npx expo export --platform web --output-dir /tmp/web
  *   node scripts/drive-app.mjs /tmp/web
  *
- * Fixtures come from supabase/fixtures/dev-seed.sql. Run that first.
+ * Fixtures come from supabase/fixtures/dev-seed.sql. Run that first, with the
+ * same password in FIXTURE_PASSWORD that you set as `fixture.password` there.
  */
 import { createServer } from 'node:http';
 import { readFile } from 'node:fs/promises';
@@ -23,7 +24,19 @@ import { createRequire } from 'node:module';
 
 const ROOT = resolve(process.argv[2] ?? '/tmp/web');
 const PORT = Number(process.env.DRIVE_PORT ?? 4300);
-const PASSWORD = 'fixture-pw-2026';
+/**
+ * From the environment, never from this file.
+ *
+ * It was a literal here until GitGuardian flagged the commit that added it.
+ * The accounts are throwaway and get deleted after every run, so there was
+ * nothing to rotate — but a committed password is committed forever, and the
+ * seed script it pairs with would recreate accounts anyone could sign into.
+ */
+const PASSWORD = process.env.FIXTURE_PASSWORD;
+if (PASSWORD === undefined || PASSWORD === '') {
+  console.error('Set FIXTURE_PASSWORD to the same value you passed to dev-seed.sql.');
+  process.exit(2);
+}
 const ACCOUNTS = {
   teacher: 'alexotieno293+fxteacher@gmail.com',
   recruiter: 'alexotieno293+fxrecruiter@gmail.com',

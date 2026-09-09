@@ -15,6 +15,7 @@ import tokens from '@mwalimu/ui/tokens.json';
  */
 
 const ROOT = new URL('.', import.meta.url).pathname;
+const REPO = new URL('../../', import.meta.url).pathname;
 
 function sources(): readonly string[] {
   const out: string[] = [];
@@ -172,5 +173,40 @@ describe('design tokens', () => {
       [...unknown].map(([name, path]) => `${name} (${path})`),
       'colour utilities with no matching token — Tailwind emits nothing for these',
     ).toEqual([]);
+  });
+});
+
+describe('committed secrets', () => {
+  /**
+   * A fixture password sat in `scripts/drive-app.mjs` and
+   * `supabase/fixtures/dev-seed.sql` until GitGuardian flagged the commit that
+   * added them. The accounts were throwaway and already deleted, so there was
+   * nothing to rotate — but a password in a repo is in its history forever,
+   * and the seed script would have recreated accounts anyone could sign into.
+   *
+   * The rule is not "no strings that look like passwords". It is that the
+   * files which hand credentials to a live project must take them from the
+   * environment, so there is nothing to leak in the first place.
+   */
+  it('the fixture rig takes its password from the environment', () => {
+    const rig = [
+      'scripts/drive-app.mjs',
+      'supabase/fixtures/dev-seed.sql',
+    ].map((path) => ({ path, src: readFileSync(join(REPO, path), 'utf8') }));
+
+    const literals: string[] = [];
+    for (const { path, src } of rig) {
+      // A password assigned or crypt()'d from a quoted literal.
+      const assigned = /(?:PASSWORD|password)\s*[:=]\s*'[^']{4,}'/g;
+      const crypted = /crypt\(\s*'[^']{4,}'/g;
+      for (const re of [assigned, crypted]) {
+        for (const match of src.matchAll(re)) {
+          // `process.env.X` and `current_setting('fixture.password')` are the
+          // shapes we want, and neither matches a quoted literal on the right.
+          literals.push(`${path}: ${match[0].slice(0, 60)}`);
+        }
+      }
+    }
+    expect(literals, 'a credential literal in a file that seeds or signs into the live project').toEqual([]);
   });
 });
