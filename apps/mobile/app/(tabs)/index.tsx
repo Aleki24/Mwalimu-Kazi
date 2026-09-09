@@ -31,6 +31,7 @@ const QUICK_ACTIONS = [
   { href: '/applications', label: 'My applications', icon: 'send' },
   { href: '/profile/cv', label: 'Documents', icon: 'file-text' },
   { href: '/(tabs)/schools', label: 'Schools', icon: 'map-pin' },
+  { href: '/requests', label: 'Find a tutor', icon: 'home' },
   { href: '/feed', label: 'Staffroom', icon: 'message-square' },
 ] as const satisfies ReadonlyArray<{
   href: string;

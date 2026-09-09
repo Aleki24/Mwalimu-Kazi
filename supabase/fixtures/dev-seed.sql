@@ -40,7 +40,10 @@ create temp table fx (id uuid, email text, name text, role text) on commit drop;
 insert into fx values
   ('00000000-0000-4000-8000-0000000000f1', 'alexotieno293+fxteacher@gmail.com', 'Grace Achieng', 'teacher'),
   ('00000000-0000-4000-8000-0000000000f2', 'alexotieno293+fxrecruiter@gmail.com', 'Daniel Mutiso', 'recruiter'),
-  ('00000000-0000-4000-8000-0000000000f3', 'alexotieno293+fxadmin@gmail.com', 'Fixture Moderator', 'admin');
+  ('00000000-0000-4000-8000-0000000000f3', 'alexotieno293+fxadmin@gmail.com', 'Fixture Moderator', 'admin'),
+  -- A parent looking for a tutor. Also a teacher, because in this app they
+  -- usually are: nothing gates who may post a request.
+  ('00000000-0000-4000-8000-0000000000f4', 'alexotieno293+fxparent@gmail.com', 'Mary Wambui', 'parent');
 
 insert into auth.users (
   instance_id, id, aud, role, email, encrypted_password, email_confirmed_at,
@@ -80,6 +83,9 @@ values
   -- rather than looping to onboarding. The moderator is a teacher too.
   ('00000000-0000-4000-8000-0000000000f3', 'Fixture Moderator',
    'Platform moderator', 'nairobi', array['english'], array['cbc']::curriculum[],
+   0, false, null, false, false, '{}'),
+  ('00000000-0000-4000-8000-0000000000f4', 'Mary Wambui',
+   'Parent in Kilimani', 'nairobi', array['english'], array['cbc']::curriculum[],
    0, false, null, false, false, '{}');
 
 insert into platform_admins (user_id) values ('00000000-0000-4000-8000-0000000000f3');
@@ -121,6 +127,19 @@ values ('00000000-0000-4000-8000-0000000000fd', '00000000-0000-4000-8000-0000000
 
 insert into saved_jobs (teacher_id, job_id)
 values ('00000000-0000-4000-8000-0000000000f1', '00000000-0000-4000-8000-0000000000fc');
+
+-- ------------------------------------------------------- a private request
+-- What a parent posts. No school, an area rather than an address, and priced
+-- by the hour — the three things that make it different from a vacancy.
+insert into jobs (id, school_id, title, subjects, job_type, county, salary_min,
+                  salary_max, published, posted_by, poster_kind,
+                  engagement, rate_period, delivery, area, learner_level,
+                  sessions_per_week)
+values ('00000000-0000-4000-8000-0000000000ff', null,
+        'Maths and physics tutor for Form 2', array['mathematics','physics'],
+        'part_time', 'nairobi', 900, 1200, true,
+        '00000000-0000-4000-8000-0000000000f4', 'individual',
+        'tuition', 'hour', 'in_person', 'Kilimani', 'Form 2', 2);
 
 -- ----------------------------------------------------------------- reviews
 -- One review awaiting moderation, about the *other* school, with a red flag —

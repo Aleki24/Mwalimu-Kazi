@@ -2,8 +2,9 @@ import { useEffect, useState } from 'react';
 import { ActivityIndicator, ScrollView, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Stack, router, useLocalSearchParams } from 'expo-router';
-import { County, JobType } from '@mwalimu/types';
-import { formatLabel } from '@mwalimu/core';
+import { County, JobType, RatePeriod, TeachingMode } from '@mwalimu/types';
+import type { EngagementKind } from '@mwalimu/types';
+import { ENGAGEMENT_LABEL, TEACHING_MODE_LABEL, formatLabel } from '@mwalimu/core';
 import { colors } from '@mwalimu/ui';
 import {
   Button, Card, centredContent, Chip, ErrorBanner, NoticeStrip, WhyDisabled,
@@ -48,14 +49,25 @@ export default function NewJobScreen() {
   const [jobType, setJobType] = useState<JobType>('full_time');
   const [salaryMin, setSalaryMin] = useState('');
   const [salaryMax, setSalaryMax] = useState('');
+  const [engagement, setEngagement] = useState<EngagementKind>('employment');
+  const [ratePeriod, setRatePeriod] = useState<RatePeriod>('month');
+  const [delivery, setDelivery] = useState<TeachingMode>('in_person');
+  const [area, setArea] = useState('');
+  const [learnerLevel, setLearnerLevel] = useState('');
+  const [sessions, setSessions] = useState('');
+
+  const isRequest = engagement !== 'employment';
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [sent, setSent] = useState(false);
 
   const subjectList = subjects.split(',').map((s) => s.trim().toLowerCase()).filter((s) => s !== '');
   const missing = [
-    ...(title.trim().length >= 3 ? [] : ['a role title']),
+    ...(title.trim().length >= 3 ? [] : [isRequest ? 'a short title' : 'a role title']),
     ...(subjectList.length > 0 ? [] : ['at least one subject']),
+    // The database refuses a request without these, and it is a better error
+    // here than a constraint violation after the button.
+    ...(isRequest && area.trim().length < 2 ? ['the area'] : []),
   ];
   const ready = missing.length === 0;
 
@@ -64,13 +76,20 @@ export default function NewJobScreen() {
     setError(null);
     try {
       await postJob({
-        schoolId,
+        // A request is never a school's, whoever is posting it.
+        schoolId: isRequest ? null : schoolId,
         title: title.trim(),
         county,
         subjects: subjectList,
         jobType,
         salaryMin: salaryMin.trim() === '' ? null : Number(salaryMin),
         salaryMax: salaryMax.trim() === '' ? null : Number(salaryMax),
+        engagement,
+        ratePeriod: isRequest ? ratePeriod : 'month',
+        delivery: isRequest ? delivery : null,
+        area: isRequest ? area.trim() : null,
+        learnerLevel: isRequest && learnerLevel.trim() !== '' ? learnerLevel.trim() : null,
+        sessionsPerWeek: isRequest && sessions.trim() !== '' ? Number(sessions) : null,
       });
       setSent(true);
     } catch (cause) {
@@ -84,11 +103,15 @@ export default function NewJobScreen() {
     return (
       <View className="flex-1 justify-center gap-4 bg-background px-6">
         <Stack.Screen options={{ title: 'Posted' }} />
-        <Text className="text-center text-[15px] font-medium text-foreground">Your role is live</Text>
+        <Text className="text-center text-[15px] font-medium text-foreground">
+          {isRequest ? 'Your request is live' : 'Your role is live'}
+        </Text>
         <Text className="text-center text-[12.5px] leading-5 text-mutedForeground">
-          {schoolId === null
-            ? 'It is labelled as posted by an individual rather than a verified school, so teachers know who they are dealing with.'
-            : 'Matching teachers have been notified, and anyone who applies will appear under For schools.'}
+          {isRequest
+            ? 'Teachers who match your subjects and area have been notified. Anyone who answers appears under Your requests, and you can talk to them there before sharing where you are.'
+            : schoolId === null
+              ? 'It is labelled as posted by an individual rather than a verified school, so teachers know who they are dealing with.'
+              : 'Matching teachers have been notified, and anyone who applies will appear under For schools.'}
         </Text>
         <Button label="Done" onPress={() => (router.canGoBack() ? router.back() : router.replace('/jobs'))} />
       </View>
@@ -102,7 +125,39 @@ export default function NewJobScreen() {
         contentContainerStyle={{ padding: 16, gap: 14, paddingBottom: insets.bottom + 32, ...centredContent }}
         keyboardShouldPersistTaps="handled"
       >
-        {schools.length === 0 ? null : (
+        {/*
+          First, because it decides what the rest of the form is. A school
+          vacancy and "someone to teach my son maths on Tuesdays" are not the
+          same act, and asking afterwards would mean re-asking everything.
+        */}
+        <View className="gap-2">
+          <Text className="text-[13px] font-medium text-foreground">What are you posting?</Text>
+          <View className="flex-row flex-wrap gap-1.5">
+            {(['employment', 'tuition', 'homeschool'] as const).map((k) => (
+              <Chip
+                key={k}
+                label={k === 'employment' ? 'A job' : ENGAGEMENT_LABEL[k]}
+                selected={engagement === k}
+                onPress={() => {
+                  setEngagement(k);
+                  // Tuition is priced by the hour far more often than by the
+                  // month, so the default follows the choice.
+                  setRatePeriod(k === 'employment' ? 'month' : 'hour');
+                  if (k !== 'employment') setJobType('part_time');
+                }}
+              />
+            ))}
+          </View>
+        </View>
+
+        {isRequest ? (
+          <NoticeStrip>
+            Teachers will see the area, not your address. Share where exactly you are in the
+            conversation, once you have decided who you want.
+          </NoticeStrip>
+        ) : null}
+
+        {isRequest || schools.length === 0 ? null : (
           <View className="gap-2">
             <Text className="text-[13px] font-medium text-foreground">Posting as</Text>
             <View className="flex-row flex-wrap gap-1.5">
@@ -140,11 +195,15 @@ export default function NewJobScreen() {
         )}
 
         <View className="gap-2">
-          <Text className="text-[13px] font-medium text-foreground">Role title</Text>
+          <Text className="text-[13px] font-medium text-foreground">
+            {isRequest ? 'What do you need?' : 'Role title'}
+          </Text>
           <TextInput
             value={title}
             onChangeText={setTitle}
-            placeholder="Mathematics Teacher — Form 2 cover"
+            placeholder={isRequest
+              ? 'Maths tutor for Grade 6, twice a week'
+              : 'Mathematics Teacher — Form 2 cover'}
             placeholderTextColor={colors.mutedForeground}
             className="h-12 rounded-md border border-border bg-card px-3.5 text-[15px] text-foreground"
           />
@@ -163,14 +222,71 @@ export default function NewJobScreen() {
           <Text className="text-[10.5px] text-mutedForeground">Separate with commas.</Text>
         </View>
 
-        <View className="gap-2">
-          <Text className="text-[13px] font-medium text-foreground">Type</Text>
-          <View className="flex-row flex-wrap gap-1.5">
-            {JobType.options.map((t) => (
-              <Chip key={t} label={formatLabel(t)} selected={jobType === t} onPress={() => setJobType(t)} />
-            ))}
+        {/* Full-time / locum is a question about a post. A parent wanting two
+            hours on a Tuesday has no answer to it, so it is not asked. */}
+        {isRequest ? (
+          <>
+            <View className="gap-2">
+              <Text className="text-[13px] font-medium text-foreground">Where</Text>
+              <View className="flex-row flex-wrap gap-1.5">
+                {TeachingMode.options.map((m) => (
+                  <Chip
+                    key={m}
+                    label={TEACHING_MODE_LABEL[m]}
+                    selected={delivery === m}
+                    onPress={() => setDelivery(m)}
+                  />
+                ))}
+              </View>
+              <TextInput
+                value={area}
+                onChangeText={setArea}
+                placeholder="Area — Kilimani, Nyali, Kikuyu town…"
+                placeholderTextColor={colors.mutedForeground}
+                maxLength={80}
+                className="h-12 rounded-md border border-border bg-card px-3.5 text-[15px] text-foreground"
+              />
+              <Text className="text-[10.5px] leading-4 text-mutedForeground">
+                The estate or ward only. Teachers use it to work out whether they can get to you.
+              </Text>
+            </View>
+
+            <View className="flex-row gap-2">
+              <View className="flex-1 gap-2">
+                <Text className="text-[13px] font-medium text-foreground">Learner</Text>
+                <TextInput
+                  value={learnerLevel}
+                  onChangeText={setLearnerLevel}
+                  placeholder="Grade 6"
+                  placeholderTextColor={colors.mutedForeground}
+                  maxLength={60}
+                  className="h-12 rounded-md border border-border bg-card px-3.5 text-[15px] text-foreground"
+                />
+              </View>
+              <View className="flex-1 gap-2">
+                <Text className="text-[13px] font-medium text-foreground">Days a week</Text>
+                <TextInput
+                  value={sessions}
+                  onChangeText={setSessions}
+                  placeholder="2"
+                  placeholderTextColor={colors.mutedForeground}
+                  keyboardType="number-pad"
+                  maxLength={2}
+                  className="h-12 rounded-md border border-border bg-card px-3.5 text-[15px] text-foreground"
+                />
+              </View>
+            </View>
+          </>
+        ) : (
+          <View className="gap-2">
+            <Text className="text-[13px] font-medium text-foreground">Type</Text>
+            <View className="flex-row flex-wrap gap-1.5">
+              {JobType.options.map((t) => (
+                <Chip key={t} label={formatLabel(t)} selected={jobType === t} onPress={() => setJobType(t)} />
+              ))}
+            </View>
           </View>
-        </View>
+        )}
 
         <View className="gap-2">
           <Text className="text-[13px] font-medium text-foreground">County</Text>
@@ -182,7 +298,21 @@ export default function NewJobScreen() {
         </View>
 
         <Card className="gap-2 px-3.5 py-3">
-          <Text className="text-[13px] font-medium text-foreground">Monthly pay (optional)</Text>
+          <Text className="text-[13px] font-medium text-foreground">
+            {isRequest ? 'What you can pay (optional)' : 'Monthly pay (optional)'}
+          </Text>
+          {isRequest ? (
+            <View className="flex-row flex-wrap gap-1.5">
+              {RatePeriod.options.map((r) => (
+                <Chip
+                  key={r}
+                  label={r === 'month' ? 'Per month' : r === 'hour' ? 'Per hour' : 'Per session'}
+                  selected={ratePeriod === r}
+                  onPress={() => setRatePeriod(r)}
+                />
+              ))}
+            </View>
+          ) : null}
           <View className="flex-row gap-2">
             <TextInput
               value={salaryMin}
@@ -213,7 +343,11 @@ export default function NewJobScreen() {
           <ActivityIndicator color={colors.mutedForeground} className="py-3" />
         ) : (
           <View className="gap-2">
-            <Button label="Post this role" disabled={!ready} onPress={() => void submit()} />
+              <Button
+              label={isRequest ? 'Post this request' : 'Post this role'}
+              disabled={!ready}
+              onPress={() => void submit()}
+            />
             <WhyDisabled missing={missing} />
           </View>
         )}

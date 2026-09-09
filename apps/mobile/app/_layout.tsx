@@ -93,6 +93,7 @@ function RootNavigator() {
         <Stack.Screen name="auto-apply" options={{ title: 'Auto-Apply' }} />
         <Stack.Screen name="messages/index" options={{ title: 'Messages' }} />
         <Stack.Screen name="messages/[threadId]" options={{ title: 'Conversation' }} />
+        <Stack.Screen name="requests/index" options={{ title: 'Your requests' }} />
         <Stack.Screen name="recruiter/index" options={{ title: 'For schools' }} />
         <Stack.Screen name="recruiter/[schoolId]" options={{ title: 'Applicants' }} />
         <Stack.Screen name="profile/index" options={{ title: 'Your profile' }} />

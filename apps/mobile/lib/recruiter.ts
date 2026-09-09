@@ -151,6 +151,30 @@ export async function fetchApplicants(
   });
 }
 
+/**
+ * Listings this person posted in their own name, newest first.
+ *
+ * The hiring side of the app has two shapes, and they share everything below
+ * this point: a school's vacancies come from fetchSchoolRoles, and a person's
+ * own postings — a locum a head of department needed by Monday, or a parent
+ * looking for a tutor — come from here. Both hand a job row to
+ * fetchApplicants, so who answered and what to do about them is one code path
+ * rather than two that drift.
+ */
+export async function fetchMyPostings(posterId: string): Promise<readonly Tables<'jobs'>[]> {
+  const { data, error } = await supabase
+    .from('jobs').select('*')
+    .eq('posted_by', posterId)
+    .is('school_id', null)
+    .order('posted_at', { ascending: false });
+  // The posted_by filter is not optional. jobs_select_published makes every
+  // published listing readable by everyone, so filtering on school_id alone
+  // would have returned every individual listing in the country as if it were
+  // this person's own — which is what the first draft of this function did.
+  if (error !== null) throw new Error(error.message);
+  return data ?? [];
+}
+
 export async function setApplicationStage(
   applicationId: string,
   stage: Tables<'applications'>['stage'],

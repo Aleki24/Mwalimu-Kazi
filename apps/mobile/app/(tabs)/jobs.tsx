@@ -82,6 +82,14 @@ export default function JobsScreen() {
     { key: 'nearby', label: 'My county', patch: { counties: [teacher.county] } },
     { key: 'fulltime', label: 'Full-time', patch: { jobTypes: ['full_time'] } },
     { key: 'tsc', label: 'TSC roles', patch: { tscOnly: true } },
+    // Tuition and homeschooling are work too, and a teacher looking for either
+    // is looking in the same place. One chip rather than two: nobody wants
+    // homeschooling but specifically not tuition.
+    {
+      key: 'private',
+      label: 'Tuition & homeschool',
+      patch: { engagements: ['tuition', 'homeschool'] },
+    },
   ], [teacher]);
 
   // The typed query is just another field on the same filter object, so the

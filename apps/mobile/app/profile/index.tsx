@@ -106,6 +106,10 @@ export default function ProfileScreen() {
             // a teacher looking for their own next role.
             { href: '/recruiter', icon: 'briefcase', label: 'For schools',
               hint: 'Post roles and see who applied' },
+            // Not gated on anything: a teacher is often also the parent who
+            // needs a tutor for their own child.
+            { href: '/requests', icon: 'home', label: 'Your requests',
+              hint: 'Tuition or homeschooling you asked for' },
             // Only staff see this, and only because the RPC said so — the
             // membership table itself stays unreadable.
             ...(isAdmin

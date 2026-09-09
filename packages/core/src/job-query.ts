@@ -1,4 +1,4 @@
-import type {
+import type { EngagementKind,
   Curriculum, County, Job, JobPosterKind, JobType, SchoolType, TeacherProfile,
   VerificationStatus,
 } from '@mwalimu/types';
@@ -24,6 +24,11 @@ export interface JobFilters {
   readonly maxExperienceYears?: number;
   /** Hide roles that do not require TSC registration. */
   readonly tscOnly?: boolean;
+  /**
+   * Employment, private tuition, homeschooling. Absent means all of them —
+   * a teacher browsing for work is usually open to either.
+   */
+  readonly engagements?: readonly EngagementKind[];
   readonly query?: string;
 }
 
@@ -92,6 +97,7 @@ export function filterJobs(
     if (filters.subjects?.length && !overlaps(job.subjects, filters.subjects)) return false;
     if (filters.counties?.length && !filters.counties.some((c) => norm(c) === norm(job.county))) return false;
     if (filters.jobTypes?.length && !filters.jobTypes.includes(job.jobType)) return false;
+    if (filters.engagements?.length && !filters.engagements.includes(job.engagement)) return false;
     // A school-type filter is a question about schools. A listing with no
     // school cannot answer it, so it is excluded rather than let through.
     if (filters.schoolTypes?.length

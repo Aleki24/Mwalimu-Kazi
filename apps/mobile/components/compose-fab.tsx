@@ -21,6 +21,13 @@ const CHOICES = [
     hint: 'A vacancy teachers can apply to',
   },
   {
+    // Same screen: the first question on it is which of the two this is.
+    href: '/post/new',
+    icon: 'home',
+    label: 'Ask for a tutor',
+    hint: 'Tuition or homeschooling, at your place or online',
+  },
+  {
     href: '/feed',
     icon: 'edit-2',
     label: 'Write a post',

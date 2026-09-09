@@ -5,7 +5,8 @@ import { Link, Stack, useLocalSearchParams } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   formatClosing, formatLabel, formatPostedAge, formatSalaryFull, matchScore,
-  RED_FLAG_LABEL, type JobWithSchool, type MatchResult,
+  ENGAGEMENT_LABEL, RED_FLAG_LABEL, TEACHING_MODE_LABEL,
+  type JobWithSchool, type MatchResult,
 } from '@mwalimu/core';
 import { colors, radius, shadow } from '@mwalimu/ui';
 import {
@@ -235,16 +236,55 @@ export default function JobDetailScreen() {
           meta={`${formatLabel(job.county)} · posted ${formatPostedAge(job.postedAt, now)}`}
         />
 
+        {/*
+          A private request answers different questions from a vacancy: can I
+          get there, who am I teaching, how often. The reputation block below
+          is about schools and has nothing to say here, so it does not appear.
+        */}
+        {job.engagement === 'employment' ? null : (
+          <Card className="gap-2.5 p-3.5">
+            <View className="flex-row items-center gap-2">
+              <Feather name="home" size={13} color={colors.primary} />
+              <Text className="text-[12.5px] font-medium text-foreground">
+                {ENGAGEMENT_LABEL[job.engagement]}
+              </Text>
+            </View>
+            <View className="flex-row flex-wrap gap-1.5">
+              {job.delivery === undefined
+                ? null
+                : <Tag label={TEACHING_MODE_LABEL[job.delivery]} />}
+              {job.area === undefined ? null : <Tag label={job.area} />}
+              {job.learnerLevel === undefined ? null : <Tag label={job.learnerLevel} />}
+              {job.sessionsPerWeek === undefined
+                ? null
+                : <Tag label={`${job.sessionsPerWeek}× a week`} />}
+            </View>
+            {/*
+              Said plainly, because the teacher is the one taking the risk. The
+              app has no address to show even if it wanted to — see 0020.
+            */}
+            <NoticeStrip>
+              A private household, not a school, and nobody has verified it. You are seeing the
+              area rather than the address — the exact place is something to agree in the
+              conversation, after you have applied. Never pay a fee to be given work.
+            </NoticeStrip>
+          </Card>
+        )}
+
         <MatchBreakdown match={match} />
 
-        <Reputation slug={entry.schoolSlug} reputation={reputation} />
+        {job.engagement === 'employment'
+          ? <Reputation slug={entry.schoolSlug} reputation={reputation} />
+          : null}
 
         <Card className="px-3.5 py-3">
           <View className="flex-row gap-3">
             <View className="flex-1">
-              <Text className="text-[11px] font-medium text-mutedForeground">Salary</Text>
+              <Text className="text-[11px] font-medium text-mutedForeground">
+                {job.ratePeriod === 'month' ? 'Salary' : 'Rate'}
+              </Text>
               <Text className="mt-0.5 text-[15px] font-medium tracking-tight text-foreground">
-                {formatSalaryFull(job.salary)}
+                {formatSalaryFull(job.salary, job.ratePeriod)}
               </Text>
             </View>
             {closing !== null ? (
@@ -268,7 +308,9 @@ export default function JobDetailScreen() {
           it is how a placement scam presents itself, and the teacher deciding
           whether to send their documents is the person who needs to know.
         */}
-        {entry.posterKind === 'individual' ? (
+        {/* A request already carries its own, more specific version of this
+            above; two warnings in a row is one nobody reads. */}
+        {entry.posterKind === 'individual' && job.engagement === 'employment' ? (
           <NoticeStrip tone="warning">
             <Text className="text-[11.5px] leading-4 text-mutedForeground">
               Posted by an individual, not a verified school. Never pay a fee to apply for a

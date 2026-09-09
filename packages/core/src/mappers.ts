@@ -140,7 +140,12 @@ export function parseJobsWithSchools(
       }
       jobs.push({
         job: parsed.value,
-        schoolName: 'Independent listing',
+        // A parent asking for a tutor is not an "independent listing", which
+        // reads like a recruiter with no letterhead. Naming it for what it is
+        // also sets the teacher's expectations before they open it.
+        schoolName: parsed.value.engagement === 'employment'
+          ? 'Independent listing'
+          : 'A private household',
         schoolSlug: null,
         schoolType: null,
         schoolCurricula: [],

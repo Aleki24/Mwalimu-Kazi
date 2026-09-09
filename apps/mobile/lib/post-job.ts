@@ -1,4 +1,6 @@
-import type { County, JobType } from '@mwalimu/types';
+import type {
+  County, EngagementKind, JobType, RatePeriod, TeachingMode,
+} from '@mwalimu/types';
 import { supabase } from './supabase';
 
 export interface JobDraft {
@@ -17,6 +19,22 @@ export interface JobDraft {
   readonly jobType: JobType;
   readonly salaryMin: number | null;
   readonly salaryMax: number | null;
+  /**
+   * Employment, or a parent's request for a tutor. A request is never attached
+   * to a school — the database refuses it — so it can never inherit a verified
+   * badge it has not earned.
+   */
+  readonly engagement: EngagementKind;
+  readonly ratePeriod: RatePeriod;
+  /**
+   * Required for a request, meaningless for a post. There is deliberately no
+   * address field anywhere: `area` is a ward or estate, and where exactly is
+   * what the parent tells the teacher in the thread after both agree.
+   */
+  readonly delivery: TeachingMode | null;
+  readonly area: string | null;
+  readonly learnerLevel: string | null;
+  readonly sessionsPerWeek: number | null;
 }
 
 /** @deprecated Kept so the older call shape still type-checks. */
@@ -38,6 +56,12 @@ export async function postJob(draft: JobDraft): Promise<void> {
     job_type: draft.jobType,
     salary_min: draft.salaryMin,
     salary_max: draft.salaryMax,
+    engagement: draft.engagement,
+    rate_period: draft.ratePeriod,
+    delivery: draft.delivery,
+    area: draft.area,
+    learner_level: draft.learnerLevel,
+    sessions_per_week: draft.sessionsPerWeek,
     published: true,
   });
   if (error !== null) throw new Error(error.message);
