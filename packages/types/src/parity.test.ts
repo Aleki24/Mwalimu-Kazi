@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import { Constants } from './database.generated';
 import {
-  ApplicationSource, ApplicationStage, Curriculum, JobPosterKind, JobType, ModerationStatus, NewsTopic,
-  NotificationKind, RedFlagKind, ResourceKind, ReviewCategory, SchoolRole, SchoolType,
-  VerificationStatus,
+  ApplicationSource, ApplicationStage, Curriculum, EngagementKind, JobPosterKind, JobType,
+  ModerationStatus, NewsTopic, NotificationKind, RatePeriod, RedFlagKind, ResourceKind,
+  ReviewCategory, SchoolRole, SchoolType, TeachingMode, VerificationStatus,
 } from './enums';
 
 /**
@@ -28,6 +28,9 @@ describe('database and Zod enums agree', () => {
     ['red_flag_kind', Constants.public.Enums.red_flag_kind, RedFlagKind.options],
     ['resource_kind', Constants.public.Enums.resource_kind, ResourceKind.options],
     ['review_category', Constants.public.Enums.review_category, ReviewCategory.options],
+    ['engagement_kind', Constants.public.Enums.engagement_kind, EngagementKind.options],
+    ['rate_period', Constants.public.Enums.rate_period, RatePeriod.options],
+    ['teaching_mode', Constants.public.Enums.teaching_mode, TeachingMode.options],
   ];
 
   it.each(cases)('%s', (_name, fromDatabase, fromZod) => {

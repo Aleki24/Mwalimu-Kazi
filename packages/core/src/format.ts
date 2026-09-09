@@ -1,4 +1,5 @@
 import type { MatchResult } from './match';
+import type { EngagementKind, RatePeriod, TeachingMode } from '@mwalimu/types';
 
 /**
  * Presentation helpers shared by the mobile app and the recruiter dashboard.
@@ -33,13 +34,57 @@ export function formatSalary(band: { min: number; max?: number } | undefined): s
     : `KSh ${full(band.min)}–${full(band.max)}`;
 }
 
-/** Full salary for a detail screen: "KSh 45,000–60,000 per month". */
-export function formatSalaryFull(band: { min: number; max?: number } | undefined): string {
-  if (band === undefined) return 'Salary not stated';
+/**
+ * What the figure is per.
+ *
+ * `formatSalaryFull` hardcoded "per month", which was true of every listing
+ * until a parent could ask for two hours on a Tuesday. Rendering an hourly
+ * rate as a monthly salary is not a cosmetic error — it is off by a factor of
+ * a hundred in the direction that makes a teacher travel for nothing.
+ */
+const PER: Readonly<Record<RatePeriod, string>> = {
+  month: 'per month',
+  hour: 'per hour',
+  session: 'per session',
+};
+
+/** Full pay for a detail screen: "KSh 45,000–60,000 per month". */
+export function formatSalaryFull(
+  band: { min: number; max?: number } | undefined,
+  period: RatePeriod = 'month',
+): string {
+  if (band === undefined) return period === 'month' ? 'Salary not stated' : 'Rate not stated';
   const n = (v: number): string => v.toLocaleString('en-KE');
   const range = band.max === undefined ? `${n(band.min)}+` : `${n(band.min)}–${n(band.max)}`;
-  return `KSh ${range} per month`;
+  return `KSh ${range} ${PER[period]}`;
 }
+
+/** The short form for a card: "KSh 45–60k" or "KSh 800/hr". */
+export function formatRate(
+  band: { min: number; max?: number } | undefined,
+  period: RatePeriod = 'month',
+): string {
+  if (period === 'month') return formatSalary(band);
+  if (band === undefined) return 'Rate not stated';
+  const unit = period === 'hour' ? '/hr' : '/session';
+  const n = (v: number): string => v.toLocaleString('en-KE');
+  return band.max === undefined || band.max === band.min
+    ? `KSh ${n(band.min)}${unit}`
+    : `KSh ${n(band.min)}–${n(band.max)}${unit}`;
+}
+
+/** "Tuition", "Homeschooling" — never the raw enum. */
+export const ENGAGEMENT_LABEL: Readonly<Record<EngagementKind, string>> = {
+  employment: 'Employment',
+  tuition: 'Private tuition',
+  homeschool: 'Homeschooling',
+};
+
+export const TEACHING_MODE_LABEL: Readonly<Record<TeachingMode, string>> = {
+  in_person: 'In person',
+  online: 'Online',
+  either: 'In person or online',
+};
 
 const MINUTE = 60_000, HOUR = 60 * MINUTE, DAY = 24 * HOUR;
 

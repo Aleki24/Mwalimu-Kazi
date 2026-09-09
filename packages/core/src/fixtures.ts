@@ -30,6 +30,8 @@ export const job = (over: Partial<Job> = {}): Job => ({
   title: 'Mathematics Teacher',
   subjects: ['mathematics'],
   jobType: 'full_time',
+  ratePeriod: 'month',
+  engagement: 'employment',
   county: 'nairobi',
   salary: { min: 45_000, max: 60_000 },
   requirements: [],

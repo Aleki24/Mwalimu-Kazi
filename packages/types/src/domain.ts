@@ -2,6 +2,7 @@ import { z } from 'zod';
 import {
   ApplicationSource, ApplicationStage, County, Curriculum, JobType, ModerationStatus,
   RedFlagKind, RequirementKind, ReviewCategory, SchoolType, VerificationStatus,
+  EngagementKind, RatePeriod, TeachingMode,
 } from './enums';
 
 export const Uuid = z.string().uuid();
@@ -89,11 +90,32 @@ export const Job = z.object({
   jobType: JobType,
   county: County,
   salary: SalaryBand.optional(),
+  /** What the salary figure is per. Monthly for a post, hourly for tuition. */
+  ratePeriod: RatePeriod.default('month'),
   requirements: z.array(JobRequirement).default([]),
   postedAt: z.coerce.date(),
   closesAt: z.coerce.date().optional(),
+  /**
+   * Employment, or a private request from a parent. The three fields below are
+   * required for a request and meaningless for a post — the database enforces
+   * that pairing, so anything that parses is already coherent.
+   */
+  engagement: EngagementKind.default('employment'),
+  delivery: TeachingMode.optional(),
+  /**
+   * A ward or estate, never a street address. There is no address anywhere in
+   * this schema on purpose: where exactly is what the parent tells the teacher
+   * in the thread, once both have agreed.
+   */
+  area: z.string().min(2).max(80).optional(),
+  learnerLevel: z.string().min(1).max(60).optional(),
+  sessionsPerWeek: z.number().int().min(1).max(14).optional(),
 });
 export type Job = z.infer<typeof Job>;
+
+/** A private request from a parent rather than a post at an institution. */
+export const isPrivateRequest = (job: Pick<Job, 'engagement'>): boolean =>
+  job.engagement !== 'employment';
 
 // --- Applications --------------------------------------------------------
 

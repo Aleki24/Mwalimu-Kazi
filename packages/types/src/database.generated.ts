@@ -159,6 +159,12 @@ export type Database = {
       }
       jobs: {
         Row: {
+          area: string | null
+          delivery: Database["public"]["Enums"]["teaching_mode"] | null
+          engagement: Database["public"]["Enums"]["engagement_kind"]
+          learner_level: string | null
+          rate_period: Database["public"]["Enums"]["rate_period"]
+          sessions_per_week: number | null
           closes_at: string | null
           county: string
           created_at: string
@@ -176,6 +182,12 @@ export type Database = {
           title: string
         }
         Insert: {
+          area?: string | null
+          delivery?: Database["public"]["Enums"]["teaching_mode"] | null
+          engagement?: Database["public"]["Enums"]["engagement_kind"]
+          learner_level?: string | null
+          rate_period?: Database["public"]["Enums"]["rate_period"]
+          sessions_per_week?: number | null
           closes_at?: string | null
           county: string
           created_at?: string
@@ -193,6 +205,12 @@ export type Database = {
           title: string
         }
         Update: {
+          area?: string | null
+          delivery?: Database["public"]["Enums"]["teaching_mode"] | null
+          engagement?: Database["public"]["Enums"]["engagement_kind"]
+          learner_level?: string | null
+          rate_period?: Database["public"]["Enums"]["rate_period"]
+          sessions_per_week?: number | null
           closes_at?: string | null
           county?: string
           created_at?: string
@@ -1032,6 +1050,9 @@ export type Database = {
         | "rejected"
         | "withdrawn"
       curriculum: "cbc" | "8-4-4" | "igcse" | "ib" | "montessori"
+      engagement_kind: "employment" | "tuition" | "homeschool"
+      rate_period: "month" | "hour" | "session"
+      teaching_mode: "in_person" | "online" | "either"
       job_poster_kind: "school" | "individual" | "platform"
       job_type: "full_time" | "part_time" | "contract" | "locum"
       moderation_status: "pending" | "approved" | "rejected"
@@ -1233,6 +1254,9 @@ export const Constants = {
         "withdrawn",
       ],
       curriculum: ["cbc", "8-4-4", "igcse", "ib", "montessori"],
+      engagement_kind: ["employment", "tuition", "homeschool"],
+      rate_period: ["month", "hour", "session"],
+      teaching_mode: ["in_person", "online", "either"],
       job_poster_kind: ["school", "individual", "platform"],
       job_type: ["full_time", "part_time", "contract", "locum"],
       moderation_status: ["pending", "approved", "rejected"],

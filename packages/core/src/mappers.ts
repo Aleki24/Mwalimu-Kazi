@@ -51,9 +51,15 @@ export function parseJob(row: Tables<'jobs'>): ParseResult<Job> {
     jobType: row.job_type,
     county: row.county,
     salary: salaryBand(row.salary_min, row.salary_max),
+    ratePeriod: row.rate_period,
     requirements: requirements.data,
     postedAt: row.posted_at,
     closesAt: row.closes_at ?? undefined,
+    engagement: row.engagement,
+    delivery: row.delivery ?? undefined,
+    area: row.area ?? undefined,
+    learnerLevel: row.learner_level ?? undefined,
+    sessionsPerWeek: row.sessions_per_week ?? undefined,
   });
 
   return job.success

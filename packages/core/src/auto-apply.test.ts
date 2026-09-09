@@ -97,3 +97,15 @@ describe('decideAutoApply — listings with no school', () => {
     expect(decideAutoApply(rule(), job(), strong, ctx())).toEqual({ decision: 'apply' });
   });
 });
+
+it('never auto-applies to a private tuition or homeschool request', () => {
+  // A parent's request has no school by database constraint, so the existing
+  // UnverifiedPoster guard already covers it — this test is here to say that
+  // out loud, because Auto-Apply sends documents without the teacher reading
+  // the listing, and the listing here is somebody's home.
+  const request = job({ schoolId: null, engagement: 'tuition' });
+  expect(decideAutoApply(rule(), request, strong, ctx())).toEqual({
+    decision: 'skip',
+    reason: SkipReason.UnverifiedPoster,
+  });
+});

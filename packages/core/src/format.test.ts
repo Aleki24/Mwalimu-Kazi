@@ -1,7 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
-  explainMatch, formatClosing, formatLabel, formatLabels, formatPostedAge, formatSalary,
-  formatSalaryFull, matchBand,
+  explainMatch, formatClosing, formatLabel, formatLabels, formatPostedAge, formatRate, formatSalary, formatSalaryFull, matchBand,
 } from './format';
 import { matchScore } from './match';
 import { job, req, teacher } from './fixtures';
@@ -174,5 +173,31 @@ describe('formatLabel — hyphens mean different things', () => {
   it('still keeps the hyphenated compounds that were always right', () => {
     expect(formatLabel('full_time')).toBe('Full-time');
     expect(formatLabel('8-4-4')).toBe('8-4-4');
+  });
+});
+
+describe('rate period', () => {
+  /**
+   * `formatSalaryFull` hardcoded "per month" while every listing was monthly.
+   * Rendering an hourly tuition rate as a monthly salary is off by a factor of
+   * a hundred, in the direction that makes a teacher travel across Nairobi for
+   * a job that pays nothing like what they read.
+   */
+  it('says what the figure is per', () => {
+    expect(formatSalaryFull({ min: 45_000, max: 60_000 })).toBe('KSh 45,000–60,000 per month');
+    expect(formatSalaryFull({ min: 800, max: 1_200 }, 'hour')).toBe('KSh 800–1,200 per hour');
+    expect(formatSalaryFull({ min: 1_500 }, 'session')).toBe('KSh 1,500+ per session');
+  });
+
+  it('does not call an hourly rate a salary when it is missing', () => {
+    expect(formatSalaryFull(undefined)).toBe('Salary not stated');
+    expect(formatSalaryFull(undefined, 'hour')).toBe('Rate not stated');
+  });
+
+  it('abbreviates a monthly band but not an hourly one', () => {
+    // 800/hr is not "0.8k/hr", and a card has room for the real number.
+    expect(formatRate({ min: 45_000, max: 60_000 })).toBe('KSh 45–60k');
+    expect(formatRate({ min: 800, max: 1_200 }, 'hour')).toBe('KSh 800–1,200/hr');
+    expect(formatRate({ min: 900, max: 900 }, 'hour')).toBe('KSh 900/hr');
   });
 });

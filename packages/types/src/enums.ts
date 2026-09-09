@@ -85,6 +85,25 @@ export const RequirementKind = z.enum([
 ]);
 export type RequirementKind = z.infer<typeof RequirementKind>;
 
+/**
+ * What kind of work a listing is.
+ *
+ * `employment` is a post at a school or an individual hiring for a post.
+ * `tuition` and `homeschool` are a private request — a parent looking for a
+ * teacher — and the app treats them differently at every turn: no verified
+ * badge, never auto-applied to, and an area rather than an address.
+ */
+export const EngagementKind = z.enum(['employment', 'tuition', 'homeschool']);
+export type EngagementKind = z.infer<typeof EngagementKind>;
+
+/** What the pay figure is per. Monthly for a post, hourly for tuition. */
+export const RatePeriod = z.enum(['month', 'hour', 'session']);
+export type RatePeriod = z.infer<typeof RatePeriod>;
+
+/** Where the teaching happens. */
+export const TeachingMode = z.enum(['in_person', 'online', 'either']);
+export type TeachingMode = z.infer<typeof TeachingMode>;
+
 /** File kinds in the resource library. */
 export const ResourceKind = z.enum([
   'notes', 'scheme_of_work', 'lesson_plan', 'past_paper', 'marking_scheme',

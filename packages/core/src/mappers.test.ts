@@ -18,6 +18,12 @@ const row = (over: Partial<Tables<'jobs'>> = {}): Tables<'jobs'> => ({
   created_at: '2026-09-01T08:00:00Z',
   posted_by: null,
   poster_kind: 'school',
+  engagement: 'employment',
+  rate_period: 'month',
+  delivery: null,
+  area: null,
+  learner_level: null,
+  sessions_per_week: null,
   ...over,
 });
 
