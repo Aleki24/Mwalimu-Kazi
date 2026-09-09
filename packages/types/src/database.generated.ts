@@ -996,6 +996,10 @@ export type Database = {
     }
     Functions: {
       am_i_platform_admin: { Args: never; Returns: boolean }
+      record_resource_download: {
+        Args: { target_resource: string }
+        Returns: undefined
+      }
       create_school: {
         Args: {
           p_county: string
