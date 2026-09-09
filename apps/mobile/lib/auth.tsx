@@ -25,7 +25,16 @@ import { OPENED_FROM_RECOVERY_LINK, supabase } from './supabase';
  * the screen the email promised.
  */
 export type AuthStatus =
-  | 'loading' | 'signed-out' | 'needs-onboarding' | 'ready' | 'recovering';
+  | 'loading' | 'signed-out' | 'needs-onboarding' | 'ready' | 'recovering'
+  /**
+   * Signed in, with a profile row that will not parse.
+   *
+   * Its own state because the alternative was treating it as "no profile",
+   * which sent the teacher to onboarding — where saving the same shape would
+   * fail again, forever, with nothing on screen saying why. A row that exists
+   * and disagrees with the schema is a fault to report, not a user to onboard.
+   */
+  | 'profile-unreadable';
 
 export type AuthOutcome =
   | { readonly ok: true }
@@ -57,6 +66,8 @@ export interface AuthValue {
   readonly session: Session | null;
   /** Non-null exactly when status is 'ready'. */
   readonly profile: TeacherProfile | null;
+  /** Why the profile row would not parse, when status is 'profile-unreadable'. */
+  readonly profileFault: string | null;
   readonly signIn: (email: string, password: string) => Promise<AuthOutcome>;
   /**
    * `needsConfirmation` is a real outcome, not an error. When the project has
@@ -88,6 +99,7 @@ export function useTeacher(): TeacherProfile {
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [profile, setProfile] = useState<TeacherProfile | null>(null);
+  const [profileFault, setProfileFault] = useState<string | null>(null);
   const [sessionResolved, setSessionResolved] = useState(false);
   const [profileResolved, setProfileResolved] = useState(false);
   // Seeded from the URL, not only from the event — see the note in
@@ -114,11 +126,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (error !== null || data === null) {
       // No row yet is the normal first-sign-in case, not a failure.
       setProfile(null);
+      setProfileFault(null);
       setProfileResolved(true);
       return;
     }
     const parsed = parseTeacherProfile(data);
     setProfile(parsed.ok ? parsed.value : null);
+    setProfileFault(parsed.ok ? null : parsed.reason);
     setProfileResolved(true);
   }, []);
 
@@ -209,12 +223,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // reset screen whether or not they have finished onboarding.
     if (recovering) return 'recovering';
     if (!profileResolved) return 'loading';
-    return profile === null ? 'needs-onboarding' : 'ready';
-  }, [sessionResolved, session, profileResolved, profile, recovering]);
+    if (profile !== null) return 'ready';
+    return profileFault === null ? 'needs-onboarding' : 'profile-unreadable';
+  }, [sessionResolved, session, profileResolved, profile, profileFault, recovering]);
 
   const value = useMemo<AuthValue>(
     () => ({
-      status, session, profile,
+      status, session, profile, profileFault,
       signIn, signUp, requestPasswordReset, updatePassword, refreshProfile, signOut,
     }),
     [status, session, profile, signIn, signUp, requestPasswordReset, updatePassword, refreshProfile, signOut],

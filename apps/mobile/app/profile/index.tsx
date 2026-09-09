@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Pressable, ScrollView, Text, View } from 'react-native';
 import { Link } from 'expo-router';
 import Feather from '@expo/vector-icons/Feather';
@@ -9,6 +9,7 @@ import { Avatar, Badge, Card, ErrorBanner, Tag, ToggleRow } from '../../componen
 import { useAuth, useTeacher } from '../../lib/auth';
 import { supabase } from '../../lib/supabase';
 import { playNotificationSound, setNotificationSound } from '../../lib/sound';
+import { amIAdmin } from '../../lib/admin';
 
 export default function ProfileScreen() {
   const insets = useSafeAreaInsets();
@@ -17,6 +18,14 @@ export default function ProfileScreen() {
   const [open, setOpen] = useState(teacher.openToOpportunities);
   const [sound, setSound] = useState(teacher.notificationSound);
   const [error, setError] = useState<string | null>(null);
+  // Asked once per visit rather than kept in the auth context: staff is rare,
+  // it can be revoked, and nothing else in the app depends on knowing.
+  const [isAdmin, setIsAdmin] = useState(false);
+  useEffect(() => {
+    let cancelled = false;
+    void amIAdmin().then((yes) => { if (!cancelled) setIsAdmin(yes); });
+    return () => { cancelled = true; };
+  }, []);
 
   const email = (session?.user.email ?? '').trim();
   const phone = (session?.user.phone ?? '').trim();
@@ -97,6 +106,12 @@ export default function ProfileScreen() {
             // a teacher looking for their own next role.
             { href: '/recruiter', icon: 'briefcase', label: 'For schools',
               hint: 'Post roles and see who applied' },
+            // Only staff see this, and only because the RPC said so — the
+            // membership table itself stays unreadable.
+            ...(isAdmin
+              ? [{ href: '/admin', icon: 'shield', label: 'Moderation',
+                   hint: 'Reviews, school and TSC verification' } as const]
+              : []),
           ] as const).map((item) => (
             <Link key={item.href} href={item.href} asChild>
               <Pressable accessibilityRole="link">

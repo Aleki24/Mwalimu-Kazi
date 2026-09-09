@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { ActivityIndicator, View } from 'react-native';
+import { ActivityIndicator, Pressable, Text, View } from 'react-native';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
@@ -22,12 +22,46 @@ void SplashScreen.preventAutoHideAsync();
  * navigation landed.
  */
 function RootNavigator() {
-  const { status } = useAuth();
+  const { status, profileFault, signOut } = useAuth();
 
   if (status === 'loading') {
     return (
       <View className="flex-1 items-center justify-center bg-card">
         <ActivityIndicator color={colors.mutedForeground} />
+      </View>
+    );
+  }
+
+  /*
+    A profile row that exists but will not parse gets said out loud, before any
+    navigation. Treating it as "no profile" sent the teacher to onboarding,
+    where saving the same shape fails again — a loop with nothing on screen
+    explaining it. Signing out is the one action that helps, so it is the one
+    offered.
+  */
+  if (status === 'profile-unreadable') {
+    return (
+      <View className="flex-1 justify-center gap-3 bg-card px-6">
+        <Text className="text-lg font-medium text-foreground">
+          We can’t read your profile
+        </Text>
+        <Text className="text-[13px] leading-5 text-mutedForeground">
+          Your account is fine, but the profile saved against it does not match what
+          this version of the app expects, so we would rather stop than show you
+          something wrong.
+        </Text>
+        {profileFault === null ? null : (
+          <Text className="text-[11.5px] leading-4 text-mutedForeground">
+            {profileFault}
+          </Text>
+        )}
+        <Pressable
+          accessibilityRole="button"
+          onPress={() => void signOut()}
+          className="mt-1 h-11 justify-center"
+        >
+          <Text className="text-[13px] font-medium text-primary">Sign out</Text>
+        </Pressable>
       </View>
     );
   }
@@ -64,6 +98,7 @@ function RootNavigator() {
         <Stack.Screen name="profile/index" options={{ title: 'Your profile' }} />
         <Stack.Screen name="profile/edit" options={{ title: 'Edit profile' }} />
         <Stack.Screen name="profile/cv" options={{ title: 'Your CV' }} />
+        <Stack.Screen name="admin/index" options={{ title: 'Moderation' }} />
       </Stack.Protected>
 
       <Stack.Protected guard={status === 'needs-onboarding'}>

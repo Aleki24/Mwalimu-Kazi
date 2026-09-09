@@ -995,6 +995,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      am_i_platform_admin: { Args: never; Returns: boolean }
       create_school: {
         Args: {
           p_county: string
