@@ -2,6 +2,7 @@ import { Pressable, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Tabs } from 'expo-router';
 import { colors, radius, shadow, HIT_TARGET_MIN } from '@mwalimu/ui';
+import { centredContent } from './ui';
 
 /**
  * expo-router 57 vendors react-navigation rather than depending on it, so
@@ -59,6 +60,9 @@ export function FloatingTabBar({ state, descriptors, navigation }: TabBarProps) 
     >
       <View
         style={{
+          // Capped like everything else: a 1440px-wide bar puts Home and
+          // Schools in different postcodes.
+          ...centredContent,
           flexDirection: 'row',
           alignItems: 'center',
           height: TAB_BAR_HEIGHT,

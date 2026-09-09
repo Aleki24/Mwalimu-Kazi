@@ -6,7 +6,7 @@ import {
   formatClosing, formatLabel, formatSalary, RED_FLAG_LABEL, REVIEW_CATEGORY_LABEL,
 } from '@mwalimu/core';
 import { colors } from '@mwalimu/ui';
-import { Badge, Card, EmptyState, ErrorBanner, SchoolMark, Tag } from '../../components/ui';
+import { Badge, Card, centredContent, EmptyState, ErrorBanner, SchoolMark, Tag } from '../../components/ui';
 import { fetchSchoolBySlug, type SchoolDetail } from '../../lib/schools';
 
 /** A rating bar. Red below 3, amber below 4 — the colour is the summary. */
@@ -83,7 +83,7 @@ export default function SchoolDetailScreen() {
   return (
     <View className="flex-1 bg-background">
       <Stack.Screen options={{ title: school.name }} />
-      <ScrollView contentContainerStyle={{ padding: 16, gap: 12, paddingBottom: 32 }}>
+      <ScrollView contentContainerStyle={{ padding: 16, gap: 12, paddingBottom: 32, ...centredContent }}>
         <View className="flex-row items-center gap-3">
           <SchoolMark name={school.name} size={52} />
           <View className="min-w-0 flex-1">

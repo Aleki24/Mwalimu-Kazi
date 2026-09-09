@@ -8,7 +8,9 @@ import {
   RED_FLAG_LABEL, type JobWithSchool, type MatchResult,
 } from '@mwalimu/core';
 import { colors, radius, shadow } from '@mwalimu/ui';
-import { Card, EmptyState, ErrorBanner, SchoolMark, Tag, tabularNums } from '../../components/ui';
+import {
+  Card, centredContent, EmptyState, ErrorBanner, SchoolMark, tabularNums, Tag,
+} from '../../components/ui';
 import { MatchBreakdown } from '../../components/match-breakdown';
 import { fetchJobById } from '../../lib/jobs';
 import { fetchSchoolReputation, type SchoolReputation } from '../../lib/schools';
@@ -219,7 +221,7 @@ export default function JobDetailScreen() {
     <View className="flex-1 bg-background">
       <Stack.Screen options={{ title: job.title }} />
 
-      <ScrollView contentContainerStyle={{ padding: 16, gap: 12, paddingBottom: actionBarClearance }}>
+      <ScrollView contentContainerStyle={{ padding: 16, gap: 12, paddingBottom: actionBarClearance, ...centredContent }}>
         {/*
           Reading what teachers said about a school before applying is the
           reason this app exists, and the vacancy is where that decision gets

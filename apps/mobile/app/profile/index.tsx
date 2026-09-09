@@ -5,7 +5,7 @@ import Feather from '@expo/vector-icons/Feather';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { formatLabel, formatPhoneForDisplay } from '@mwalimu/core';
 import { colors } from '@mwalimu/ui';
-import { Avatar, Badge, Card, ErrorBanner, Tag, ToggleRow } from '../../components/ui';
+import { Avatar, Badge, Card, centredContent, ErrorBanner, Tag, ToggleRow } from '../../components/ui';
 import { useAuth, useTeacher } from '../../lib/auth';
 import { supabase } from '../../lib/supabase';
 import { playNotificationSound, setNotificationSound } from '../../lib/sound';
@@ -63,7 +63,7 @@ export default function ProfileScreen() {
 
   return (
     <View className="flex-1 bg-background" style={{ paddingTop: insets.top }}>
-      <ScrollView contentContainerStyle={{ paddingBottom: 32 }}>
+      <ScrollView contentContainerStyle={{ paddingBottom: 32, ...centredContent }}>
         <View className="bg-card px-5 pb-5 pt-3">
           <View className="flex-row items-center gap-3.5">
             <Avatar name={teacher.fullName} size={64} />

@@ -7,7 +7,7 @@ import { formatLabel, formatPostedAge } from '@mwalimu/core';
 import { County, JobType } from '@mwalimu/types';
 import { colors, radius } from '@mwalimu/ui';
 import {
-  Button, Card, Chip, ErrorBanner, EmptyState, NoticeStrip, ToggleRow, tabularNums,
+  Button, Card, centredContent, Chip, EmptyState, ErrorBanner, NoticeStrip, tabularNums, ToggleRow,
 } from '../components/ui';
 import { useTeacher } from '../lib/auth';
 import {
@@ -170,7 +170,7 @@ export default function AutoApplyScreen() {
     <View className="flex-1 bg-background">
       <Stack.Screen options={{ title: 'Auto-Apply' }} />
       <ScrollView
-        contentContainerStyle={{ padding: 16, gap: 14, paddingBottom: insets.bottom + 32 }}
+        contentContainerStyle={{ padding: 16, gap: 14, paddingBottom: insets.bottom + 32, ...centredContent }}
         keyboardShouldPersistTaps="handled"
       >
         <Card className="gap-2 p-3.5">

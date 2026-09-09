@@ -88,12 +88,14 @@ export default function NewsScreen() {
         title="News"
         subtitle={loading ? 'Loading…' : `${items.length} updates`}
       />
-      <View className="bg-card px-5 pb-3">
+      <View className="bg-card">
+      <View style={centredContent} className="px-5 pb-3">
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
           {chips.map((t) => (
             <Chip key={t.key} label={t.label} selected={topic === t.key} onPress={() => setTopic(t.key)} />
           ))}
         </ScrollView>
+      </View>
       </View>
 
       {loading ? (

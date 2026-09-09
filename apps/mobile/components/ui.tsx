@@ -132,6 +132,21 @@ export function DeadlineChip({ label, urgent }: { label: string; urgent: boolean
   return <StatusBadge label={label} tone={urgent ? 'urgent' : 'neutral'} />;
 }
 
+/**
+ * The reading column.
+ *
+ * A phone-shaped app on a desktop browser is not improved by rows a thousand
+ * pixels wide, so every scroll container and every full-bleed bar caps its
+ * content at this and centres it.
+ */
+export const CONTENT_MAX_WIDTH = 620;
+
+export const centredContent = {
+  width: '100%',
+  maxWidth: CONTENT_MAX_WIDTH,
+  alignSelf: 'center',
+} as const;
+
 /** A quiet metadata tag: flat grey, no border, no colour. */
 export function Tag({ label }: { label: string }) {
   return (
@@ -305,11 +320,17 @@ export function Avatar({
 /** Chrome renders instantly: the title never waits for data. */
 export function ScreenHeader({ title, subtitle }: { title: string; subtitle?: string }) {
   return (
-    <View className="bg-card px-5 pb-4 pt-2">
-      <Text className="text-2xl font-medium tracking-tight text-foreground">{title}</Text>
-      {subtitle !== undefined ? (
-        <Text className="mt-1 text-sm text-mutedForeground">{subtitle}</Text>
-      ) : null}
+    // The bar is full-bleed and its content is not. Capping only the list
+    // below left a title and a search row stretched across 1440px above a
+    // narrow column of cards, which reads as a broken page rather than a wide
+    // one — the header has to sit in the same column as what it heads.
+    <View className="bg-card">
+      <View style={centredContent} className="px-5 pb-4 pt-2">
+        <Text className="text-2xl font-medium tracking-tight text-foreground">{title}</Text>
+        {subtitle !== undefined ? (
+          <Text className="mt-1 text-sm text-mutedForeground">{subtitle}</Text>
+        ) : null}
+      </View>
     </View>
   );
 }
@@ -355,14 +376,10 @@ export function ErrorBanner({ message }: { message: string }) {
  * tablets and in the web build, where a card stretched to 1200px puts the
  * match score so far from the job title that they stop reading as one row.
  */
-export const CONTENT_MAX_WIDTH = 620;
+
 
 /** Spread into a `contentContainerStyle` to centre a list within that width. */
-export const centredContent = {
-  width: '100%',
-  maxWidth: CONTENT_MAX_WIDTH,
-  alignSelf: 'center',
-} as const;
+
 
 /** Numbers that sit in a column or update in place align by figure. */
 export const tabularNums = { fontVariant: ['tabular-nums' as const] };

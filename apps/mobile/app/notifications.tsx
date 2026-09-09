@@ -4,7 +4,7 @@ import { Link, Stack } from 'expo-router';
 import { formatPostedAge, matchBand, matchScore, type JobWithSchool } from '@mwalimu/core';
 import { colors } from '@mwalimu/ui';
 import type { Tables } from '@mwalimu/types';
-import { EmptyState, ErrorBanner } from '../components/ui';
+import { Card, centredContent, EmptyState, ErrorBanner } from '../components/ui';
 import { fetchNotifications, jobIdOf, markAllRead, threadIdOf } from '../lib/notifications';
 import { useTeacher } from '../lib/auth';
 import { playNotificationSound } from '../lib/sound';
@@ -119,9 +119,11 @@ export default function NotificationsScreen() {
         <SectionList
           sections={sections}
           keyExtractor={(n) => n.id}
-          contentContainerStyle={{ paddingBottom: 32 }}
+          contentContainerStyle={{
+            paddingHorizontal: 16, paddingBottom: 32, ...centredContent,
+          }}
           renderSectionHeader={({ section }) => (
-            <Text className="bg-background px-4 pb-1.5 pt-2.5 text-[11px] font-medium uppercase tracking-wider text-mutedForeground">
+            <Text className="bg-background pb-1.5 pt-3 text-[11px] font-medium uppercase tracking-wider text-mutedForeground">
               {section.title}
             </Text>
           )}
@@ -138,7 +140,12 @@ export default function NotificationsScreen() {
             // (`bg-wash/40`) rewrites its alpha to 0.4 rather than scaling it,
             // which painted the whole row 40% ink.
             const row = (
-              <View className={`flex-row gap-3 border-b border-border px-4 py-3 ${unread ? 'bg-card' : ''}`}>
+              // Unread is a card lift, read is flat on the canvas — the same
+              // distinction the rest of the app draws, instead of a divider list.
+              <Card
+                className={`mb-2 flex-row gap-3 p-3 ${unread ? '' : 'bg-transparent'}`}
+                style={unread ? undefined : { shadowOpacity: 0, elevation: 0 }}
+              >
                 <View className="h-[34px] w-[34px] items-center justify-center rounded-full bg-wash">
                   <Text className={`text-[13px] ${tone.fg}`}>{tone.mark}</Text>
                 </View>
@@ -157,7 +164,7 @@ export default function NotificationsScreen() {
                     </Text>
                   )}
                 </View>
-              </View>
+              </Card>
             );
 
             // Telling someone about a vacancy — or that a school has written

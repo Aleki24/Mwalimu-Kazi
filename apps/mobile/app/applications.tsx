@@ -4,8 +4,9 @@ import { Stack, router } from 'expo-router';
 import { formatLabel, formatPostedAge } from '@mwalimu/core';
 import { colors } from '@mwalimu/ui';
 import type { Tables } from '@mwalimu/types';
-import { EmptyState, ErrorBanner } from '../components/ui';
+import { centredContent, EmptyState, ErrorBanner } from '../components/ui';
 import { JobCard } from '../components/job-card';
+import { Pipeline, pipelineProgress } from '../components/pipeline';
 import { fetchApplications, type AppliedJob } from '../lib/applications';
 import { useTeacher } from '../lib/auth';
 import { openThread } from '../lib/messages';
@@ -67,7 +68,7 @@ export default function ApplicationsScreen() {
         <FlatList
           data={items}
           keyExtractor={(item) => item.application.id}
-          contentContainerStyle={{ padding: 16, gap: 12, paddingBottom: 32 }}
+          contentContainerStyle={{ padding: 16, gap: 12, paddingBottom: 32, ...centredContent }}
           ListHeaderComponent={error !== null ? <ErrorBanner message={error} /> : null}
           ListEmptyComponent={
             <EmptyState
@@ -81,6 +82,16 @@ export default function ApplicationsScreen() {
                 entry={{ ...item.entry, match: matchScore(item.entry.job, teacher) }}
                 now={now}
               />
+              {/*
+                The pipeline rather than the word alone. "Shortlisted" tells a
+                teacher where they are; the four nodes tell them how far that
+                is from an offer, which is the question they actually have. The
+                same component and the same stage mapping Home uses, so the
+                dashboard and the list cannot disagree.
+              */}
+              <View className="px-1 pt-0.5">
+                <Pipeline {...pipelineProgress(item.application.stage)} />
+              </View>
               <View className="flex-row items-baseline gap-2 px-1">
                 <Text className={`text-[11.5px] font-medium ${STAGE_TONE[item.application.stage]}`}>
                   {formatLabel(item.application.stage)}

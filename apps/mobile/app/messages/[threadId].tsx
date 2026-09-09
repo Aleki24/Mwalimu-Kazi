@@ -7,7 +7,7 @@ import { Stack, useLocalSearchParams } from 'expo-router';
 import Feather from '@expo/vector-icons/Feather';
 import { formatPostedAge } from '@mwalimu/core';
 import { colors, radius } from '@mwalimu/ui';
-import { ErrorBanner } from '../../components/ui';
+import { centredContent, ErrorBanner } from '../../components/ui';
 import { useTeacher } from '../../lib/auth';
 import {
   fetchThread, markThreadRead, sendMessage,
@@ -79,7 +79,7 @@ export default function ThreadScreen() {
           ref={listRef}
           data={conversation?.messages ?? []}
           keyExtractor={(m) => m.message.id}
-          contentContainerStyle={{ padding: 16, gap: 8 }}
+          contentContainerStyle={{ padding: 16, gap: 8, ...centredContent }}
           ListHeaderComponent={
             <View className="gap-2">
               {error !== null ? <ErrorBanner message={error} /> : null}

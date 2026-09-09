@@ -8,7 +8,7 @@ import { colors } from '@mwalimu/ui';
 import { COMMON_SUBJECTS, County, TeacherProfile } from '@mwalimu/types';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../lib/auth';
-import { Chip } from '../../components/ui';
+import { centredContent, Chip } from '../../components/ui';
 
 /** Counties surfaced first; the rest follow alphabetically. */
 const PROMINENT = ['nairobi', 'kiambu', 'mombasa', 'kisumu', 'nakuru', 'machakos'] as const;
@@ -102,7 +102,7 @@ export default function OnboardingScreen() {
 
   return (
     <View className="flex-1 bg-background" style={{ paddingTop: insets.top }}>
-      <ScrollView contentContainerStyle={{ padding: 20, gap: 22, paddingBottom: 40 }}>
+      <ScrollView contentContainerStyle={{ padding: 20, gap: 22, paddingBottom: 40, ...centredContent }}>
         <View>
           <Text className="text-2xl font-medium tracking-tight text-foreground">
             Tell us about your teaching

@@ -3,7 +3,7 @@ import { ActivityIndicator, FlatList, ScrollView, Text, View } from 'react-nativ
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { filterJobs, rankJobs, type JobFilters, type JobWithSchool } from '@mwalimu/core';
 import { colors } from '@mwalimu/ui';
-import { Chip, EmptyState, ErrorBanner, ScreenHeader, SearchBar } from '../../components/ui';
+import { centredContent, Chip, EmptyState, ErrorBanner, ScreenHeader, SearchBar } from '../../components/ui';
 import { useTabBarClearance } from '../../components/floating-tab-bar';
 import { JobCard } from '../../components/job-card';
 import { fetchJobsPage, type JobsCursor } from '../../lib/jobs';
@@ -146,7 +146,7 @@ export default function JobsScreen() {
           subtitle={loading ? 'Loading…' : `${results.length} of ${all.length} open roles`}
         />
 
-        <View className="px-4 pb-3">
+        <View style={centredContent} className="px-4 pb-3">
           <SearchBar
             value={query}
             onChangeText={setQuery}
@@ -154,20 +154,27 @@ export default function JobsScreen() {
           />
         </View>
 
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={{ paddingHorizontal: 16, gap: 8, paddingBottom: 12 }}
-        >
-          {quickFilters.map((f) => (
-            <Chip
-              key={f.key}
-              label={f.label}
-              selected={active.has(f.key)}
-              onPress={() => toggle(f.key)}
-            />
-          ))}
-        </ScrollView>
+        {/*
+          The row scrolls sideways, so the cap goes on the wrapper: putting a
+          maxWidth on a horizontal scroller's contentContainerStyle constrains
+          the scrollable row itself and clips the chips off the end.
+        */}
+        <View style={centredContent} className="w-full">
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={{ paddingHorizontal: 16, gap: 8, paddingBottom: 12 }}
+          >
+            {quickFilters.map((f) => (
+              <Chip
+                key={f.key}
+                label={f.label}
+                selected={active.has(f.key)}
+                onPress={() => toggle(f.key)}
+              />
+            ))}
+          </ScrollView>
+        </View>
       </View>
 
       {loading ? (
@@ -176,7 +183,7 @@ export default function JobsScreen() {
         <FlatList
           data={results}
           keyExtractor={(entry) => entry.job.id}
-          contentContainerStyle={{ padding: 16, gap: 12, paddingBottom: tabBarClearance }}
+          contentContainerStyle={{ padding: 16, gap: 12, paddingBottom: tabBarClearance, ...centredContent }}
           keyboardDismissMode="on-drag"
           keyboardShouldPersistTaps="handled"
           onEndReachedThreshold={0.6}

@@ -9,7 +9,7 @@ import {
 import type { Tables } from '@mwalimu/types';
 import { colors, radius } from '@mwalimu/ui';
 import {
-  Avatar, Card, Chip, EmptyState, ErrorBanner, NoticeStrip, Tag, tabularNums,
+  Avatar, Card, centredContent, Chip, EmptyState, ErrorBanner, NoticeStrip, tabularNums, Tag,
 } from '../../components/ui';
 import {
   fetchApplicants, fetchSchoolRoles, setApplicationStage,
@@ -214,7 +214,7 @@ export default function RecruiterSchoolScreen() {
   return (
     <View className="flex-1 bg-background">
       <Stack.Screen options={{ title: 'Applicants' }} />
-      <ScrollView contentContainerStyle={{ padding: 16, gap: 12, paddingBottom: insets.bottom + 32 }}>
+      <ScrollView contentContainerStyle={{ padding: 16, gap: 12, paddingBottom: insets.bottom + 32, ...centredContent }}>
         {error !== null ? <ErrorBanner message={error} /> : null}
 
         {/* Posting from here carries the school id, so the role is the school's. */}

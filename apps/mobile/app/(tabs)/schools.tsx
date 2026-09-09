@@ -61,7 +61,8 @@ export default function SchoolsScreen() {
         subtitle={loading ? 'Loading…' : `${visible.length} of ${listings.length} schools`}
       />
 
-      <View className="gap-3 border-b border-border bg-card px-4 pb-3 pt-3">
+      <View className="border-b border-border bg-card">
+      <View style={centredContent} className="gap-3 px-4 pb-3 pt-3">
         <TextInput
           value={query}
           onChangeText={setQuery}
@@ -74,6 +75,7 @@ export default function SchoolsScreen() {
             <Chip key={t.key} label={t.label} selected={tab === t.key} onPress={() => setTab(t.key)} />
           ))}
         </View>
+      </View>
       </View>
 
       {loading ? (

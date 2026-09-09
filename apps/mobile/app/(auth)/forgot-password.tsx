@@ -3,7 +3,7 @@ import { ActivityIndicator, ScrollView, Text, TextInput, View } from 'react-nati
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Stack, router } from 'expo-router';
 import { colors } from '@mwalimu/ui';
-import { Button, ErrorBanner, NoticeStrip } from '../../components/ui';
+import { Button, centredContent, ErrorBanner, NoticeStrip } from '../../components/ui';
 import { useAuth } from '../../lib/auth';
 
 export default function ForgotPasswordScreen() {
@@ -51,7 +51,7 @@ export default function ForgotPasswordScreen() {
     <View className="flex-1 bg-background">
       <Stack.Screen options={{ title: 'Reset password' }} />
       <ScrollView
-        contentContainerStyle={{ padding: 24, paddingTop: insets.top + 24, gap: 18 }}
+        contentContainerStyle={{ padding: 24, paddingTop: insets.top + 24, gap: 18, ...centredContent }}
         keyboardShouldPersistTaps="handled"
       >
         <Text className="text-[13.5px] leading-5 text-mutedForeground">

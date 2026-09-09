@@ -5,7 +5,7 @@ import { Stack } from 'expo-router';
 import Feather from '@expo/vector-icons/Feather';
 import { formatPostedAge } from '@mwalimu/core';
 import { colors, radius, shadow } from '@mwalimu/ui';
-import { Avatar, Card, EmptyState, ErrorBanner } from '../components/ui';
+import { Avatar, Card, centredContent, EmptyState, ErrorBanner } from '../components/ui';
 import { CommentThread } from '../components/comment-thread';
 import {
   addPostComment, createPost, fetchFeedPage, fetchPostComments, setPostLike,
@@ -164,7 +164,7 @@ export default function FeedScreen() {
       <FlatList
         data={posts}
         keyExtractor={(item) => item.post.id}
-        contentContainerStyle={{ padding: 16, gap: 12, paddingBottom: insets.bottom + 32 }}
+        contentContainerStyle={{ padding: 16, gap: 12, paddingBottom: insets.bottom + 32, ...centredContent }}
         onEndReachedThreshold={0.6}
         onEndReached={() => void loadMore()}
         ListHeaderComponent={

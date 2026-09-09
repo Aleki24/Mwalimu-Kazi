@@ -4,7 +4,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Link, Stack } from 'expo-router';
 import { formatPostedAge } from '@mwalimu/core';
 import { colors } from '@mwalimu/ui';
-import { Card, EmptyState, ErrorBanner, SchoolMark } from '../../components/ui';
+import { Card, centredContent, EmptyState, ErrorBanner, SchoolMark } from '../../components/ui';
 import { useTeacher } from '../../lib/auth';
 import { fetchThreads, type ThreadSummary } from '../../lib/messages';
 
@@ -38,7 +38,7 @@ export default function MessagesScreen() {
         <FlatList
           data={threads}
           keyExtractor={(t) => t.thread.id}
-          contentContainerStyle={{ padding: 16, gap: 10, paddingBottom: insets.bottom + 32 }}
+          contentContainerStyle={{ padding: 16, gap: 10, paddingBottom: insets.bottom + 32, ...centredContent }}
           ListHeaderComponent={error !== null ? <ErrorBanner message={error} /> : null}
           ListEmptyComponent={
             <EmptyState

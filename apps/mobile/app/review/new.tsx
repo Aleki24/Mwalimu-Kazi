@@ -8,7 +8,7 @@ import {
 } from '@mwalimu/core';
 import { colors, radius } from '@mwalimu/ui';
 import type { RedFlagKind, ReviewCategory } from '@mwalimu/types';
-import { Button, Card, ErrorBanner, NoticeStrip } from '../../components/ui';
+import { Button, Card, centredContent, ErrorBanner, NoticeStrip } from '../../components/ui';
 import { AlreadyReviewedError, submitReview } from '../../lib/reviews';
 
 const CATEGORIES = Object.keys(REVIEW_CATEGORY_LABEL) as readonly ReviewCategory[];
@@ -163,7 +163,7 @@ export default function NewReviewScreen() {
     <View className="flex-1 bg-background">
       <Stack.Screen options={{ title: schoolName ?? 'Write a review' }} />
       <ScrollView
-        contentContainerStyle={{ padding: 16, gap: 14, paddingBottom: insets.bottom + 32 }}
+        contentContainerStyle={{ padding: 16, gap: 14, paddingBottom: insets.bottom + 32, ...centredContent }}
         keyboardShouldPersistTaps="handled"
       >
         <NoticeStrip>

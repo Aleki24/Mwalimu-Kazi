@@ -4,7 +4,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Link } from 'expo-router';
 import Feather from '@expo/vector-icons/Feather';
 import { colors, radius } from '@mwalimu/ui';
-import { Button, ErrorBanner, NoticeStrip } from '../../components/ui';
+import { Button, centredContent, ErrorBanner, NoticeStrip } from '../../components/ui';
 import { useAuth } from '../../lib/auth';
 import { RECOVERY_LINK_ERROR } from '../../lib/supabase';
 
@@ -66,7 +66,7 @@ export default function SignInScreen() {
   return (
     <View className="flex-1 bg-background">
       <ScrollView
-        contentContainerStyle={{ padding: 24, paddingTop: insets.top + 48, gap: 20 }}
+        contentContainerStyle={{ padding: 24, paddingTop: insets.top + 48, gap: 20, ...centredContent }}
         keyboardShouldPersistTaps="handled"
       >
         {/*

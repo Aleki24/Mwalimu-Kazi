@@ -6,7 +6,7 @@ import Feather from '@expo/vector-icons/Feather';
 import { formatLabel } from '@mwalimu/core';
 import { County, Curriculum, SchoolType } from '@mwalimu/types';
 import { colors } from '@mwalimu/ui';
-import { Button, Card, Chip, ErrorBanner, NoticeStrip, SchoolMark } from '../../components/ui';
+import { Button, Card, centredContent, Chip, ErrorBanner, NoticeStrip, SchoolMark } from '../../components/ui';
 import { useTeacher } from '../../lib/auth';
 import { createSchool, fetchMySchools, type MySchool } from '../../lib/recruiter';
 
@@ -58,7 +58,7 @@ export default function RecruiterHome() {
     <View className="flex-1 bg-background">
       <Stack.Screen options={{ title: 'For schools' }} />
       <ScrollView
-        contentContainerStyle={{ padding: 16, gap: 14, paddingBottom: insets.bottom + 32 }}
+        contentContainerStyle={{ padding: 16, gap: 14, paddingBottom: insets.bottom + 32, ...centredContent }}
         keyboardShouldPersistTaps="handled"
       >
         {error !== null ? <ErrorBanner message={error} /> : null}

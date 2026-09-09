@@ -5,7 +5,7 @@ import { Stack, router } from 'expo-router';
 import { formatLabel } from '@mwalimu/core';
 import { COMMON_SUBJECTS, County } from '@mwalimu/types';
 import { colors } from '@mwalimu/ui';
-import { Button, Chip, ErrorBanner } from '../../components/ui';
+import { Button, centredContent, Chip, ErrorBanner } from '../../components/ui';
 import { useAuth, useTeacher } from '../../lib/auth';
 import { supabase } from '../../lib/supabase';
 
@@ -71,7 +71,7 @@ export default function EditProfileScreen() {
     <View className="flex-1 bg-background">
       <Stack.Screen options={{ title: 'Edit profile' }} />
       <ScrollView
-        contentContainerStyle={{ padding: 16, gap: 16, paddingBottom: insets.bottom + 32 }}
+        contentContainerStyle={{ padding: 16, gap: 16, paddingBottom: insets.bottom + 32, ...centredContent }}
         keyboardShouldPersistTaps="handled"
       >
         <View className="gap-2">

@@ -3,7 +3,7 @@ import { ActivityIndicator, FlatList, View } from 'react-native';
 import { Stack } from 'expo-router';
 import { rankJobs, type JobWithSchool, type RankedJob } from '@mwalimu/core';
 import { colors } from '@mwalimu/ui';
-import { EmptyState, ErrorBanner } from '../components/ui';
+import { centredContent, EmptyState, ErrorBanner } from '../components/ui';
 import { JobCard } from '../components/job-card';
 import { fetchSavedJobs } from '../lib/saved';
 import { useTeacher } from '../lib/auth';
@@ -39,7 +39,7 @@ export default function SavedScreen() {
         <FlatList
           data={ranked}
           keyExtractor={(entry) => entry.job.id}
-          contentContainerStyle={{ padding: 16, gap: 12, paddingBottom: 32 }}
+          contentContainerStyle={{ padding: 16, gap: 12, paddingBottom: 32, ...centredContent }}
           ListHeaderComponent={error !== null ? <ErrorBanner message={error} /> : null}
           ListEmptyComponent={
             <EmptyState

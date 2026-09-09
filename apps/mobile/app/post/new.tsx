@@ -5,7 +5,9 @@ import { Stack, router, useLocalSearchParams } from 'expo-router';
 import { County, JobType } from '@mwalimu/types';
 import { formatLabel } from '@mwalimu/core';
 import { colors } from '@mwalimu/ui';
-import { Button, Card, Chip, ErrorBanner, NoticeStrip, WhyDisabled } from '../../components/ui';
+import {
+  Button, Card, centredContent, Chip, ErrorBanner, NoticeStrip, WhyDisabled,
+} from '../../components/ui';
 import { useTeacher } from '../../lib/auth';
 import { fetchPostableSchools, postJob } from '../../lib/post-job';
 
@@ -97,7 +99,7 @@ export default function NewJobScreen() {
     <View className="flex-1 bg-background">
       <Stack.Screen options={{ title: 'Post a role' }} />
       <ScrollView
-        contentContainerStyle={{ padding: 16, gap: 14, paddingBottom: insets.bottom + 32 }}
+        contentContainerStyle={{ padding: 16, gap: 14, paddingBottom: insets.bottom + 32, ...centredContent }}
         keyboardShouldPersistTaps="handled"
       >
         {schools.length === 0 ? null : (

@@ -8,7 +8,9 @@ import {
   type CvTemplate,
 } from '@mwalimu/core';
 import { colors, radius } from '@mwalimu/ui';
-import { Button, Card, Chip, ErrorBanner, NoticeStrip, ToggleRow, WhyDisabled } from '../../components/ui';
+import {
+  Button, Card, centredContent, Chip, ErrorBanner, NoticeStrip, ToggleRow, WhyDisabled,
+} from '../../components/ui';
 import { useTeacher } from '../../lib/auth';
 import {
   deleteCvEntry, fetchCv, saveCvDetails, saveEducation, saveExperience, saveReferee,
@@ -170,7 +172,7 @@ export default function CvScreen() {
     <View className="flex-1 bg-background">
       <Stack.Screen options={{ title: 'Your CV' }} />
       <ScrollView
-        contentContainerStyle={{ padding: 16, gap: 14, paddingBottom: insets.bottom + 40 }}
+        contentContainerStyle={{ padding: 16, gap: 14, paddingBottom: insets.bottom + 40, ...centredContent }}
         keyboardShouldPersistTaps="handled"
       >
         <NoticeStrip>

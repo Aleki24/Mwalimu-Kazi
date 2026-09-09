@@ -102,7 +102,8 @@ export default function ResourcesScreen() {
         subtitle={loading ? 'Loading…' : `${items.length} files`}
       />
 
-      <View className="gap-3 border-b border-border bg-card px-4 pb-3 pt-3">
+      <View className="border-b border-border bg-card">
+      <View style={centredContent} className="gap-3 px-4 pb-3 pt-3">
         <TextInput
           value={query}
           onChangeText={setQuery}
@@ -115,6 +116,7 @@ export default function ResourcesScreen() {
             <Chip key={k.key} label={k.label} selected={kind === k.key} onPress={() => setKind(k.key)} />
           ))}
         </ScrollView>
+      </View>
       </View>
 
       {loading ? (
