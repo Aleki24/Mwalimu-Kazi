@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
-import { ActivityIndicator, ScrollView, Text, View } from 'react-native';
-import { Stack } from 'expo-router';
+import { ActivityIndicator, Pressable, ScrollView, Text, View } from 'react-native';
+import { Link, Stack } from 'expo-router';
 import Feather from '@expo/vector-icons/Feather';
 import { RED_FLAG_LABEL, REVIEW_CATEGORY_LABEL, formatLabel, formatPostedAge } from '@mwalimu/core';
 import { colors } from '@mwalimu/ui';
@@ -8,6 +8,7 @@ import {
   Button, Card, EmptyState, ErrorBanner, NoticeStrip, StatusBadge, Tag,
   centredContent,
 } from '../../components/ui';
+import { AdminOnly } from '../../components/admin-only';
 import {
   fetchQueues, moderateReview, setSchoolVerification, setTscVerified,
   type AdminQueues, type PendingReview,
@@ -94,7 +95,7 @@ function ReviewRow({ item, onDecide, busy, now }: {
   );
 }
 
-export default function AdminScreen() {
+function AdminScreenBody() {
   const [queues, setQueues] = useState<AdminQueues | null>(null);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState<string | null>(null);
@@ -141,6 +142,28 @@ export default function AdminScreen() {
       ) : (
         <ScrollView contentContainerStyle={{ padding: 16, gap: 12, ...centredContent }}>
           {error !== null ? <ErrorBanner message={error} /> : null}
+
+          {/* The one thing here that is not a queue: News has no source wired
+              to it, so it is empty until somebody writes something. */}
+          <Link href="/admin/news" asChild>
+            <Pressable accessibilityRole="link">
+              <Card className="flex-row items-center gap-3 p-3.5">
+                <View
+                  style={{ borderRadius: 999 }}
+                  className="h-9 w-9 items-center justify-center bg-primarySurface"
+                >
+                  <Feather name="edit-3" size={15} color={colors.primary} />
+                </View>
+                <View className="min-w-0 flex-1">
+                  <Text className="text-[13px] font-medium text-foreground">Publish an update</Text>
+                  <Text className="mt-0.5 text-[11px] text-mutedForeground">
+                    Appears in News, under your app’s name
+                  </Text>
+                </View>
+                <Feather name="chevron-right" size={15} color={colors.mutedForeground} />
+              </Card>
+            </Pressable>
+          </Link>
 
           {empty ? (
             <EmptyState
@@ -254,4 +277,8 @@ export default function AdminScreen() {
       )}
     </View>
   );
+}
+
+export default function AdminScreen() {
+  return <AdminOnly><AdminScreenBody /></AdminOnly>;
 }

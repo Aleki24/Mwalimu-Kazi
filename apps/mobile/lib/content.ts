@@ -12,6 +12,36 @@ export async function fetchNews(topic?: Tables<'news_articles'>['topic']): Promi
   return data ?? [];
 }
 
+export async function fetchArticle(id: string): Promise<Tables<'news_articles'>> {
+  const { data, error } = await supabase
+    .from('news_articles').select('*').eq('id', id).single();
+  if (error !== null) throw new Error(error.message);
+  return data;
+}
+
+/** Publishing an update. Admin-only by policy — see 0018 for why. */
+export interface ArticleDraft {
+  readonly title: string;
+  readonly source: string;
+  readonly topic: Tables<'news_articles'>['topic'];
+  readonly summary: string;
+  readonly body: string;
+  readonly url: string;
+}
+
+export async function publishArticle(draft: ArticleDraft): Promise<void> {
+  const orNull = (v: string) => (v.trim() === '' ? null : v.trim());
+  const { error } = await supabase.from('news_articles').insert({
+    title: draft.title.trim(),
+    source: draft.source.trim(),
+    topic: draft.topic,
+    summary: orNull(draft.summary),
+    body: orNull(draft.body),
+    url: orNull(draft.url),
+  });
+  if (error !== null) throw new Error(error.message);
+}
+
 export async function fetchResources(kind?: Tables<'resources'>['kind']): Promise<readonly Tables<'resources'>[]> {
   let query = supabase.from('resources').select('*').order('download_count', { ascending: false }).limit(60);
   if (kind !== undefined) query = query.eq('kind', kind);

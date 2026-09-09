@@ -99,6 +99,8 @@ function RootNavigator() {
         <Stack.Screen name="profile/edit" options={{ title: 'Edit profile' }} />
         <Stack.Screen name="profile/cv" options={{ title: 'Your CV' }} />
         <Stack.Screen name="admin/index" options={{ title: 'Moderation' }} />
+        <Stack.Screen name="admin/news" options={{ title: 'Publish an update' }} />
+        <Stack.Screen name="news/[id]" options={{ title: 'Update' }} />
       </Stack.Protected>
 
       <Stack.Protected guard={status === 'needs-onboarding'}>
