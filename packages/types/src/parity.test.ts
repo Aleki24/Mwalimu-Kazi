@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { Constants } from './database.generated';
 import {
-  ApplicationSource, ApplicationStage, Curriculum, EngagementKind, JobPosterKind, JobType,
+  ApplicationSource, ApplicationStage, Curriculum, CvVisibility, EngagementKind, JobPosterKind, JobType,
   ModerationStatus, NewsTopic, NotificationKind, RatePeriod, RedFlagKind, ResourceKind,
   GenderPreference, PosterRole, ReviewCategory, SchoolRole, SchoolType, TeachingLevel,
   VerificationStatus,
@@ -34,6 +34,7 @@ describe('database and Zod enums agree', () => {
     ['teaching_level', Constants.public.Enums.teaching_level, TeachingLevel.options],
     ['poster_role', Constants.public.Enums.poster_role, PosterRole.options],
     ['gender_preference', Constants.public.Enums.gender_preference, GenderPreference.options],
+    ['cv_visibility', Constants.public.Enums.cv_visibility, CvVisibility.options],
   ];
 
   it.each(cases)('%s', (_name, fromDatabase, fromZod) => {

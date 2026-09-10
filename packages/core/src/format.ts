@@ -1,6 +1,6 @@
 import type { MatchResult } from './match';
 import type {
-  EngagementKind, GenderPreference, PosterRole, RatePeriod, TeachingLevel,
+  CvVisibility, EngagementKind, GenderPreference, PosterRole, RatePeriod, TeachingLevel,
 } from '@mwalimu/types';
 
 /**
@@ -310,3 +310,22 @@ export function formatLabel(slug: string): string {
 /** Comma-separated labels, for a row of subjects or counties. */
 export const formatLabels = (slugs: readonly string[]): string =>
   slugs.map(formatLabel).join(', ');
+
+/**
+ * The CV visibility setting, in the words of the person choosing it.
+ *
+ * Named for the audience and not the mechanism: nobody picking a setting
+ * thinks "applied", they think "the schools I sent this to".
+ */
+export const CV_VISIBILITY_LABEL: Readonly<Record<CvVisibility, string>> = {
+  private: 'Only me',
+  applied: 'People I apply to',
+  open: 'Anyone hiring',
+};
+
+/** The consequence, spelled out, because this one is about a teacher's data. */
+export const CV_VISIBILITY_HINT: Readonly<Record<CvVisibility, string>> = {
+  private: 'Nobody can open your CV here. You can still download it and send it yourself.',
+  applied: 'A school or parent can read your CV once you have applied to their listing — and not before.',
+  open: 'Any school, recruiter or parent who posts on Mwalimu Kazi can find and read your CV. Your referees stay hidden from everyone except the people you actually apply to.',
+};

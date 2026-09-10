@@ -135,6 +135,24 @@ export async function startHarness({ root, port } = {}) {
 
   const text = async (page) => (await page.locator('body').innerText()).replace(/\s+/g, ' ');
 
+  /**
+   * Type into a field by its placeholder, with real key events.
+   *
+   * `fill()` sets the DOM value and dispatches an input event, which React
+   * Native Web picks up on most of this app's inputs and, reproducibly, not on
+   * the one in `components/list-editor.tsx` — the value lands in the DOM and
+   * the component's state never hears about it, so the Add button stays
+   * disabled and the test looks like an app bug. Key events go through the
+   * same path a person's keyboard does, which is what a drive script should be
+   * exercising anyway.
+   */
+  const type = async (page, placeholder, value) => {
+    const field = page.getByPlaceholder(placeholder, { exact: true }).first();
+    await field.click();
+    await field.fill('');
+    await field.pressSequentially(value, { delay: 12 });
+  };
+
   const visit = async (page, route, wait = 4_500) => {
     await page.goto(`http://127.0.0.1:${PORT}${route}`, { waitUntil: 'load' });
     await page.waitForTimeout(wait);
@@ -153,5 +171,5 @@ export async function startHarness({ root, port } = {}) {
     process.exit(failed.length === 0 ? 0 : 1);
   }
 
-  return { check, signIn, text, visit, finish, port: PORT };
+  return { check, signIn, text, type, visit, finish, port: PORT };
 }

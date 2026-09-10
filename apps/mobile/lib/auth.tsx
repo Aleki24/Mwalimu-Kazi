@@ -205,8 +205,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return data.session === null ? { ok: true, needsConfirmation: true } : { ok: true };
   }, []);
 
+  /**
+   * Re-read the profile without pretending the app has none.
+   *
+   * It used to clear `profileResolved` first, which drops `status` to
+   * 'loading' — and `status` is what `Stack.Protected` is guarded on, so the
+   * whole signed-in stack unmounted and came back at Home. Every screen that
+   * saved something to the profile threw the person out of it: toggling "open
+   * to opportunities", saving an edited profile, saving skills on the CV.
+   *
+   * `loadProfile` sets the flag when it finishes either way, and the first
+   * load starts with it false, so nothing needs it cleared here.
+   */
   const refreshProfile = useCallback(async () => {
-    setProfileResolved(false);
     await loadProfile(session?.user.id);
   }, [loadProfile, session]);
 

@@ -33,10 +33,11 @@ const STAGE_TONE: Readonly<Record<string, string>> = {
  * different word — and "Applied" under a heading that reads "Who answered"
  * is the kind of seam that makes an app feel assembled rather than written.
  */
-export function ApplicantCard({ item, onStage, onMessage, now, verb = 'applied' }: {
+export function ApplicantCard({ item, onStage, onMessage, onViewCv, now, verb = 'applied' }: {
   item: Applicant;
   onStage: (stage: Stage) => void;
   onMessage: () => void;
+  onViewCv: () => void;
   now: Date;
   verb?: 'applied' | 'answered';
 }) {
@@ -117,16 +118,32 @@ export function ApplicantCard({ item, onStage, onMessage, now, verb = 'applied' 
         messaging is not one option among several, it is the whole point.
         The pipeline stays collapsed, because that genuinely is triage.
       */}
-      <Pressable
-        accessibilityRole="button"
-        onPress={onMessage}
-        className="flex-row items-center gap-1.5"
-      >
-        <Feather name="mail" size={13} color={colors.primary} />
-        <Text className="text-[12px] font-medium text-primary">
-          Message {item.teacher?.fullName.split(' ')[0] ?? 'this teacher'}
-        </Text>
-      </Pressable>
+      <View className="flex-row flex-wrap items-center gap-x-4 gap-y-1.5">
+        <Pressable
+          accessibilityRole="button"
+          onPress={onMessage}
+          className="flex-row items-center gap-1.5"
+        >
+          <Feather name="mail" size={13} color={colors.primary} />
+          <Text className="text-[12px] font-medium text-primary">
+            Message {item.teacher?.fullName.split(' ')[0] ?? 'this teacher'}
+          </Text>
+        </Pressable>
+        {/*
+          Offered whatever their setting says. Whether the CV opens is the
+          database's answer, not this card's — hiding the action for people
+          whose CV is private would mean this screen knew a teacher's privacy
+          setting, which is not a recruiter's business.
+        */}
+        <Pressable
+          accessibilityRole="button"
+          onPress={onViewCv}
+          className="flex-row items-center gap-1.5"
+        >
+          <Feather name="file-text" size={13} color={colors.primary} />
+          <Text className="text-[12px] font-medium text-primary">View CV</Text>
+        </Pressable>
+      </View>
 
       {open ? (
         <View className="flex-row flex-wrap gap-1.5">

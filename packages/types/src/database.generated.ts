@@ -722,32 +722,100 @@ export type Database = {
       }
       cv_details: {
         Row: {
+          address: string | null
+          date_of_birth: string | null
           email: string | null
+          gender: string | null
+          hobbies: string[]
+          languages: string[]
           location: string | null
+          nationality: string | null
           phone: string | null
+          photo_path: string | null
+          post_code: string | null
+          responsibilities: string[]
           summary: string | null
           updated_at: string
           user_id: string
+          visibility: Database["public"]["Enums"]["cv_visibility"]
         }
         Insert: {
+          address?: string | null
+          date_of_birth?: string | null
           email?: string | null
+          gender?: string | null
+          hobbies?: string[]
+          languages?: string[]
           location?: string | null
+          nationality?: string | null
           phone?: string | null
+          photo_path?: string | null
+          post_code?: string | null
+          responsibilities?: string[]
           summary?: string | null
           updated_at?: string
           user_id: string
+          visibility?: Database["public"]["Enums"]["cv_visibility"]
         }
         Update: {
+          address?: string | null
+          date_of_birth?: string | null
           email?: string | null
+          gender?: string | null
+          hobbies?: string[]
+          languages?: string[]
           location?: string | null
+          nationality?: string | null
           phone?: string | null
+          photo_path?: string | null
+          post_code?: string | null
+          responsibilities?: string[]
           summary?: string | null
           updated_at?: string
           user_id?: string
+          visibility?: Database["public"]["Enums"]["cv_visibility"]
         }
         Relationships: [
           {
             foreignKeyName: "cv_details_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cv_certificates: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          is_ongoing: boolean
+          title: string
+          user_id: string
+          year: number | null
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_ongoing?: boolean
+          title: string
+          user_id: string
+          year?: number | null
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_ongoing?: boolean
+          title?: string
+          user_id?: string
+          year?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cv_certificates_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "profiles"
@@ -803,6 +871,7 @@ export type Database = {
           end_year: number | null
           id: string
           is_current: boolean
+          is_volunteer: boolean
           organisation: string
           role: string
           start_year: number | null
@@ -814,6 +883,7 @@ export type Database = {
           end_year?: number | null
           id?: string
           is_current?: boolean
+          is_volunteer?: boolean
           organisation: string
           role: string
           start_year?: number | null
@@ -825,6 +895,7 @@ export type Database = {
           end_year?: number | null
           id?: string
           is_current?: boolean
+          is_volunteer?: boolean
           organisation?: string
           role?: string
           start_year?: number | null
@@ -1071,6 +1142,7 @@ export type Database = {
         | "rejected"
         | "withdrawn"
       curriculum: "cbc" | "8-4-4" | "igcse" | "ib" | "montessori"
+      cv_visibility: "private" | "applied" | "open"
       engagement_kind: "employment" | "tuition" | "homeschool" | "assignment"
       gender_preference: "any" | "female" | "male"
       poster_role: "parent" | "student" | "professional" | "school"
@@ -1277,6 +1349,7 @@ export const Constants = {
         "withdrawn",
       ],
       curriculum: ["cbc", "8-4-4", "igcse", "ib", "montessori"],
+      cv_visibility: ["private", "applied", "open"],
       engagement_kind: ["employment", "tuition", "homeschool", "assignment"],
       gender_preference: ["any", "female", "male"],
       poster_role: ["parent", "student", "professional", "school"],

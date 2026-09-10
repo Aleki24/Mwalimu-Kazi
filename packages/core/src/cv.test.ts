@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
-  contactLine, cvFileName, formatYearRange, orderEducation, orderExperience,
+  certificateLine, certificateWhen, contactLine, cvFileName, describeBlocks,
+  formatYearRange, orderEducation, orderExperience,
   renderCvHtml, renderCvPreviewHtml, renderCvWordHtml, type CvData, type CvExperience,
 } from './cv';
 
@@ -9,6 +10,9 @@ const cv = (over: Partial<CvData> = {}): CvData => ({
   headline: 'Mathematics & Physics teacher',
   summary: null, email: null, phone: null, location: null,
   tscNumber: null, subjects: [], education: [], experience: [], referees: [],
+  photoDataUri: null, dateOfBirth: null, gender: null, nationality: null,
+  address: null, postCode: null, skills: [], languages: [], hobbies: [],
+  responsibilities: [], certificates: [], volunteer: [],
   ...over,
 });
 
@@ -143,5 +147,154 @@ describe('renderCvPreviewHtml', () => {
     const text = (html: string) => html.replace(/<style>[\s\S]*?<\/style>/g, '')
       .replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
     expect(text(preview)).toBe(text(exported));
+  });
+});
+
+describe('describeBlocks', () => {
+  /**
+   * A teacher types a heading and then a run of dashes, because that is how
+   * everyone writes a job description. Printing it verbatim gave a wall of
+   * hyphens.
+   */
+  it('turns dashed lines into a list under the line above them', () => {
+    expect(describeBlocks([
+      'Key Responsibilities',
+      '- Planned and delivered lessons',
+      '- Marked coursework',
+    ].join('\n'))).toEqual([
+      { kind: 'heading', text: 'Key Responsibilities' },
+      { kind: 'list', items: ['Planned and delivered lessons', 'Marked coursework'] },
+    ]);
+  });
+
+  it('leaves prose as prose', () => {
+    expect(describeBlocks('I taught Form 3 mathematics for four years.'))
+      .toEqual([{ kind: 'paragraph', text: 'I taught Form 3 mathematics for four years.' }]);
+  });
+
+  it('only calls a line a heading when a bullet actually follows it', () => {
+    // Two plain lines in a row are two paragraphs. Bolding the first because
+    // it happens to be short would reformat a teacher's writing at random.
+    expect(describeBlocks('One line.\nAnother line.').map((b) => b.kind))
+      .toEqual(['paragraph', 'paragraph']);
+  });
+
+  it('accepts the three marks people actually type', () => {
+    const blocks = describeBlocks('- one\n* two\n• three');
+    expect(blocks).toEqual([{ kind: 'list', items: ['one', 'two', 'three'] }]);
+  });
+
+  it('drops blank lines rather than printing empty bullets', () => {
+    expect(describeBlocks('\n\n- one\n\n')).toEqual([{ kind: 'list', items: ['one'] }]);
+  });
+
+  it('handles a list that runs to the end without losing the last item', () => {
+    const blocks = describeBlocks('Intro:\n- a\n- b');
+    expect(blocks[blocks.length - 1]).toEqual({ kind: 'list', items: ['a', 'b'] });
+  });
+});
+
+describe('certificates', () => {
+  const cert = (over = {}) => ({
+    title: 'Certificate in computer packages', description: null,
+    year: 2016, isOngoing: false, ...over,
+  });
+
+  it('prints the year', () => expect(certificateWhen(cert())).toBe('2016'));
+  it('says so when it is still being taken', () =>
+    expect(certificateWhen(cert({ year: null, isOngoing: true }))).toBe('In progress'));
+  it('says nothing rather than printing an empty bracket', () =>
+    expect(certificateWhen(cert({ year: null }))).toBe(''));
+  it('joins the parts it has for the one-line templates', () =>
+    expect(certificateLine(cert({ description: 'Webuye' })))
+      .toBe('Certificate in computer packages — Webuye — (2016)'));
+  it('leaves out the parts it does not have', () =>
+    expect(certificateLine(cert({ year: null }))).toBe('Certificate in computer packages'));
+});
+
+describe('the portrait template', () => {
+  const full = cv({
+    summary: 'To utilise the knowledge acquired in class and in the field.',
+    email: 'grace@example.com',
+    phone: '0712345678',
+    location: 'Wodanga',
+    postCode: '50311',
+    address: 'P.O Box 132-50311',
+    dateOfBirth: '23 December 1996',
+    gender: 'Female',
+    nationality: 'Kenyan',
+    skills: ['Computer packages', 'Leadership'],
+    languages: ['English', 'Kiswahili'],
+    hobbies: ['Reading novels'],
+    responsibilities: ['Class teacher of Form 4G'],
+    certificates: [{ title: 'Certificate in computer packages', description: 'Webuye', year: 2016, isOngoing: false }],
+    volunteer: [role({ role: 'Receptionist', organisation: 'Makori Nyangau & Co', startYear: 2016, endYear: 2016 })],
+    education: [{ institution: 'Egerton University', qualification: 'B.Ed Arts', startYear: 2016, endYear: 2022, grade: 'Second Class Upper' }],
+    experience: [role({ description: 'Key Responsibilities\n- Planned lessons' })],
+    referees: [{ name: 'Mr. Alexis Omenda', title: 'Principal', organisation: 'St Georges Sianda', phone: '0711 760811', email: null }],
+    photoDataUri: 'data:image/jpeg;base64,AAAA',
+  });
+
+  it('puts every section on the page', () => {
+    const html = renderCvHtml(full, 'portrait');
+    for (const heading of [
+      'Personal details', 'Skills', 'Languages', 'Hobbies', 'Volunteer work',
+      'Responsibilities', 'Certificates', 'Profile', 'Education', 'Experience', 'Referees',
+    ]) {
+      expect(html, `missing the ${heading} section`).toContain(`>${heading}</h2>`);
+    }
+  });
+
+  it('carries the photograph inside the document rather than linking to it', () => {
+    expect(renderCvHtml(full, 'portrait')).toContain('src="data:image/jpeg;base64,AAAA"');
+  });
+
+  /**
+   * The sidebar is a float and the blue edge is a body background, both so the
+   * document survives a page break. A flex row fragments unpredictably, and an
+   * element painted as the edge stops at the end of page one.
+   */
+  it('lays the sidebar out as a float, not as flex', () => {
+    const html = renderCvHtml(full, 'portrait');
+    expect(html).toContain('.side { float: left;');
+    expect(html).toMatch(/body \{[^}]*background: linear-gradient/);
+  });
+
+  it('breaks a long email at the @ and nowhere else', () => {
+    const html = renderCvHtml(full, 'portrait');
+    expect(html).toContain('grace@<wbr>example.com');
+  });
+
+  it('prints the address as an employer expects to read it', () => {
+    expect(renderCvHtml(full, 'portrait')).toContain('P.O Box 132-50311<br>50311 Wodanga');
+  });
+
+  it('leaves out a section nobody filled in', () => {
+    const html = renderCvHtml(cv(), 'portrait');
+    expect(html).not.toContain('>Hobbies</h2>');
+    expect(html).not.toContain('>Referees</h2>');
+    expect(html).not.toContain('<img');
+  });
+
+  it('escapes what a teacher typed', () => {
+    const html = renderCvHtml(cv({ summary: 'Grade < C & "fine"' }), 'portrait');
+    expect(html).toContain('Grade &lt; C &amp; &quot;fine&quot;');
+    expect(html).not.toContain('Grade < C');
+  });
+
+  it('is the default, so the preview and the export agree without being asked', () => {
+    expect(renderCvHtml(full)).toBe(renderCvHtml(full, 'portrait'));
+  });
+
+  it('gives the preview no page padding of its own — the sheet already has it', () => {
+    // The plain templates get their margins from @page, which does not apply
+    // on screen, so they need it. Adding it here would double the inset and
+    // show the teacher a layout the PDF will not have.
+    expect(renderCvPreviewHtml(full, 'portrait')).not.toContain('padding: 16mm');
+    expect(renderCvPreviewHtml(full, 'classic')).toContain('padding: 16mm');
+  });
+
+  it('opens in Word as the same document', () => {
+    expect(renderCvWordHtml(full, 'portrait')).toContain('urn:schemas-microsoft-com:office:word');
   });
 });

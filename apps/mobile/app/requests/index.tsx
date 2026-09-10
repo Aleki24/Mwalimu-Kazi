@@ -201,6 +201,10 @@ export default function MyRequestsScreen() {
                   now={now}
                   onStage={(stage) => void move(a.application.id, stage)}
                   onMessage={() => void message(a.application.id)}
+                  onViewCv={() => router.push({
+                    pathname: '/applicant/[id]/cv',
+                    params: { id: a.application.teacher_id },
+                  })}
                   verb={selected.engagement === 'employment' ? 'applied' : 'answered'}
                 />
               ))

@@ -122,6 +122,18 @@ export type PosterRole = z.infer<typeof PosterRole>;
 export const GenderPreference = z.enum(['any', 'female', 'male']);
 export type GenderPreference = z.infer<typeof GenderPreference>;
 
+/**
+ * Who may read a teacher's CV.
+ *
+ * Additive, and named for what the teacher is deciding rather than for the
+ * mechanism: `applied` is "the people whose listings I answered", `open` is
+ * "anybody who is hiring". Referees are held back from `open` in policy —
+ * consenting to be found is not the same as publishing a referee's phone
+ * number.
+ */
+export const CvVisibility = z.enum(['private', 'applied', 'open']);
+export type CvVisibility = z.infer<typeof CvVisibility>;
+
 /** File kinds in the resource library. */
 export const ResourceKind = z.enum([
   'notes', 'scheme_of_work', 'lesson_plan', 'past_paper', 'marking_scheme',

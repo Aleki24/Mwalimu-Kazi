@@ -184,6 +184,10 @@ export default function RecruiterSchoolScreen() {
                   now={now}
                   onStage={(stage) => void move(a.application.id, stage)}
                   onMessage={() => void message(a.application.id)}
+                  onViewCv={() => router.push({
+                    pathname: '/applicant/[id]/cv',
+                    params: { id: a.application.teacher_id },
+                  })}
                 />
               ))
             )}
