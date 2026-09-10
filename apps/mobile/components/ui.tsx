@@ -343,9 +343,14 @@ export function NoticeStrip({ tone = 'neutral', children }: { tone?: Tone; child
   return (
     <View
       style={{ borderRadius: CARD_RADIUS, ...SQUIRCLE }}
-      className="flex-row items-center gap-2.5 border border-border bg-card px-4 py-3"
+      className="flex-row items-start gap-2.5 border border-border bg-card px-4 py-3"
     >
-      <View style={{ width: 6, height: 6, borderRadius: 999, backgroundColor: STATUS[tone].fill }} />
+      {/* Aligned to the first line rather than the strip's centre: on a
+          four-line warning a vertically centred dot floats beside the middle
+          of the paragraph and reads as a stray mark. */}
+      <View
+        style={{ width: 6, height: 6, borderRadius: 999, backgroundColor: STATUS[tone].fill, marginTop: 6 }}
+      />
       <View className="flex-1">{children}</View>
     </View>
   );

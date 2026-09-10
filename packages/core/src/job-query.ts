@@ -29,6 +29,9 @@ export interface JobFilters {
    * a teacher browsing for work is usually open to either.
    */
   readonly engagements?: readonly EngagementKind[];
+  /** Only listings that can be done this way. Absent means "do not care". */
+  readonly meetsOnline?: boolean;
+  readonly meetsAtStudent?: boolean;
   readonly query?: string;
 }
 
@@ -98,6 +101,11 @@ export function filterJobs(
     if (filters.counties?.length && !filters.counties.some((c) => norm(c) === norm(job.county))) return false;
     if (filters.jobTypes?.length && !filters.jobTypes.includes(job.jobType)) return false;
     if (filters.engagements?.length && !filters.engagements.includes(job.engagement)) return false;
+    // Asking for online-only is asking about private requests: a school post
+    // is at the school, and letting them through would fill the result with
+    // listings that cannot answer the question.
+    if (filters.meetsOnline === true && !job.meetsOnline) return false;
+    if (filters.meetsAtStudent === true && !job.meetsAtStudent) return false;
     // A school-type filter is a question about schools. A listing with no
     // school cannot answer it, so it is excluded rather than let through.
     if (filters.schoolTypes?.length

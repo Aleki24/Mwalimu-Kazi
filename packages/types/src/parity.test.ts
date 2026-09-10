@@ -3,7 +3,8 @@ import { Constants } from './database.generated';
 import {
   ApplicationSource, ApplicationStage, Curriculum, EngagementKind, JobPosterKind, JobType,
   ModerationStatus, NewsTopic, NotificationKind, RatePeriod, RedFlagKind, ResourceKind,
-  ReviewCategory, SchoolRole, SchoolType, TeachingMode, VerificationStatus,
+  GenderPreference, PosterRole, ReviewCategory, SchoolRole, SchoolType, TeachingLevel,
+  VerificationStatus,
 } from './enums';
 
 /**
@@ -30,7 +31,9 @@ describe('database and Zod enums agree', () => {
     ['review_category', Constants.public.Enums.review_category, ReviewCategory.options],
     ['engagement_kind', Constants.public.Enums.engagement_kind, EngagementKind.options],
     ['rate_period', Constants.public.Enums.rate_period, RatePeriod.options],
-    ['teaching_mode', Constants.public.Enums.teaching_mode, TeachingMode.options],
+    ['teaching_level', Constants.public.Enums.teaching_level, TeachingLevel.options],
+    ['poster_role', Constants.public.Enums.poster_role, PosterRole.options],
+    ['gender_preference', Constants.public.Enums.gender_preference, GenderPreference.options],
   ];
 
   it.each(cases)('%s', (_name, fromDatabase, fromZod) => {

@@ -189,9 +189,12 @@ describe('committed secrets', () => {
    * environment, so there is nothing to leak in the first place.
    */
   it('the fixture rig takes its password from the environment', () => {
+    // Every script and every fixture, not a list somebody has to remember to
+    // extend — the second drive script was written by copying the first, and
+    // a hardcoded list would not have covered it.
     const rig = [
-      'scripts/drive-app.mjs',
-      'supabase/fixtures/dev-seed.sql',
+      ...readdirSync(join(REPO, 'scripts')).map((f) => `scripts/${f}`),
+      ...readdirSync(join(REPO, 'supabase/fixtures')).map((f) => `supabase/fixtures/${f}`),
     ].map((path) => ({ path, src: readFileSync(join(REPO, path), 'utf8') }));
 
     const literals: string[] = [];

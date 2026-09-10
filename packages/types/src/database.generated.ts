@@ -160,7 +160,14 @@ export type Database = {
       jobs: {
         Row: {
           area: string | null
-          delivery: Database["public"]["Enums"]["teaching_mode"] | null
+          level: Database["public"]["Enums"]["teaching_level"] | null
+          meets_at_student: boolean
+          meets_at_teacher: boolean
+          meets_online: boolean
+          posted_by_name: string | null
+          poster_role: Database["public"]["Enums"]["poster_role"] | null
+          preferred_gender: Database["public"]["Enums"]["gender_preference"] | null
+          prefers_locality: string | null
           engagement: Database["public"]["Enums"]["engagement_kind"]
           learner_level: string | null
           rate_period: Database["public"]["Enums"]["rate_period"]
@@ -183,7 +190,14 @@ export type Database = {
         }
         Insert: {
           area?: string | null
-          delivery?: Database["public"]["Enums"]["teaching_mode"] | null
+          level?: Database["public"]["Enums"]["teaching_level"] | null
+          meets_at_student?: boolean
+          meets_at_teacher?: boolean
+          meets_online?: boolean
+          posted_by_name?: string | null
+          poster_role?: Database["public"]["Enums"]["poster_role"] | null
+          preferred_gender?: Database["public"]["Enums"]["gender_preference"] | null
+          prefers_locality?: string | null
           engagement?: Database["public"]["Enums"]["engagement_kind"]
           learner_level?: string | null
           rate_period?: Database["public"]["Enums"]["rate_period"]
@@ -206,7 +220,14 @@ export type Database = {
         }
         Update: {
           area?: string | null
-          delivery?: Database["public"]["Enums"]["teaching_mode"] | null
+          level?: Database["public"]["Enums"]["teaching_level"] | null
+          meets_at_student?: boolean
+          meets_at_teacher?: boolean
+          meets_online?: boolean
+          posted_by_name?: string | null
+          poster_role?: Database["public"]["Enums"]["poster_role"] | null
+          preferred_gender?: Database["public"]["Enums"]["gender_preference"] | null
+          prefers_locality?: string | null
           engagement?: Database["public"]["Enums"]["engagement_kind"]
           learner_level?: string | null
           rate_period?: Database["public"]["Enums"]["rate_period"]
@@ -1050,9 +1071,11 @@ export type Database = {
         | "rejected"
         | "withdrawn"
       curriculum: "cbc" | "8-4-4" | "igcse" | "ib" | "montessori"
-      engagement_kind: "employment" | "tuition" | "homeschool"
+      engagement_kind: "employment" | "tuition" | "homeschool" | "assignment"
+      gender_preference: "any" | "female" | "male"
+      poster_role: "parent" | "student" | "professional" | "school"
+      teaching_level: "beginner" | "intermediate" | "expert"
       rate_period: "month" | "hour" | "session"
-      teaching_mode: "in_person" | "online" | "either"
       job_poster_kind: "school" | "individual" | "platform"
       job_type: "full_time" | "part_time" | "contract" | "locum"
       moderation_status: "pending" | "approved" | "rejected"
@@ -1254,9 +1277,11 @@ export const Constants = {
         "withdrawn",
       ],
       curriculum: ["cbc", "8-4-4", "igcse", "ib", "montessori"],
-      engagement_kind: ["employment", "tuition", "homeschool"],
+      engagement_kind: ["employment", "tuition", "homeschool", "assignment"],
+      gender_preference: ["any", "female", "male"],
+      poster_role: ["parent", "student", "professional", "school"],
+      teaching_level: ["beginner", "intermediate", "expert"],
       rate_period: ["month", "hour", "session"],
-      teaching_mode: ["in_person", "online", "either"],
       job_poster_kind: ["school", "individual", "platform"],
       job_type: ["full_time", "part_time", "contract", "locum"],
       moderation_status: ["pending", "approved", "rejected"],

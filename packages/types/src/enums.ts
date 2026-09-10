@@ -93,16 +93,34 @@ export type RequirementKind = z.infer<typeof RequirementKind>;
  * teacher — and the app treats them differently at every turn: no verified
  * badge, never auto-applied to, and an area rather than an address.
  */
-export const EngagementKind = z.enum(['employment', 'tuition', 'homeschool']);
+export const EngagementKind = z.enum(['employment', 'tuition', 'homeschool', 'assignment']);
 export type EngagementKind = z.infer<typeof EngagementKind>;
 
 /** What the pay figure is per. Monthly for a post, hourly for tuition. */
 export const RatePeriod = z.enum(['month', 'hour', 'session']);
 export type RatePeriod = z.infer<typeof RatePeriod>;
 
-/** Where the teaching happens. */
-export const TeachingMode = z.enum(['in_person', 'online', 'either']);
-export type TeachingMode = z.infer<typeof TeachingMode>;
+/**
+ * How far along the learner is — not the teacher's qualification. A beginner
+ * adult and a Form 4 candidate need different people.
+ */
+export const TeachingLevel = z.enum(['beginner', 'intermediate', 'expert']);
+export type TeachingLevel = z.infer<typeof TeachingLevel>;
+
+/** Who is asking. A professional agency and a mother read differently. */
+export const PosterRole = z.enum(['parent', 'student', 'professional', 'school']);
+export type PosterRole = z.infer<typeof PosterRole>;
+
+/**
+ * A preference a household may state, and a school may not.
+ *
+ * A family wanting a female tutor for a daughter at home is ordinary; a school
+ * filtering applicants by sex is unlawful under the Employment Act. The
+ * database constraint is what keeps the second from wearing the first's
+ * clothes.
+ */
+export const GenderPreference = z.enum(['any', 'female', 'male']);
+export type GenderPreference = z.infer<typeof GenderPreference>;
 
 /** File kinds in the resource library. */
 export const ResourceKind = z.enum([

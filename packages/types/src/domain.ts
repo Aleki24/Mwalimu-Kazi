@@ -2,7 +2,7 @@ import { z } from 'zod';
 import {
   ApplicationSource, ApplicationStage, County, Curriculum, JobType, ModerationStatus,
   RedFlagKind, RequirementKind, ReviewCategory, SchoolType, VerificationStatus,
-  EngagementKind, RatePeriod, TeachingMode,
+  EngagementKind, GenderPreference, PosterRole, RatePeriod, TeachingLevel,
 } from './enums';
 
 export const Uuid = z.string().uuid();
@@ -101,7 +101,20 @@ export const Job = z.object({
    * that pairing, so anything that parses is already coherent.
    */
   engagement: EngagementKind.default('employment'),
-  delivery: TeachingMode.optional(),
+  /**
+   * The three ways teaching can happen, independent because the common case
+   * is a mixture: "online or I come to you, but I cannot host". A single mode
+   * could not say that.
+   */
+  meetsOnline: z.boolean().default(false),
+  meetsAtStudent: z.boolean().default(false),
+  meetsAtTeacher: z.boolean().default(false),
+  level: TeachingLevel.optional(),
+  posterRole: PosterRole.optional(),
+  preferredGender: GenderPreference.optional(),
+  prefersLocality: z.string().min(2).max(80).optional(),
+  /** Copied onto the listing so it can name its author without opening the profile. */
+  postedByName: z.string().min(1).max(120).optional(),
   /**
    * A ward or estate, never a street address. There is no address anywhere in
    * this schema on purpose: where exactly is what the parent tells the teacher

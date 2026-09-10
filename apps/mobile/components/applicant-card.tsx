@@ -28,11 +28,17 @@ const STAGE_TONE: Readonly<Record<string, string>> = {
   rejected: 'text-mutedForeground',
 };
 
-export function ApplicantCard({ item, onStage, onMessage, now }: {
+/**
+ * A school receives applications; a parent receives answers. Same pipeline,
+ * different word — and "Applied" under a heading that reads "Who answered"
+ * is the kind of seam that makes an app feel assembled rather than written.
+ */
+export function ApplicantCard({ item, onStage, onMessage, now, verb = 'applied' }: {
   item: Applicant;
   onStage: (stage: Stage) => void;
   onMessage: () => void;
   now: Date;
+  verb?: 'applied' | 'answered';
 }) {
   const [open, setOpen] = useState(false);
   const live = item.liveMatch;
@@ -94,10 +100,12 @@ export function ApplicantCard({ item, onStage, onMessage, now }: {
         className="flex-row items-center gap-1.5"
       >
         <Text className={`text-[11.5px] font-medium ${STAGE_TONE[item.application.stage] ?? ''}`}>
-          {formatLabel(item.application.stage)}
+          {item.application.stage === 'applied' && verb === 'answered'
+            ? 'Answered'
+            : formatLabel(item.application.stage)}
         </Text>
         <Text className="text-[11px] text-mutedForeground">
-          · applied {formatPostedAge(new Date(item.application.created_at), now)}
+          {` · ${verb} `}{formatPostedAge(new Date(item.application.created_at), now)}
         </Text>
         <Feather name={open ? 'chevron-up' : 'chevron-down'} size={13} color={colors.mutedForeground} />
       </Pressable>

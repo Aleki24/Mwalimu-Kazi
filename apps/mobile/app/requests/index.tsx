@@ -3,7 +3,7 @@ import { ActivityIndicator, Pressable, ScrollView, Text, View } from 'react-nati
 import { Link, Stack, router } from 'expo-router';
 import Feather from '@expo/vector-icons/Feather';
 import {
-  ENGAGEMENT_LABEL, TEACHING_MODE_LABEL, formatPostedAge, formatRate,
+  ENGAGEMENT_LABEL, formatPostedAge, formatRate,
 } from '@mwalimu/core';
 import { colors } from '@mwalimu/ui';
 import type { Tables } from '@mwalimu/types';
@@ -11,6 +11,7 @@ import {
   Button, Card, EmptyState, ErrorBanner, NoticeStrip, StatusBadge, Tag, centredContent,
 } from '../../components/ui';
 import { ApplicantCard } from '../../components/applicant-card';
+import { MeetingIcons } from '../../components/meeting-icons';
 import {
   fetchApplicants, fetchMyPostings, setApplicationStage, type Applicant,
 } from '../../lib/recruiter';
@@ -156,7 +157,11 @@ export default function MyRequestsScreen() {
                 {request ? (
                   <View className="flex-row flex-wrap gap-1.5">
                     {job.area === null ? null : <Tag label={job.area} />}
-                    {job.delivery === null ? null : <Tag label={TEACHING_MODE_LABEL[job.delivery]} />}
+                    <MeetingIcons job={{
+                      meetsOnline: job.meets_online,
+                      meetsAtStudent: job.meets_at_student,
+                      meetsAtTeacher: job.meets_at_teacher,
+                    }} />
                     {job.learner_level === null ? null : <Tag label={job.learner_level} />}
                     {job.sessions_per_week === null
                       ? null
@@ -196,6 +201,7 @@ export default function MyRequestsScreen() {
                   now={now}
                   onStage={(stage) => void move(a.application.id, stage)}
                   onMessage={() => void message(a.application.id)}
+                  verb={selected.engagement === 'employment' ? 'applied' : 'answered'}
                 />
               ))
             )}

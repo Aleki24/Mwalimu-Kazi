@@ -2,12 +2,17 @@ import { useEffect, useState } from 'react';
 import { ActivityIndicator, ScrollView, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Stack, router, useLocalSearchParams } from 'expo-router';
-import { County, JobType, RatePeriod, TeachingMode } from '@mwalimu/types';
-import type { EngagementKind } from '@mwalimu/types';
-import { ENGAGEMENT_LABEL, TEACHING_MODE_LABEL, formatLabel } from '@mwalimu/core';
+import {
+  County, EngagementKind, GenderPreference, JobType, PosterRole, RatePeriod, TeachingLevel,
+} from '@mwalimu/types';
+import type { EngagementKind as Engagement } from '@mwalimu/types';
+import {
+  ENGAGEMENT_LABEL, GENDER_PREFERENCE_LABEL, LEVEL_LABEL, POSTER_ROLE_LABEL, formatLabel,
+} from '@mwalimu/core';
 import { colors } from '@mwalimu/ui';
 import {
   Button, Card, centredContent, Chip, ErrorBanner, NoticeStrip, WhyDisabled,
+  ToggleRow,
 } from '../../components/ui';
 import { useTeacher } from '../../lib/auth';
 import { fetchPostableSchools, postJob } from '../../lib/post-job';
@@ -49,9 +54,15 @@ export default function NewJobScreen() {
   const [jobType, setJobType] = useState<JobType>('full_time');
   const [salaryMin, setSalaryMin] = useState('');
   const [salaryMax, setSalaryMax] = useState('');
-  const [engagement, setEngagement] = useState<EngagementKind>('employment');
+  const [engagement, setEngagement] = useState<Engagement>('employment');
   const [ratePeriod, setRatePeriod] = useState<RatePeriod>('month');
-  const [delivery, setDelivery] = useState<TeachingMode>('in_person');
+  const [meetsOnline, setMeetsOnline] = useState(false);
+  const [meetsAtStudent, setMeetsAtStudent] = useState(true);
+  const [meetsAtTeacher, setMeetsAtTeacher] = useState(false);
+  const [level, setLevel] = useState<TeachingLevel>('intermediate');
+  const [posterRole, setPosterRole] = useState<PosterRole>('parent');
+  const [preferredGender, setPreferredGender] = useState<GenderPreference>('any');
+  const [prefersLocality, setPrefersLocality] = useState('');
   const [area, setArea] = useState('');
   const [learnerLevel, setLearnerLevel] = useState('');
   const [sessions, setSessions] = useState('');
@@ -68,6 +79,9 @@ export default function NewJobScreen() {
     // The database refuses a request without these, and it is a better error
     // here than a constraint violation after the button.
     ...(isRequest && area.trim().length < 2 ? ['the area'] : []),
+    ...(isRequest && !meetsOnline && !meetsAtStudent && !meetsAtTeacher
+      ? ['at least one way of meeting']
+      : []),
   ];
   const ready = missing.length === 0;
 
@@ -86,7 +100,15 @@ export default function NewJobScreen() {
         salaryMax: salaryMax.trim() === '' ? null : Number(salaryMax),
         engagement,
         ratePeriod: isRequest ? ratePeriod : 'month',
-        delivery: isRequest ? delivery : null,
+        meetsOnline: isRequest && meetsOnline,
+        meetsAtStudent: isRequest && meetsAtStudent,
+        meetsAtTeacher: isRequest && meetsAtTeacher,
+        level: isRequest ? level : null,
+        posterRole: isRequest ? posterRole : null,
+        preferredGender: isRequest ? preferredGender : null,
+        prefersLocality: isRequest && prefersLocality.trim() !== ''
+          ? prefersLocality.trim()
+          : null,
         area: isRequest ? area.trim() : null,
         learnerLevel: isRequest && learnerLevel.trim() !== '' ? learnerLevel.trim() : null,
         sessionsPerWeek: isRequest && sessions.trim() !== '' ? Number(sessions) : null,
@@ -133,7 +155,9 @@ export default function NewJobScreen() {
         <View className="gap-2">
           <Text className="text-[13px] font-medium text-foreground">What are you posting?</Text>
           <View className="flex-row flex-wrap gap-1.5">
-            {(['employment', 'tuition', 'homeschool'] as const).map((k) => (
+            {/* Straight off the enum, so a kind can never be filterable on
+                Jobs and unpostable here — 'assignment' was exactly that. */}
+            {EngagementKind.options.map((k) => (
               <Chip
                 key={k}
                 label={k === 'employment' ? 'A job' : ENGAGEMENT_LABEL[k]}
@@ -141,9 +165,12 @@ export default function NewJobScreen() {
                 onPress={() => {
                   setEngagement(k);
                   // Tuition is priced by the hour far more often than by the
-                  // month, so the default follows the choice.
-                  setRatePeriod(k === 'employment' ? 'month' : 'hour');
+                  // month; a one-off piece of work is priced by the piece.
+                  setRatePeriod(
+                    k === 'employment' ? 'month' : k === 'assignment' ? 'session' : 'hour',
+                  );
                   if (k !== 'employment') setJobType('part_time');
+                  if (k === 'assignment') setSessions('');
                 }}
               />
             ))}
@@ -178,7 +205,10 @@ export default function NewJobScreen() {
           </View>
         )}
 
-        {schoolId === null ? (
+        {/* Only on a vacancy. On a request "you are an individual, not a
+            verified school" tells a parent something they already know, and
+            the strip above it has already said the part that matters. */}
+        {schoolId === null && !isRequest ? (
           <NoticeStrip tone="warning">
             <Text className="text-[11.5px] leading-4 text-mutedForeground">
               This will be shown as posted by an individual, not a verified school. Asking a
@@ -228,15 +258,30 @@ export default function NewJobScreen() {
           <>
             <View className="gap-2">
               <Text className="text-[13px] font-medium text-foreground">Where</Text>
-              <View className="flex-row flex-wrap gap-1.5">
-                {TeachingMode.options.map((m) => (
-                  <Chip
-                    key={m}
-                    label={TEACHING_MODE_LABEL[m]}
-                    selected={delivery === m}
-                    onPress={() => setDelivery(m)}
-                  />
-                ))}
+              {/*
+                Three independent answers, not one choice. The common case is
+                a mixture — "online, or I can come to you, but I cannot host" —
+                and a single mode could not say it.
+              */}
+              <View className="gap-1.5">
+                <ToggleRow
+                  label="Online"
+                  hint="Over a video call"
+                  value={meetsOnline}
+                  onValueChange={setMeetsOnline}
+                />
+                <ToggleRow
+                  label="At our place"
+                  hint="The teacher comes to you"
+                  value={meetsAtStudent}
+                  onValueChange={setMeetsAtStudent}
+                />
+                <ToggleRow
+                  label="At the teacher's place"
+                  hint="The learner travels to them"
+                  value={meetsAtTeacher}
+                  onValueChange={setMeetsAtTeacher}
+                />
               </View>
               <TextInput
                 value={area}
@@ -251,6 +296,67 @@ export default function NewJobScreen() {
               </Text>
             </View>
 
+            <View className="gap-2">
+              <Text className="text-[13px] font-medium text-foreground">Level</Text>
+              <View className="flex-row flex-wrap gap-1.5">
+                {TeachingLevel.options.map((l) => (
+                  <Chip
+                    key={l}
+                    label={LEVEL_LABEL[l]}
+                    selected={level === l}
+                    onPress={() => setLevel(l)}
+                  />
+                ))}
+              </View>
+              <Text className="text-[10.5px] leading-4 text-mutedForeground">
+                How far along the learner is — not how qualified the teacher must be.
+              </Text>
+            </View>
+
+            <View className="gap-2">
+              <Text className="text-[13px] font-medium text-foreground">You are</Text>
+              <View className="flex-row flex-wrap gap-1.5">
+                {(['parent', 'student', 'professional'] as const).map((r) => (
+                  <Chip
+                    key={r}
+                    label={POSTER_ROLE_LABEL[r]}
+                    selected={posterRole === r}
+                    onPress={() => setPosterRole(r)}
+                  />
+                ))}
+              </View>
+            </View>
+
+            {/*
+              A household may say this; a school may not, and the database
+              refuses it there. Phrased as a preference because that is all it
+              is — it filters nobody out, it only lets a teacher decide whether
+              to bother answering.
+            */}
+            <View className="gap-2">
+              <Text className="text-[13px] font-medium text-foreground">
+                Teacher preference (optional)
+              </Text>
+              <View className="flex-row flex-wrap gap-1.5">
+                {GenderPreference.options.map((g) => (
+                  <Chip
+                    key={g}
+                    label={g === 'any' ? 'No preference' : GENDER_PREFERENCE_LABEL[g]}
+                    selected={preferredGender === g}
+                    onPress={() => setPreferredGender(g)}
+                  />
+                ))}
+              </View>
+              <TextInput
+                value={prefersLocality}
+                onChangeText={setPrefersLocality}
+                placeholder="Prefers teachers from — Kasarani, Westlands…"
+                placeholderTextColor={colors.mutedForeground}
+                maxLength={80}
+                className="h-12 rounded-md border border-border bg-card px-3.5 text-[15px] text-foreground"
+              />
+            </View>
+
             <View className="flex-row gap-2">
               <View className="flex-1 gap-2">
                 <Text className="text-[13px] font-medium text-foreground">Learner</Text>
@@ -263,18 +369,22 @@ export default function NewJobScreen() {
                   className="h-12 rounded-md border border-border bg-card px-3.5 text-[15px] text-foreground"
                 />
               </View>
-              <View className="flex-1 gap-2">
-                <Text className="text-[13px] font-medium text-foreground">Days a week</Text>
-                <TextInput
-                  value={sessions}
-                  onChangeText={setSessions}
-                  placeholder="2"
-                  placeholderTextColor={colors.mutedForeground}
-                  keyboardType="number-pad"
-                  maxLength={2}
-                  className="h-12 rounded-md border border-border bg-card px-3.5 text-[15px] text-foreground"
-                />
-              </View>
+              {/* A one-off assignment happens once; asking how many times a
+                  week is a question with no answer. */}
+              {engagement === 'assignment' ? null : (
+                <View className="flex-1 gap-2">
+                  <Text className="text-[13px] font-medium text-foreground">Days a week</Text>
+                  <TextInput
+                    value={sessions}
+                    onChangeText={setSessions}
+                    placeholder="2"
+                    placeholderTextColor={colors.mutedForeground}
+                    keyboardType="number-pad"
+                    maxLength={2}
+                    className="h-12 rounded-md border border-border bg-card px-3.5 text-[15px] text-foreground"
+                  />
+                </View>
+              )}
             </View>
           </>
         ) : (

@@ -1,5 +1,7 @@
 import type { MatchResult } from './match';
-import type { EngagementKind, RatePeriod, TeachingMode } from '@mwalimu/types';
+import type {
+  EngagementKind, GenderPreference, PosterRole, RatePeriod, TeachingLevel,
+} from '@mwalimu/types';
 
 /**
  * Presentation helpers shared by the mobile app and the recruiter dashboard.
@@ -78,13 +80,75 @@ export const ENGAGEMENT_LABEL: Readonly<Record<EngagementKind, string>> = {
   employment: 'Employment',
   tuition: 'Private tuition',
   homeschool: 'Homeschooling',
+  assignment: 'One-off assignment',
 };
 
-export const TEACHING_MODE_LABEL: Readonly<Record<TeachingMode, string>> = {
-  in_person: 'In person',
-  online: 'Online',
-  either: 'In person or online',
+export const ENGAGEMENT_LABEL_SHORT: Readonly<Record<EngagementKind, string>> = {
+  employment: 'Job',
+  tuition: 'Tuition',
+  homeschool: 'Homeschool',
+  assignment: 'Assignment',
 };
+
+export const LEVEL_LABEL: Readonly<Record<TeachingLevel, string>> = {
+  beginner: 'Beginner',
+  intermediate: 'Intermediate',
+  expert: 'Expert',
+};
+
+export const POSTER_ROLE_LABEL: Readonly<Record<PosterRole, string>> = {
+  parent: 'Parent',
+  student: 'Student',
+  professional: 'Professional',
+  school: 'School',
+};
+
+export const GENDER_PREFERENCE_LABEL: Readonly<Record<GenderPreference, string>> = {
+  any: 'Any',
+  female: 'Female',
+  male: 'Male',
+};
+
+/**
+ * The three ways of meeting, as a list that reads the same everywhere.
+ *
+ * Both states are named, not only the true ones: "Not available for home
+ * tutoring" is as much a fact a teacher needs as "Available online", and a
+ * missing line reads as an oversight rather than a no.
+ */
+export interface MeetingOption {
+  readonly key: 'online' | 'student' | 'teacher';
+  readonly available: boolean;
+  readonly label: string;
+}
+
+export function meetingOptions(job: {
+  meetsOnline: boolean;
+  meetsAtStudent: boolean;
+  meetsAtTeacher: boolean;
+}): readonly MeetingOption[] {
+  return [
+    {
+      key: 'online',
+      available: job.meetsOnline,
+      label: job.meetsOnline ? 'Available online' : 'Not available online',
+    },
+    {
+      key: 'student',
+      available: job.meetsAtStudent,
+      label: job.meetsAtStudent
+        ? 'Home tutoring — the teacher comes to you'
+        : 'Not available for home tutoring',
+    },
+    {
+      key: 'teacher',
+      available: job.meetsAtTeacher,
+      label: job.meetsAtTeacher
+        ? 'The learner can travel to the teacher'
+        : 'The learner cannot travel',
+    },
+  ];
+}
 
 const MINUTE = 60_000, HOUR = 60 * MINUTE, DAY = 24 * HOUR;
 

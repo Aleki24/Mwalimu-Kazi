@@ -5,13 +5,15 @@ import { Link, Stack, useLocalSearchParams } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   formatClosing, formatLabel, formatPostedAge, formatSalaryFull, matchScore,
-  ENGAGEMENT_LABEL, RED_FLAG_LABEL, TEACHING_MODE_LABEL,
+  ENGAGEMENT_LABEL, GENDER_PREFERENCE_LABEL, LEVEL_LABEL, POSTER_ROLE_LABEL, RED_FLAG_LABEL,
   type JobWithSchool, type MatchResult,
 } from '@mwalimu/core';
 import { colors, radius, shadow } from '@mwalimu/ui';
 import {
-  Card, centredContent, EmptyState, ErrorBanner, SchoolMark, tabularNums, Tag,
+  Card, centredContent, EmptyState, ErrorBanner, NoticeStrip, SchoolMark, StatusBadge,
+  tabularNums, Tag,
 } from '../../components/ui';
+import { MeetingList } from '../../components/meeting-icons';
 import { MatchBreakdown } from '../../components/match-breakdown';
 import { fetchJobById } from '../../lib/jobs';
 import { fetchSchoolReputation, type SchoolReputation } from '../../lib/schools';
@@ -19,7 +21,6 @@ import { fetchSavedJobIds, saveJob, unsaveJob } from '../../lib/saved';
 import { applyToJob, fetchAppliedJobIds } from '../../lib/applications';
 import { addJobComment, fetchJobComments } from '../../lib/social';
 import { CommentThread } from '../../components/comment-thread';
-import { NoticeStrip } from '../../components/ui';
 import { useTeacher } from '../../lib/auth';
 
 /**
@@ -93,6 +94,22 @@ function Reputation({ slug, reputation }: {
     <Link href={{ pathname: '/school/[slug]/reviews', params: { slug } }} asChild>
       <Pressable accessibilityRole="link">{inner}</Pressable>
     </Link>
+  );
+}
+
+/** One labelled fact, or nothing at all when it was not stated. */
+function Fact({ icon, label, value }: {
+  icon: React.ComponentProps<typeof Feather>['name'];
+  label: string;
+  value: string | undefined;
+}) {
+  if (value === undefined || value.trim() === '') return null;
+  return (
+    <View className="flex-row items-center gap-2">
+      <Feather name={icon} size={12} color={colors.mutedForeground} />
+      <Text className="text-[11.5px] text-mutedForeground">{label}</Text>
+      <Text className="flex-1 text-right text-[12px] font-medium text-foreground">{value}</Text>
+    </View>
   );
 }
 
@@ -217,6 +234,8 @@ export default function JobDetailScreen() {
 
   const { job, schoolName } = entry;
   const closing = formatClosing(job.closesAt, now);
+  const isRequest = job.engagement !== 'employment';
+  const firstName = job.postedByName?.trim().split(' ')[0];
 
   return (
     <View className="flex-1 bg-background">
@@ -242,27 +261,60 @@ export default function JobDetailScreen() {
           is about schools and has nothing to say here, so it does not appear.
         */}
         {job.engagement === 'employment' ? null : (
-          <Card className="gap-2.5 p-3.5">
+          <Card className="gap-3 p-3.5">
             <View className="flex-row items-center gap-2">
               <Feather name="home" size={13} color={colors.primary} />
-              <Text className="text-[12.5px] font-medium text-foreground">
+              <Text className="flex-1 text-[12.5px] font-medium text-foreground">
                 {ENGAGEMENT_LABEL[job.engagement]}
               </Text>
+              {job.level === undefined ? null : (
+                <StatusBadge label={LEVEL_LABEL[job.level]} tone="primary" />
+              )}
             </View>
-            <View className="flex-row flex-wrap gap-1.5">
-              {job.delivery === undefined
-                ? null
-                : <Tag label={TEACHING_MODE_LABEL[job.delivery]} />}
-              {job.area === undefined ? null : <Tag label={job.area} />}
-              {job.learnerLevel === undefined ? null : <Tag label={job.learnerLevel} />}
-              {job.sessionsPerWeek === undefined
-                ? null
-                : <Tag label={`${job.sessionsPerWeek}× a week`} />}
-            </View>
+
             {/*
-              Said plainly, because the teacher is the one taking the risk. The
-              app has no address to show even if it wanted to — see 0020.
+              The facts a teacher weighs before answering, in the order they
+              weigh them: where, who for, how often, who is asking. Each is
+              omitted when unstated rather than shown empty — a blank row reads
+              as a broken screen, not as "they did not say".
             */}
+            <View className="gap-1.5">
+              <Fact icon="map-pin" label="Area" value={job.area} />
+              <Fact icon="user" label="Learner" value={job.learnerLevel} />
+              <Fact
+                icon="repeat"
+                label="How often"
+                value={job.sessionsPerWeek === undefined
+                  ? undefined
+                  : `${job.sessionsPerWeek} time${job.sessionsPerWeek === 1 ? '' : 's'} a week`}
+              />
+              <Fact icon="clock" label="Requires" value={formatLabel(job.jobType)} />
+              <Fact
+                icon="user-check"
+                label="Posted by"
+                value={job.postedByName === undefined
+                  ? undefined
+                  : job.posterRole === undefined
+                    ? job.postedByName
+                    : `${job.postedByName} (${POSTER_ROLE_LABEL[job.posterRole]})`}
+              />
+              {/* A household's preference, never a school's — see 0022. Shown
+                  so a teacher can decide whether to bother, and nothing else:
+                  it filters nobody out on our side. */}
+              <Fact
+                icon="users"
+                label="Prefers"
+                value={job.preferredGender === undefined || job.preferredGender === 'any'
+                  ? undefined
+                  : `${GENDER_PREFERENCE_LABEL[job.preferredGender]} teacher`}
+              />
+              <Fact icon="navigation" label="Prefers teachers from" value={job.prefersLocality} />
+            </View>
+
+            <View className="border-t border-border pt-2.5">
+              <MeetingList job={job} />
+            </View>
+
             <NoticeStrip>
               A private household, not a school, and nobody has verified it. You are seeing the
               area rather than the address — the exact place is something to agree in the
@@ -326,13 +378,22 @@ export default function JobDetailScreen() {
           </NoticeStrip>
         ) : null}
 
-        <Card className="px-3.5 py-3">
-          <CommentThread
-            load={() => fetchJobComments(id)}
-            send={(body) => addJobComment(id, teacher.id, body)}
-            emptyHint="No questions yet. Comments here are public and shown under your name."
-          />
-        </Card>
+        {/*
+          Questions in public belong to a school vacancy, where the answer
+          helps the next twenty applicants. On a household's request they do
+          the opposite: a thread of named teachers asking which part of
+          Kilimani narrows down where a family lives. There the conversation
+          is the private one behind Contact.
+        */}
+        {isRequest ? null : (
+          <Card className="px-3.5 py-3">
+            <CommentThread
+              load={() => fetchJobComments(id)}
+              send={(body) => addJobComment(id, teacher.id, body)}
+              emptyHint="No questions yet. Comments here are public and shown under your name."
+            />
+          </Card>
+        )}
       </ScrollView>
 
       {/*
@@ -410,7 +471,20 @@ export default function JobDetailScreen() {
                     : 'text-primaryForeground'
                   }`}
                 >
-                  {match.blocked ? 'Requirement not met' : applied ? 'Applied' : 'Apply now'}
+                  {/*
+                    A private request is a person, so the button says their
+                    name — "Contact Mary" reads as reaching somebody, where
+                    "Apply now" reads as filing a form into a company. Once
+                    contacted it says so, because the thread is now the place
+                    this continues.
+                  */}
+                  {match.blocked
+                    ? 'Requirement not met'
+                    : applied
+                      ? (isRequest ? 'In touch' : 'Applied')
+                      : isRequest
+                        ? `Contact ${firstName ?? 'them'}`
+                        : 'Apply now'}
                 </Text>
               </>
             )}

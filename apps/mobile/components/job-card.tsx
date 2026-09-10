@@ -6,6 +6,7 @@ import {
 } from '@mwalimu/core';
 import { colors, HIT_TARGET_MIN } from '@mwalimu/ui';
 import { Card, DeadlineChip, SchoolMark, StatusBadge, Tag, tabularNums } from './ui';
+import { MeetingIcons } from './meeting-icons';
 
 /**
  * Score colour tracks the band so a card and a candidate row never disagree.
@@ -110,6 +111,13 @@ export function JobCard({
             {job.subjects.slice(0, 2).map((subject) => (
               <Tag key={subject} label={formatLabel(subject)} />
             ))}
+            {/* Only for private requests: a school vacancy is at the school,
+                and three icons saying so would be noise on every row. */}
+            {job.engagement === 'employment' ? null : (
+              <View className="pl-0.5">
+                <MeetingIcons job={job} />
+              </View>
+            )}
             {closed ? (
               <StatusBadge label="Closed" tone="danger" />
             ) : closing !== null ? (

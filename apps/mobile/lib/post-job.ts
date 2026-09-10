@@ -1,5 +1,5 @@
 import type {
-  County, EngagementKind, JobType, RatePeriod, TeachingMode,
+  County, EngagementKind, GenderPreference, JobType, PosterRole, RatePeriod, TeachingLevel,
 } from '@mwalimu/types';
 import { supabase } from './supabase';
 
@@ -31,10 +31,17 @@ export interface JobDraft {
    * address field anywhere: `area` is a ward or estate, and where exactly is
    * what the parent tells the teacher in the thread after both agree.
    */
-  readonly delivery: TeachingMode | null;
+  readonly meetsOnline: boolean;
+  readonly meetsAtStudent: boolean;
+  readonly meetsAtTeacher: boolean;
   readonly area: string | null;
   readonly learnerLevel: string | null;
   readonly sessionsPerWeek: number | null;
+  readonly level: TeachingLevel | null;
+  readonly posterRole: PosterRole | null;
+  /** Only meaningful on a private request; the database refuses it elsewhere. */
+  readonly preferredGender: GenderPreference | null;
+  readonly prefersLocality: string | null;
 }
 
 /** @deprecated Kept so the older call shape still type-checks. */
@@ -58,10 +65,16 @@ export async function postJob(draft: JobDraft): Promise<void> {
     salary_max: draft.salaryMax,
     engagement: draft.engagement,
     rate_period: draft.ratePeriod,
-    delivery: draft.delivery,
+    meets_online: draft.meetsOnline,
+    meets_at_student: draft.meetsAtStudent,
+    meets_at_teacher: draft.meetsAtTeacher,
     area: draft.area,
     learner_level: draft.learnerLevel,
     sessions_per_week: draft.sessionsPerWeek,
+    level: draft.level,
+    poster_role: draft.posterRole,
+    preferred_gender: draft.preferredGender,
+    prefers_locality: draft.prefersLocality,
     published: true,
   });
   if (error !== null) throw new Error(error.message);

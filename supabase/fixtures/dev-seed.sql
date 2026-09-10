@@ -133,13 +133,15 @@ values ('00000000-0000-4000-8000-0000000000f1', '00000000-0000-4000-8000-0000000
 -- by the hour — the three things that make it different from a vacancy.
 insert into jobs (id, school_id, title, subjects, job_type, county, salary_min,
                   salary_max, published, posted_by, poster_kind,
-                  engagement, rate_period, delivery, area, learner_level,
-                  sessions_per_week)
+                  engagement, rate_period, area, learner_level, sessions_per_week,
+                  meets_online, meets_at_student, meets_at_teacher,
+                  level, poster_role, preferred_gender, prefers_locality)
 values ('00000000-0000-4000-8000-0000000000ff', null,
         'Maths and physics tutor for Form 2', array['mathematics','physics'],
         'part_time', 'nairobi', 900, 1200, true,
         '00000000-0000-4000-8000-0000000000f4', 'individual',
-        'tuition', 'hour', 'in_person', 'Kilimani', 'Form 2', 2);
+        'tuition', 'hour', 'Kilimani', 'Form 2', 2,
+        true, true, false, 'expert', 'parent', 'female', 'Nairobi');
 
 -- ----------------------------------------------------------------- reviews
 -- One review awaiting moderation, about the *other* school, with a red flag —

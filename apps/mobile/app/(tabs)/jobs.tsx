@@ -88,8 +88,13 @@ export default function JobsScreen() {
     {
       key: 'private',
       label: 'Tuition & homeschool',
-      patch: { engagements: ['tuition', 'homeschool'] },
+      patch: { engagements: ['tuition', 'homeschool', 'assignment'] },
     },
+    // The two questions a tutor actually asks of a list of private requests:
+    // can I do this without leaving the house, and will they come to me.
+    { key: 'online', label: 'Online', patch: { meetsOnline: true } },
+    { key: 'athome', label: 'Home visits', patch: { meetsAtStudent: true } },
+    { key: 'assignment', label: 'Assignments', patch: { engagements: ['assignment'] } },
   ], [teacher]);
 
   // The typed query is just another field on the same filter object, so the
