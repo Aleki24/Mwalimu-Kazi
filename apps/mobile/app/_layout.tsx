@@ -99,6 +99,7 @@ function RootNavigator() {
         <Stack.Screen name="profile/index" options={{ title: 'Your profile' }} />
         <Stack.Screen name="profile/edit" options={{ title: 'Edit profile' }} />
         <Stack.Screen name="profile/cv" options={{ title: 'Your CV' }} />
+        <Stack.Screen name="profile/cv-preview" options={{ title: 'Preview' }} />
         <Stack.Screen name="applicant/[id]/cv" options={{ title: 'CV' }} />
         <Stack.Screen name="admin/index" options={{ title: 'Moderation' }} />
         <Stack.Screen name="admin/news" options={{ title: 'Publish an update' }} />

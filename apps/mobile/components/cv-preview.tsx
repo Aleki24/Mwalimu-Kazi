@@ -1,6 +1,6 @@
 import { View } from 'react-native';
 import { WebView } from 'react-native-webview';
-import { CV_PAGE_WIDTH, renderCvPreviewHtml, type CvData, type CvTemplate } from '@mwalimu/core';
+import { CV_PAGE_WIDTH, renderCvPreviewHtml, type CvData, type CvStyle } from '@mwalimu/core';
 import { colors, radius } from '@mwalimu/ui';
 
 /** A4 at 96dpi. The preview keeps the page's real proportions, not a guess. */
@@ -16,7 +16,7 @@ const A4_RATIO = 1123 / CV_PAGE_WIDTH;
  * `.web.tsx` alongside this file does the same job with an iframe —
  * react-native-webview has no web implementation.
  */
-export function CvPreview({ cv, template }: { cv: CvData; template: CvTemplate }) {
+export function CvPreview({ cv, style }: { cv: CvData; style: CvStyle }) {
   return (
     <View
       style={{
@@ -31,7 +31,7 @@ export function CvPreview({ cv, template }: { cv: CvData; template: CvTemplate }
     >
       <WebView
         originWhitelist={['*']}
-        source={{ html: renderCvPreviewHtml(cv, template) }}
+        source={{ html: renderCvPreviewHtml(cv, style) }}
         // It is a preview, not a document viewer: scrolling and links inside
         // it would fight the screen's own scroll.
         scrollEnabled={false}

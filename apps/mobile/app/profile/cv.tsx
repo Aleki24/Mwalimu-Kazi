@@ -1,29 +1,27 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, Image, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Stack } from 'expo-router';
+import { Stack, router } from 'expo-router';
 import Feather from '@expo/vector-icons/Feather';
 import {
-  CV_TEMPLATES, CV_TEMPLATE_HINT, CV_VISIBILITY_HINT, CV_VISIBILITY_LABEL,
+  CV_VISIBILITY_HINT, CV_VISIBILITY_LABEL,
   certificateWhen, formatYearRange, orderEducation, orderExperience,
-  type CvTemplate,
 } from '@mwalimu/core';
 import { CvVisibility } from '@mwalimu/types';
 import { colors, radius } from '@mwalimu/ui';
 import {
-  Button, centredContent, Chip, ErrorBanner, NoticeStrip, ToggleRow, WhyDisabled,
+  Button, Card, centredContent, Chip, ErrorBanner, NoticeStrip, ToggleRow, WhyDisabled,
 } from '../../components/ui';
 import { ListEditor } from '../../components/list-editor';
+import { LanguageEditor } from '../../components/language-editor';
 import { CollapsibleSection } from '../../components/collapsible-section';
 import { useAuth, useTeacher } from '../../lib/auth';
 import {
   deleteCvEntry, EMPTY_CV, fetchCv, fetchPhotoDataUri, removePhoto, saveCertificate,
-  saveCvDetails, saveCvPhotoPath, saveEducation, saveExperience, saveReferee, saveSkills,
-  toCvData, uploadPhoto, type CvRecord, type CvTable,
+  saveCvDetails, saveCvPhotoPath, saveEducation, saveExperience, saveLanguage, saveReferee,
+  saveSkills, uploadPhoto, type CvRecord, type CvTable,
 } from '../../lib/cv';
 import { pickPhoto } from '../../lib/pick-photo';
-import { exportCv, type CvFormat } from '../../lib/cv-export';
-import { CvPreview } from '../../components/cv-preview';
 
 const input = 'rounded-md border border-border bg-card px-3 py-2.5 text-[14px] text-foreground';
 
@@ -91,7 +89,6 @@ export default function CvScreen() {
   const [error, setError] = useState<string | null>(null);
   const [note, setNote] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
-  const [template, setTemplate] = useState<CvTemplate>('portrait');
 
   // Personal details.
   const [summary, setSummary] = useState('');
@@ -107,17 +104,9 @@ export default function CvScreen() {
 
   // The lists.
   const [skills, setSkills] = useState<readonly string[]>([]);
-  const [languages, setLanguages] = useState<readonly string[]>([]);
   const [hobbies, setHobbies] = useState<readonly string[]>([]);
   const [responsibilities, setResponsibilities] = useState<readonly string[]>([]);
 
-  // `skills` and not `teacher.skills`: skills are saved to the profile, and
-  // waiting for that round trip before the document showed one would make
-  // adding a skill feel like it had not worked.
-  const preview = useMemo(
-    () => toCvData({ ...teacher, skills: [...skills] }, cv, photo),
-    [teacher, skills, cv, photo],
-  );
 
   // Draft rows for the "add" forms.
   const [edu, setEdu] = useState({ institution: '', qualification: '', start: '', end: '', grade: '' });
@@ -155,7 +144,6 @@ export default function CvScreen() {
       setGender(record.details?.gender ?? '');
       setNationality(record.details?.nationality ?? '');
       setVisibility(record.details?.visibility ?? 'applied');
-      setLanguages(record.details?.languages ?? []);
       setHobbies(record.details?.hobbies ?? []);
       setResponsibilities(record.details?.responsibilities ?? []);
       setPhoto(await fetchPhotoDataUri(record.details?.photo_path ?? null));
@@ -225,7 +213,7 @@ export default function CvScreen() {
   };
 
   const editList = (
-    key: 'languages' | 'hobbies' | 'responsibilities',
+    key: 'hobbies' | 'responsibilities',
     set: (v: readonly string[]) => void,
   ) => (next: readonly string[]) => {
     set(next);
@@ -269,22 +257,6 @@ export default function CvScreen() {
     if (path != null && path !== '') await removePhoto(path);
     await saveCvPhotoPath(teacher.id, null);
   }, 'Could not remove that photograph');
-
-  const doExport = async (format: CvFormat) => {
-    setBusy(true);
-    setError(null);
-    setNote(null);
-    try {
-      const result = await exportCv(preview, template, format);
-      setNote(result.kind === 'shared'
-        ? `${result.fileName} is ready to send.`
-        : `Saved as ${result.fileName}.`);
-    } catch (cause) {
-      setError(cause instanceof Error ? cause.message : 'Could not build your CV file');
-    } finally {
-      setBusy(false);
-    }
-  };
 
   if (loading) {
     return (
@@ -533,13 +505,16 @@ export default function CvScreen() {
         </CollapsibleSection>
 
         {/* ---------------------------------------------------------- lists */}
-        <CollapsibleSection title="Skills and languages" summary={counted(skills.length + languages.length + hobbies.length + responsibilities.length, 'entry', 'entries')}>
+        <CollapsibleSection title="Skills and languages" summary={counted(skills.length + cv.languages.length + hobbies.length + responsibilities.length, 'entry', 'entries')}>
           <ListEditor label="Skills" items={skills} onChange={editSkills} placeholder="Computer packages" />
-          <ListEditor
-            label="Languages"
-            items={languages}
-            onChange={editList('languages', setLanguages)}
-            placeholder="Kiswahili"
+          <LanguageEditor
+            items={cv.languages}
+            onAdd={(name) => void run(
+              () => saveLanguage({ user_id: teacher.id, name }), 'Could not add that language')}
+            onLevel={(row, level) => void run(
+              () => saveLanguage({ ...row, level }), 'Could not save that')}
+            onRemove={(row) => void run(
+              () => deleteCvEntry('cv_languages', row.id), 'Could not remove that')}
           />
           <ListEditor
             label="Hobbies"
@@ -679,46 +654,16 @@ export default function CvScreen() {
           <WhyDisabled missing={refMissing} />
         </CollapsibleSection>
 
-        {/* -------------------------------------------------------- download */}
-        <CollapsibleSection title="Preview & download" defaultOpen>
-          <View className="flex-row flex-wrap gap-1.5">
-            {(Object.keys(CV_TEMPLATES) as CvTemplate[]).map((t) => (
-              <Chip key={t} label={CV_TEMPLATES[t]} selected={template === t} onPress={() => setTemplate(t)} />
-            ))}
-          </View>
-          <Text className="text-[11px] leading-4 text-mutedForeground">{CV_TEMPLATE_HINT[template]}</Text>
-
-          {/*
-            The real document, at the size it will print. Rebuilt only when the
-            template or the saved record changes — the drafts above are local
-            state, so typing does not re-render a whole page on every keystroke.
-          */}
-          <CvPreview cv={preview} template={template} />
-
-          <View className="mt-1 flex-row gap-2">
-            <Pressable
-              accessibilityRole="button"
-              disabled={busy}
-              onPress={() => void doExport('pdf')}
-              style={{ borderRadius: radius.md, borderCurve: 'continuous' }}
-              className="h-11 flex-1 flex-row items-center justify-center gap-1.5 bg-primary"
-            >
-              <Feather name="download" size={14} color={colors.primaryForeground} />
-              <Text className="text-[13px] font-medium text-primaryForeground">PDF</Text>
-            </Pressable>
-            <Pressable
-              accessibilityRole="button"
-              disabled={busy}
-              onPress={() => void doExport('word')}
-              style={{ borderRadius: radius.md, borderCurve: 'continuous' }}
-              className="h-11 flex-1 flex-row items-center justify-center gap-1.5 border border-border bg-card"
-            >
-              <Feather name="download" size={14} color={colors.foreground} />
-              <Text className="text-[13px] font-medium text-foreground">Word</Text>
-            </Pressable>
-          </View>
-          {note === null ? null : <Text className="text-[11.5px] text-successForeground">{note}</Text>}
-        </CollapsibleSection>
+        {/* --------------------------------------------------------- preview */}
+        {/*
+          A button, not a page-tall iframe at the bottom of a form. The preview
+          is where the look is chosen and where the file is downloaded, and
+          both of those are things you do once the writing is done.
+        */}
+        <Button
+          label="Preview and download"
+          onPress={() => router.push('/profile/cv-preview')}
+        />
 
         {error !== null ? <ErrorBanner message={error} /> : null}
         {busy ? <ActivityIndicator color={colors.mutedForeground} className="py-2" /> : null}

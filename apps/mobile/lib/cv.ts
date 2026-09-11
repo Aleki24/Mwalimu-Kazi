@@ -1,8 +1,8 @@
 import type {
-  CvCertificate, CvData, CvEducation, CvExperience, CvReferee,
+  CvCertificate, CvData, CvEducation, CvExperience, CvLanguage, CvReferee, CvStyle,
 } from '@mwalimu/core';
 import type { Tables, TablesInsert, TeacherProfile } from '@mwalimu/types';
-import { formatLabel, formatPhoneForDisplay, toE164Kenya } from '@mwalimu/core';
+import { DEFAULT_CV_STYLE, formatLabel, formatPhoneForDisplay, toE164Kenya } from '@mwalimu/core';
 import { supabase } from './supabase';
 
 /**
@@ -15,6 +15,7 @@ export type EducationRow = Tables<'cv_education'>;
 export type ExperienceRow = Tables<'cv_experience'>;
 export type RefereeRow = Tables<'cv_referees'>;
 export type CertificateRow = Tables<'cv_certificates'>;
+export type LanguageRow = Tables<'cv_languages'>;
 
 export interface CvRecord {
   readonly details: Tables<'cv_details'> | null;
@@ -22,10 +23,11 @@ export interface CvRecord {
   readonly experience: readonly ExperienceRow[];
   readonly referees: readonly RefereeRow[];
   readonly certificates: readonly CertificateRow[];
+  readonly languages: readonly LanguageRow[];
 }
 
 export const EMPTY_CV: CvRecord = {
-  details: null, education: [], experience: [], referees: [], certificates: [],
+  details: null, education: [], experience: [], referees: [], certificates: [], languages: [],
 };
 
 /**
@@ -40,15 +42,16 @@ export async function fetchCv(userId?: string): Promise<CvRecord> {
   const scope = <T extends { eq: (column: string, value: string) => T }>(query: T): T =>
     (userId === undefined ? query : query.eq('user_id', userId));
 
-  const [details, education, experience, referees, certificates] = await Promise.all([
+  const [details, education, experience, referees, certificates, languages] = await Promise.all([
     scope(supabase.from('cv_details').select('*')).maybeSingle(),
     scope(supabase.from('cv_education').select('*')),
     scope(supabase.from('cv_experience').select('*')),
     scope(supabase.from('cv_referees').select('*').order('created_at')),
     scope(supabase.from('cv_certificates').select('*').order('created_at')),
+    scope(supabase.from('cv_languages').select('*').order('created_at')),
   ]);
 
-  for (const r of [details, education, experience, referees, certificates]) {
+  for (const r of [details, education, experience, referees, certificates, languages]) {
     if (r.error !== null) throw new Error(r.error.message);
   }
 
@@ -58,6 +61,7 @@ export async function fetchCv(userId?: string): Promise<CvRecord> {
     experience: experience.data ?? [],
     referees: referees.data ?? [],
     certificates: certificates.data ?? [],
+    languages: languages.data ?? [],
   };
 }
 
@@ -194,6 +198,8 @@ export function toCvData(
     title: c.title, description: c.description, year: c.year, isOngoing: c.is_ongoing,
   }));
 
+  const languages: CvLanguage[] = cv.languages.map((l) => ({ name: l.name, level: l.level }));
+
   return {
     fullName: teacher.fullName,
     headline: trimmed(teacher.headline),
@@ -226,7 +232,7 @@ export function toCvData(
     address: trimmed(cv.details?.address),
     postCode: trimmed(cv.details?.post_code),
     skills: teacher.skills,
-    languages: cv.details?.languages ?? [],
+    languages,
     hobbies: cv.details?.hobbies ?? [],
     responsibilities: cv.details?.responsibilities ?? [],
     certificates,
@@ -238,7 +244,9 @@ export type CvDetailsPatch = Partial<Pick<
   Tables<'cv_details'>,
   'summary' | 'email' | 'phone' | 'location' | 'address' | 'post_code'
   | 'date_of_birth' | 'gender' | 'nationality'
-  | 'languages' | 'hobbies' | 'responsibilities' | 'visibility'
+  | 'hobbies' | 'responsibilities' | 'visibility'
+  | 'template' | 'accent' | 'font' | 'font_scale' | 'line_height'
+  | 'entry_spacing' | 'section_spacing' | 'page_margins' | 'background'
 >>;
 
 export async function saveCvDetails(userId: string, patch: CvDetailsPatch): Promise<void> {
@@ -285,7 +293,51 @@ export async function saveCertificate(row: TablesInsert<'cv_certificates'>): Pro
   if (error !== null) throw new Error(error.message);
 }
 
-export type CvTable = 'cv_education' | 'cv_experience' | 'cv_referees' | 'cv_certificates';
+export async function saveLanguage(row: TablesInsert<'cv_languages'>): Promise<void> {
+  const { error } = await supabase.from('cv_languages').upsert(row);
+  if (error !== null) throw new Error(error.message);
+}
+
+/**
+ * The look the teacher chose, or the default one.
+ *
+ * Read out of the same row as the rest of the CV so that opening the preview
+ * shows what they last set rather than what the template started as.
+ */
+export function toCvStyle(details: Tables<'cv_details'> | null): CvStyle {
+  if (details === null) return DEFAULT_CV_STYLE;
+  const scale = (n: number): CvStyle['fontScale'] =>
+    (n >= 1 && n <= 5 ? (n as CvStyle['fontScale']) : 3);
+  return {
+    template: details.template,
+    accent: details.accent,
+    font: details.font,
+    fontScale: scale(details.font_scale),
+    lineHeight: scale(details.line_height),
+    entrySpacing: scale(details.entry_spacing),
+    sectionSpacing: scale(details.section_spacing),
+    margins: scale(details.page_margins),
+    background: details.background,
+  };
+}
+
+/** The columns a `CvStyle` is stored in. One place, so the two cannot drift. */
+export function styleColumns(style: CvStyle): CvDetailsPatch {
+  return {
+    template: style.template,
+    accent: style.accent,
+    font: style.font,
+    font_scale: style.fontScale,
+    line_height: style.lineHeight,
+    entry_spacing: style.entrySpacing,
+    section_spacing: style.sectionSpacing,
+    page_margins: style.margins,
+    background: style.background,
+  };
+}
+
+export type CvTable =
+  | 'cv_education' | 'cv_experience' | 'cv_referees' | 'cv_certificates' | 'cv_languages';
 
 export async function deleteCvEntry(table: CvTable, id: string): Promise<void> {
   const { error } = await supabase.from(table).delete().eq('id', id);

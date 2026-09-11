@@ -724,10 +724,18 @@ export type Database = {
         Row: {
           address: string | null
           date_of_birth: string | null
+          accent: Database["public"]["Enums"]["cv_accent"]
+          background: Database["public"]["Enums"]["cv_background"]
+          entry_spacing: number
+          font: Database["public"]["Enums"]["cv_font"]
+          font_scale: number
+          line_height: number
+          page_margins: number
+          section_spacing: number
+          template: Database["public"]["Enums"]["cv_template"]
           email: string | null
           gender: string | null
           hobbies: string[]
-          languages: string[]
           location: string | null
           nationality: string | null
           phone: string | null
@@ -742,10 +750,18 @@ export type Database = {
         Insert: {
           address?: string | null
           date_of_birth?: string | null
+          accent?: Database["public"]["Enums"]["cv_accent"]
+          background?: Database["public"]["Enums"]["cv_background"]
+          entry_spacing?: number
+          font?: Database["public"]["Enums"]["cv_font"]
+          font_scale?: number
+          line_height?: number
+          page_margins?: number
+          section_spacing?: number
+          template?: Database["public"]["Enums"]["cv_template"]
           email?: string | null
           gender?: string | null
           hobbies?: string[]
-          languages?: string[]
           location?: string | null
           nationality?: string | null
           phone?: string | null
@@ -760,10 +776,18 @@ export type Database = {
         Update: {
           address?: string | null
           date_of_birth?: string | null
+          accent?: Database["public"]["Enums"]["cv_accent"]
+          background?: Database["public"]["Enums"]["cv_background"]
+          entry_spacing?: number
+          font?: Database["public"]["Enums"]["cv_font"]
+          font_scale?: number
+          line_height?: number
+          page_margins?: number
+          section_spacing?: number
+          template?: Database["public"]["Enums"]["cv_template"]
           email?: string | null
           gender?: string | null
           hobbies?: string[]
-          languages?: string[]
           location?: string | null
           nationality?: string | null
           phone?: string | null
@@ -904,6 +928,38 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "cv_experience_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cv_languages: {
+        Row: {
+          created_at: string
+          id: string
+          level: number | null
+          name: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          level?: number | null
+          name: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          level?: number | null
+          name?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cv_languages_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "profiles"
@@ -1142,6 +1198,31 @@ export type Database = {
         | "rejected"
         | "withdrawn"
       curriculum: "cbc" | "8-4-4" | "igcse" | "ib" | "montessori"
+      cv_accent:
+        | "ink"
+        | "indigo"
+        | "teal"
+        | "maroon"
+        | "violet"
+        | "slate"
+        | "terracotta"
+      cv_background: "none" | "dots" | "lines"
+      cv_font:
+        | "helvetica"
+        | "arial"
+        | "system"
+        | "georgia"
+        | "garamond"
+        | "times"
+        | "trebuchet"
+        | "courier"
+      cv_template:
+        | "portrait"
+        | "banner"
+        | "bold"
+        | "timeline"
+        | "label"
+        | "classic"
       cv_visibility: "private" | "applied" | "open"
       engagement_kind: "employment" | "tuition" | "homeschool" | "assignment"
       gender_preference: "any" | "female" | "male"
@@ -1349,6 +1430,34 @@ export const Constants = {
         "withdrawn",
       ],
       curriculum: ["cbc", "8-4-4", "igcse", "ib", "montessori"],
+      cv_accent: [
+        "ink",
+        "indigo",
+        "teal",
+        "maroon",
+        "violet",
+        "slate",
+        "terracotta",
+      ],
+      cv_background: ["none", "dots", "lines"],
+      cv_font: [
+        "helvetica",
+        "arial",
+        "system",
+        "georgia",
+        "garamond",
+        "times",
+        "trebuchet",
+        "courier",
+      ],
+      cv_template: [
+        "portrait",
+        "banner",
+        "bold",
+        "timeline",
+        "label",
+        "classic",
+      ],
       cv_visibility: ["private", "applied", "open"],
       engagement_kind: ["employment", "tuition", "homeschool", "assignment"],
       gender_preference: ["any", "female", "male"],

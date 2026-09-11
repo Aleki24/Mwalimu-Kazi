@@ -134,6 +134,28 @@ export type GenderPreference = z.infer<typeof GenderPreference>;
 export const CvVisibility = z.enum(['private', 'applied', 'open']);
 export type CvVisibility = z.infer<typeof CvVisibility>;
 
+/**
+ * How a CV is laid out and coloured.
+ *
+ * Four small vocabularies rather than one big "theme", because they are
+ * genuinely independent: any template can be set in any face, in any of the
+ * colours. The parity test holds each of them to the Postgres enum, so the
+ * picker can never offer a value the database will refuse.
+ */
+export const CvTemplate = z.enum(['portrait', 'banner', 'bold', 'timeline', 'label', 'classic']);
+export type CvTemplate = z.infer<typeof CvTemplate>;
+
+export const CvAccent = z.enum(['ink', 'indigo', 'teal', 'maroon', 'violet', 'slate', 'terracotta']);
+export type CvAccent = z.infer<typeof CvAccent>;
+
+export const CvFont = z.enum([
+  'helvetica', 'arial', 'system', 'georgia', 'garamond', 'times', 'trebuchet', 'courier',
+]);
+export type CvFont = z.infer<typeof CvFont>;
+
+export const CvBackground = z.enum(['none', 'dots', 'lines']);
+export type CvBackground = z.infer<typeof CvBackground>;
+
 /** File kinds in the resource library. */
 export const ResourceKind = z.enum([
   'notes', 'scheme_of_work', 'lesson_plan', 'past_paper', 'marking_scheme',

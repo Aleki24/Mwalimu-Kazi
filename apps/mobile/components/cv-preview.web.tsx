@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { View, type LayoutChangeEvent } from 'react-native';
-import { CV_PAGE_WIDTH, renderCvPreviewHtml, type CvData, type CvTemplate } from '@mwalimu/core';
+import { CV_PAGE_WIDTH, renderCvPreviewHtml, type CvData, type CvStyle } from '@mwalimu/core';
 import { colors, radius } from '@mwalimu/ui';
 
 const A4_HEIGHT = 1123;
@@ -15,7 +15,7 @@ const A4_RATIO = A4_HEIGHT / CV_PAGE_WIDTH;
  * whole. Sizing it to the container instead would reflow the text, and a
  * preview whose line breaks differ from the PDF is worse than none.
  */
-export function CvPreview({ cv, template }: { cv: CvData; template: CvTemplate }) {
+export function CvPreview({ cv, style }: { cv: CvData; style: CvStyle }) {
   const [width, setWidth] = useState(0);
   const scale = width === 0 ? 0 : width / CV_PAGE_WIDTH;
 
@@ -34,7 +34,7 @@ export function CvPreview({ cv, template }: { cv: CvData; template: CvTemplate }
       {scale === 0 ? null : (
         <iframe
           title="CV preview"
-          srcDoc={renderCvPreviewHtml(cv, template)}
+          srcDoc={renderCvPreviewHtml(cv, style)}
           // allow-same-origin WITHOUT allow-scripts: a fully opaque sandbox
           // makes the document throw a SecurityError the moment anything in
           // the frame touches storage, and it logged one on every render.

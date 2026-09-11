@@ -3,7 +3,7 @@ import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
 import { File, Paths } from 'expo-file-system';
 import {
-  cvFileName, renderCvHtml, renderCvWordHtml, type CvData, type CvTemplate,
+  cvFileName, renderCvHtml, renderCvWordHtml, type CvData, type CvStyle,
 } from '@mwalimu/core';
 
 /**
@@ -27,8 +27,8 @@ async function share(uri: string, fileName: string, mimeType: string): Promise<E
   return { kind: 'shared', fileName };
 }
 
-async function exportPdf(cv: CvData, template: CvTemplate): Promise<ExportResult> {
-  const { uri } = await Print.printToFileAsync({ html: renderCvHtml(cv, template) });
+async function exportPdf(cv: CvData, style: CvStyle): Promise<ExportResult> {
+  const { uri } = await Print.printToFileAsync({ html: renderCvHtml(cv, style) });
   const fileName = cvFileName(cv.fullName, 'pdf');
 
   // printToFileAsync names the file with a random cache id. Renaming it means
@@ -45,12 +45,12 @@ async function exportPdf(cv: CvData, template: CvTemplate): Promise<ExportResult
   }
 }
 
-async function exportWord(cv: CvData, template: CvTemplate): Promise<ExportResult> {
+async function exportWord(cv: CvData, style: CvStyle): Promise<ExportResult> {
   const fileName = cvFileName(cv.fullName, 'doc');
   const file = new File(Paths.cache, fileName);
   if (file.exists) file.delete();
   file.create();
-  file.write(renderCvWordHtml(cv, template));
+  file.write(renderCvWordHtml(cv, style));
   return await share(file.uri, fileName, 'application/msword');
 }
 
@@ -59,17 +59,17 @@ async function exportWord(cv: CvData, template: CvTemplate): Promise<ExportResul
  * normal thing to do, not an error worth an alert.
  */
 export async function exportCv(
-  cv: CvData, template: CvTemplate, format: CvFormat,
+  cv: CvData, style: CvStyle, format: CvFormat,
 ): Promise<ExportResult> {
   if (Platform.OS === 'web') {
     // expo-print and expo-sharing have no web equivalent here. Opening the
     // rendered document in a new tab lets the browser's own print dialogue do
     // the PDF, which is what a web user expects anyway.
-    const html = format === 'pdf' ? renderCvHtml(cv, template) : renderCvWordHtml(cv, template);
+    const html = format === 'pdf' ? renderCvHtml(cv, style) : renderCvWordHtml(cv, style);
     const blob = new Blob([html], { type: format === 'pdf' ? 'text/html' : 'application/msword' });
     const url = URL.createObjectURL(blob);
     globalThis.open(url, '_blank');
     return { kind: 'saved', fileName: cvFileName(cv.fullName, format === 'pdf' ? 'pdf' : 'doc'), uri: url };
   }
-  return format === 'pdf' ? await exportPdf(cv, template) : await exportWord(cv, template);
+  return format === 'pdf' ? await exportPdf(cv, style) : await exportWord(cv, style);
 }

@@ -57,9 +57,10 @@ const teacher = await signIn('teacher');
 const cv = await visit(teacher, '/profile/cv', 6000);
 check('the CV screen offers every section', [
   'Who can read it', 'Photograph', 'Personal details', 'Experience', 'Education',
-  'Skills and languages', 'Volunteer work', 'Certificates', 'Referees', 'Preview & download',
+  'Skills and languages', 'Volunteer work', 'Certificates', 'Referees',
 ].every((s) => cv.includes(s)));
-check('Portrait is the template it starts on', cv.includes('Portrait'));
+check('and offers the preview as a button rather than a page of iframe',
+  cv.includes('Preview and download'));
 
 /*
   Collapsed is the point: eleven sections laid end to end is a page nobody
@@ -114,8 +115,11 @@ for (const [placeholder, value, list] of [
 ]) {
   // The + is disabled until there is something to add, and it says so.
   const plus = teacher.getByLabel(`Add to ${list}`);
+  // Languages has its own editor and its own wording, so this asks for the
+  // one that belongs to the list being tested rather than for any of them.
+  const wanted = list === 'Languages' ? 'Write a language first' : 'Write something first';
   check(`${list}: the + says why it is not clickable yet`,
-    await plus.isDisabled() && (await text(teacher)).includes('Write something first'));
+    await plus.isDisabled() && (await text(teacher)).includes(wanted));
   await fill(teacher, placeholder, value);
   await plus.click();
   await teacher.waitForTimeout(1500);
@@ -144,8 +148,21 @@ await press(teacher, 'Add certificate');
 check('the certificate saves with its year', (await text(teacher)).includes('Kenya Institute of Management'));
 
 // ------------------------------------------------------- and it renders
+/*
+  The preview is its own screen now. It used to be a page-tall iframe at the
+  bottom of the form, which is the one place nobody looks while filling a form
+  in, and it re-rendered an A4 page on every save.
+*/
+const beforePreview = await text(teacher);
+check('the form no longer carries the document itself',
+  !beforePreview.includes('Personal statement') || !beforePreview.includes('Preview & download'));
+await press(teacher, 'Preview and download');
+await teacher.waitForTimeout(6000);
+check('the Preview button opens the preview',
+  new URL(teacher.url()).pathname.endsWith('/cv-preview'));
+
 const frame = teacher.frameLocator('iframe[title="CV preview"]');
-await teacher.waitForTimeout(2000);
+await teacher.waitForTimeout(2500);
 const document = (await frame.locator('body').innerText()).replace(/\s+/g, ' ');
 check('the preview is the two-column document', document.includes('Personal details'));
 check('the preview carries what was typed', [
@@ -155,7 +172,27 @@ check('the preview carries what was typed', [
 ].every((v) => document.includes(v)));
 check('the address prints with the post code and city',
   document.includes('P.O Box 991-00100') && document.includes('00100 Nairobi'));
-await teacher.screenshot({ path: 'shots-audit/cv-editor.png', fullPage: true });
+await teacher.screenshot({ path: 'shots-audit/cv-preview.png', fullPage: true });
+
+// ------------------------------------------------------- and it can be restyled
+await teacher.getByText(/^Change the look/).first().click();
+await teacher.waitForTimeout(1200);
+// Upper-cased by CSS, and `innerText` returns what is rendered rather than
+// what is in the markup — so this matches either way.
+check('the controls open', /page margins/i.test(await text(teacher)));
+await teacher.getByText('Bold', { exact: true }).first().click();
+await teacher.waitForTimeout(3500);
+const bold = await teacher.frameLocator('iframe[title="CV preview"]').locator('body')
+  .evaluate((b) => getComputedStyle(b).backgroundImage);
+check('picking a template repaints the document', bold.includes('gradient'));
+// The look is stored as it is chosen, so leaving and coming back keeps it.
+await visit(teacher, '/profile/cv-preview', 7000);
+check('and the choice survives leaving the screen',
+  (await text(teacher)).includes('Change the look — Bold'));
+await teacher.getByText(/^Change the look/).first().click();
+await teacher.waitForTimeout(1000);
+await teacher.getByText('Portrait', { exact: true }).first().click();
+await teacher.waitForTimeout(3000);
 
 // ------------------------------------- the recruiter reads it, then cannot
 const recruiter = await signIn('recruiter');

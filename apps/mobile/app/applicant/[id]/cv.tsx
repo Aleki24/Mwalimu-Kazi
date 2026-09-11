@@ -1,12 +1,12 @@
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, ScrollView, Text, View } from 'react-native';
 import { Stack, useLocalSearchParams } from 'expo-router';
-import { parseTeacherProfile, type CvData } from '@mwalimu/core';
+import { parseTeacherProfile, type CvData, type CvStyle } from '@mwalimu/core';
 import { colors } from '@mwalimu/ui';
 import { Card, centredContent, EmptyState, ErrorBanner, NoticeStrip } from '../../../components/ui';
 import { CvPreview } from '../../../components/cv-preview';
 import { supabase } from '../../../lib/supabase';
-import { fetchCv, fetchPhotoDataUri, toCvData } from '../../../lib/cv';
+import { fetchCv, fetchPhotoDataUri, toCvData, toCvStyle } from '../../../lib/cv';
 
 /**
  * Somebody else's CV.
@@ -24,6 +24,7 @@ import { fetchCv, fetchPhotoDataUri, toCvData } from '../../../lib/cv';
 export default function ApplicantCvScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const [cv, setCv] = useState<CvData | null>(null);
+  const [style, setStyle] = useState<CvStyle | null>(null);
   const [name, setName] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -54,7 +55,12 @@ export default function ApplicantCvScreen() {
           return;
         }
         const photo = await fetchPhotoDataUri(record.details.photo_path);
-        if (!cancelled) setCv(toCvData(parsed.value, record, photo));
+        if (cancelled) return;
+        // Their template, their colour, their spacing. A recruiter should see
+        // the document this teacher built, not the app's default rendering of
+        // its contents.
+        setStyle(toCvStyle(record.details));
+        setCv(toCvData(parsed.value, record, photo));
       } catch (cause) {
         if (!cancelled) setError(cause instanceof Error ? cause.message : 'Could not open that CV');
       } finally {
@@ -72,7 +78,7 @@ export default function ApplicantCvScreen() {
 
         {loading ? (
           <ActivityIndicator color={colors.mutedForeground} className="py-10" />
-        ) : cv === null ? (
+        ) : cv === null || style === null ? (
           <EmptyState
             title="No CV to show"
             body={`${name ?? 'This teacher'} has not shared a CV here. You can still message them and ask for one.`}
@@ -85,7 +91,7 @@ export default function ApplicantCvScreen() {
               </Text>
             </NoticeStrip>
             <Card className="p-2">
-              <CvPreview cv={cv} template="portrait" />
+              <CvPreview cv={cv} style={style} />
             </Card>
           </>
         )}

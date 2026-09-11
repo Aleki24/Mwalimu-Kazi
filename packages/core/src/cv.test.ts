@@ -1,9 +1,14 @@
 import { describe, expect, it } from 'vitest';
 import {
-  certificateLine, certificateWhen, contactLine, cvFileName, describeBlocks,
+  CV_TEMPLATES, certificateLine, certificateWhen, contactLine, cvFileName, describeBlocks,
   formatYearRange, orderEducation, orderExperience,
-  renderCvHtml, renderCvPreviewHtml, renderCvWordHtml, type CvData, type CvExperience,
+  renderCvHtml, renderCvPreviewHtml, renderCvWordHtml, styleFor,
+  type CvData, type CvExperience, type CvTemplate,
 } from './cv';
+
+/** Shorthand: a template's own settings, with anything the test wants changed. */
+const look = (template: CvTemplate, over: Partial<ReturnType<typeof styleFor>> = {}) =>
+  ({ ...styleFor(template), ...over });
 
 const cv = (over: Partial<CvData> = {}): CvData => ({
   fullName: 'Grace Wanjiru',
@@ -83,7 +88,9 @@ describe('renderCvHtml', () => {
   });
 
   it('includes a section once it has content', () => {
-    expect(renderCvHtml(cv({ experience: [role()] }))).toContain('Experience');
+    // "Employment", not "Experience" — the word the reference templates and
+    // every Kenyan CV use for the section that lists the jobs you have had.
+    expect(renderCvHtml(cv({ experience: [role()] }))).toContain('Employment');
   });
 
   it('escapes what a teacher typed', () => {
@@ -101,10 +108,13 @@ describe('renderCvHtml', () => {
       education: [{ institution: 'UoN', qualification: 'BEd', startYear: 2012, endYear: 2016, grade: 'Second Upper' }],
       referees: [{ name: 'Jane Doe', title: 'Head', organisation: 'Greenfield', phone: '+254700000000', email: null }],
     });
-    for (const t of ['classic', 'modern', 'compact'] as const) {
-      const html = renderCvHtml(full, t);
+    // Every template, not a favourite one: the shell is shared now, and a
+    // section that only appears in the layout being developed is the bug this
+    // catches.
+    for (const t of Object.keys(CV_TEMPLATES) as CvTemplate[]) {
+      const html = renderCvHtml(full, look(t));
       expect(html).toContain('Grace Wanjiru');
-      expect(html).toContain('TSC No. 778211');
+      expect(html).toContain('TSC Registered Teacher No. 778211');
       expect(html).toContain('Present');
     }
   });
@@ -140,8 +150,8 @@ describe('renderCvPreviewHtml', () => {
   });
 
   it('shows exactly what the export will show', () => {
-    const preview = renderCvPreviewHtml(filled, 'modern');
-    const exported = renderCvHtml(filled, 'modern');
+    const preview = renderCvPreviewHtml(filled, look('classic'));
+    const exported = renderCvHtml(filled, look('classic'));
     // Every content node in the export survives into the preview; the preview
     // only adds a viewport and a page frame.
     const text = (html: string) => html.replace(/<style>[\s\S]*?<\/style>/g, '')
@@ -224,7 +234,7 @@ describe('the portrait template', () => {
     gender: 'Female',
     nationality: 'Kenyan',
     skills: ['Computer packages', 'Leadership'],
-    languages: ['English', 'Kiswahili'],
+    languages: [{ name: 'English', level: 5 }, { name: 'Kiswahili', level: 4 }],
     hobbies: ['Reading novels'],
     responsibilities: ['Class teacher of Form 4G'],
     certificates: [{ title: 'Certificate in computer packages', description: 'Webuye', year: 2016, isOngoing: false }],
@@ -236,17 +246,17 @@ describe('the portrait template', () => {
   });
 
   it('puts every section on the page', () => {
-    const html = renderCvHtml(full, 'portrait');
+    const html = renderCvHtml(full, look('portrait'));
     for (const heading of [
       'Personal details', 'Skills', 'Languages', 'Hobbies', 'Volunteer work',
-      'Responsibilities', 'Certificates', 'Profile', 'Education', 'Experience', 'Referees',
+      'Responsibilities', 'Certificates', 'Profile', 'Education', 'Employment', 'Referees',
     ]) {
       expect(html, `missing the ${heading} section`).toContain(`>${heading}</h2>`);
     }
   });
 
   it('carries the photograph inside the document rather than linking to it', () => {
-    expect(renderCvHtml(full, 'portrait')).toContain('src="data:image/jpeg;base64,AAAA"');
+    expect(renderCvHtml(full, look('portrait'))).toContain('src="data:image/jpeg;base64,AAAA"');
   });
 
   /**
@@ -255,46 +265,51 @@ describe('the portrait template', () => {
    * element painted as the edge stops at the end of page one.
    */
   it('lays the sidebar out as a float, not as flex', () => {
-    const html = renderCvHtml(full, 'portrait');
+    const html = renderCvHtml(full, look('portrait'));
     expect(html).toContain('.side { float: left;');
     expect(html).toMatch(/body \{[^}]*background: linear-gradient/);
   });
 
   it('breaks a long email at the @ and nowhere else', () => {
-    const html = renderCvHtml(full, 'portrait');
+    const html = renderCvHtml(full, look('portrait'));
     expect(html).toContain('grace@<wbr>example.com');
   });
 
   it('prints the address as an employer expects to read it', () => {
-    expect(renderCvHtml(full, 'portrait')).toContain('P.O Box 132-50311<br>50311 Wodanga');
+    expect(renderCvHtml(full, look('portrait'))).toContain('P.O Box 132-50311<br>50311 Wodanga');
   });
 
   it('leaves out a section nobody filled in', () => {
-    const html = renderCvHtml(cv(), 'portrait');
+    const html = renderCvHtml(cv(), look('portrait'));
     expect(html).not.toContain('>Hobbies</h2>');
     expect(html).not.toContain('>Referees</h2>');
     expect(html).not.toContain('<img');
   });
 
   it('escapes what a teacher typed', () => {
-    const html = renderCvHtml(cv({ summary: 'Grade < C & "fine"' }), 'portrait');
+    const html = renderCvHtml(cv({ summary: 'Grade < C & "fine"' }), look('portrait'));
     expect(html).toContain('Grade &lt; C &amp; &quot;fine&quot;');
     expect(html).not.toContain('Grade < C');
   });
 
   it('is the default, so the preview and the export agree without being asked', () => {
-    expect(renderCvHtml(full)).toBe(renderCvHtml(full, 'portrait'));
+    expect(renderCvHtml(full)).toBe(renderCvHtml(full, look('portrait')));
   });
 
   it('gives the preview no page padding of its own — the sheet already has it', () => {
-    // The plain templates get their margins from @page, which does not apply
-    // on screen, so they need it. Adding it here would double the inset and
-    // show the teacher a layout the PDF will not have.
-    expect(renderCvPreviewHtml(full, 'portrait')).not.toContain('padding: 16mm');
-    expect(renderCvPreviewHtml(full, 'classic')).toContain('padding: 16mm');
+    // Margins live on `.sheet` rather than on @page, which only applies when
+    // printing. Adding padding for the preview as well would double the inset
+    // and show the teacher a layout the PDF will not have.
+    for (const t of Object.keys(CV_TEMPLATES) as CvTemplate[]) {
+      const preview = renderCvPreviewHtml(full, look(t));
+      expect(preview, `${t} sets its own page margins`).toMatch(/\.sheet \{ padding:/);
+      const added = preview.split('html { background: #e9e9e9; }')[1] ?? '';
+      expect(added.split('</style>')[0] ?? '', `${t} pads the preview twice`)
+        .not.toContain('padding');
+    }
   });
 
   it('opens in Word as the same document', () => {
-    expect(renderCvWordHtml(full, 'portrait')).toContain('urn:schemas-microsoft-com:office:word');
+    expect(renderCvWordHtml(full, look('portrait'))).toContain('urn:schemas-microsoft-com:office:word');
   });
 });

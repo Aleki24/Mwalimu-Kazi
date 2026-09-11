@@ -97,6 +97,11 @@ await teacher.from('cv_referees').upsert({
   id: REFEREE, user_id: TEACHER, name: 'Access Check Referee', phone: '0700000000',
 });
 
+await teacher.from('cv_languages').upsert({
+  id: '00000000-0000-4000-9000-00000000la01'.replace('la01', '0a01'),
+  user_id: TEACHER, name: 'Access Check Language', level: 3,
+});
+
 const path = `${TEACHER}/check-${Date.now()}.png`;
 const upload = await teacher.storage.from('cv-photos')
   .upload(path, PNG, { contentType: 'image/png', cacheControl: '0' });
@@ -137,6 +142,9 @@ for (const [visibility, expected] of [
   const cvRecruiter = Math.min(await rows(recruiter, 'cv_details'), 1);
   const cvBrowser = Math.min(await rows(browser, 'cv_details'), 1);
   const refRecruiter = Math.min(await rows(recruiter, 'cv_referees'), 1);
+  // Languages live in their own table and carry their own policy, so they get
+  // their own question rather than being assumed to follow the CV.
+  const langBrowser = Math.min(await rows(browser, 'cv_languages'), 1);
   const refBrowser = Math.min(await rows(browser, 'cv_referees'), 1);
 
   check(`${visibility}: a school they applied to ${expected.cvRecruiter ? 'can' : 'cannot'} read the CV`,
@@ -147,6 +155,7 @@ for (const [visibility, expected] of [
     refRecruiter === expected.refRecruiter);
   check(`${visibility}: somebody browsing never gets the referees`,
     refBrowser === expected.refBrowser);
+  check(`${visibility}: languages follow the CV`, langBrowser === expected.cvBrowser);
   check(`${visibility}: the photograph is ${expected.photo ? 'reachable' : 'refused'}`,
     (await canSeePhoto(recruiter)) === expected.photo);
 }
@@ -160,6 +169,7 @@ check('and is refused immediately once the CV is private', !(await canSeePhoto(r
 await setVisibility('applied');
 await teacher.storage.from('cv-photos').remove([path]);
 await teacher.from('cv_referees').delete().eq('id', REFEREE);
+await teacher.from('cv_languages').delete().eq('name', 'Access Check Language');
 await browser.from('jobs').delete().eq('id', listing.data.id);
 
 const failed = checks.filter((c) => !c).length;

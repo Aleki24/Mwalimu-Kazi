@@ -27,6 +27,18 @@ export interface CvExperience {
   readonly description: string | null;
 }
 
+/**
+ * A language, and how well.
+ *
+ * `level` is 1–5 or nothing at all. Nothing is the honest default: several of
+ * these templates draw five dots beside a language, and filling them in for a
+ * teacher who never said would be the app putting a claim in their mouth.
+ */
+export interface CvLanguage {
+  readonly name: string;
+  readonly level: number | null;
+}
+
 /** A short course: what it was, where, and when. */
 export interface CvCertificate {
   readonly title: string;
@@ -73,28 +85,12 @@ export interface CvData {
   readonly address: string | null;
   readonly postCode: string | null;
   readonly skills: readonly string[];
-  readonly languages: readonly string[];
+  readonly languages: readonly CvLanguage[];
   readonly hobbies: readonly string[];
   readonly responsibilities: readonly string[];
   readonly certificates: readonly CvCertificate[];
   readonly volunteer: readonly CvExperience[];
 }
-
-export const CV_TEMPLATES = {
-  portrait: 'Portrait',
-  classic: 'Classic',
-  modern: 'Modern',
-  compact: 'Compact',
-} as const;
-export type CvTemplate = keyof typeof CV_TEMPLATES;
-
-/** What each template is for, shown next to its name in the picker. */
-export const CV_TEMPLATE_HINT: Readonly<Record<CvTemplate, string>> = {
-  portrait: 'Two columns with your photograph, and room for everything — languages, hobbies, responsibilities, short courses. What most Kenyan employers expect to receive.',
-  classic: 'Plain and scannable. The safe choice for TSC and county applications.',
-  modern: 'A ruled header with your details set apart. Good for private schools.',
-  compact: 'Tighter spacing to keep a long history on one page.',
-};
 
 /**
  * Escape before interpolation. Every field here is typed by a teacher, and a
@@ -227,155 +223,198 @@ function renderBlocks(description: string, cls: { list: string; heading: string;
   }).join('');
 }
 
-// ---------------------------------------------------------------- the plain three
+// ------------------------------------------------------------------ the style
+//
+// A CV is one document with a lot of dials, not eleven documents. Every
+// template below is a preset of the same few choices — how the page is laid
+// out, what colour the headings are, which face it is set in, how tight the
+// spacing runs — and the teacher can then move any dial without leaving the
+// template. Building each look as its own stylesheet would have meant eleven
+// copies of the entry spacing, and a fix to one of them.
 
-const FONTS: Readonly<Record<'classic' | 'modern' | 'compact', string>> = {
-  classic: `"Times New Roman", Times, serif`,
-  modern: `"Helvetica Neue", Helvetica, Arial, sans-serif`,
-  compact: `"Helvetica Neue", Helvetica, Arial, sans-serif`,
+/** How the page is built. The one choice the others hang off. */
+export const CV_LAYOUTS = {
+  /** Photograph and details down a sidebar, the career beside it. */
+  sidebar: 'sidebar',
+  /** Dates in a left gutter, entries in a column beside them. */
+  timeline: 'timeline',
+  /** One column, full width. What an ATS reads most reliably. */
+  stacked: 'stacked',
+} as const;
+export type CvLayout = keyof typeof CV_LAYOUTS;
+
+/** What the sidebar is made of, when there is one. */
+export type CvSidebar = 'edge' | 'banner' | 'filled' | 'tint';
+
+/** Whether a heading is underlined or set in a filled bar. */
+export type CvHeading = 'rule' | 'band';
+
+export const CV_ACCENTS = {
+  ink: 'Ink',
+  indigo: 'Indigo',
+  teal: 'Teal',
+  maroon: 'Maroon',
+  violet: 'Violet',
+  slate: 'Slate',
+  terracotta: 'Terracotta',
+} as const;
+export type CvAccent = keyof typeof CV_ACCENTS;
+
+interface Palette {
+  /** Headings, dates, the organisation under an entry. */
+  readonly line: string;
+  /** Filled areas: a sidebar, a banner, a heading band. */
+  readonly deep: string;
+  /** A tint of it, pale enough to set body text on. */
+  readonly wash: string;
+}
+
+const PALETTE: Readonly<Record<CvAccent, Palette>> = {
+  ink: { line: '#1c1c1c', deep: '#111111', wash: '#f1f1f1' },
+  indigo: { line: '#2f74b5', deep: '#3d7ea9', wash: '#eef4fa' },
+  teal: { line: '#1d7a6b', deep: '#4f9c8a', wash: '#ecf5f2' },
+  maroon: { line: '#9c3b2e', deep: '#a63f2f', wash: '#fbefec' },
+  violet: { line: '#5a4b9c', deep: '#6d5cc0', wash: '#f0eefa' },
+  slate: { line: '#44505c', deep: '#5b6875', wash: '#eef1f4' },
+  terracotta: { line: '#b05a34', deep: '#c06c44', wash: '#fbf1ea' },
 };
 
-function plainStyles(template: 'classic' | 'modern' | 'compact'): string {
-  const tight = template === 'compact';
-  return `
-    @page { size: A4; margin: ${tight ? '12mm' : '16mm'}; }
-    * { box-sizing: border-box; }
-    body {
-      font-family: ${FONTS[template]};
-      font-size: ${tight ? '10.5pt' : '11pt'};
-      line-height: ${tight ? 1.32 : 1.45};
-      color: #111;
-      margin: 0;
-    }
-    h1 { font-size: ${tight ? '18pt' : '21pt'}; margin: 0 0 2pt; letter-spacing: -0.2pt; }
-    .headline { font-size: ${tight ? '10.5pt' : '11.5pt'}; color: #444; margin: 0 0 4pt; }
-    .contact { font-size: ${tight ? '9.5pt' : '10pt'}; color: #333; }
-    .head {
-      ${template === 'modern' ? 'border-bottom: 2px solid #111; padding-bottom: 8pt;' : ''}
-      ${template === 'classic' ? 'text-align: center; border-bottom: 1px solid #999; padding-bottom: 7pt;' : ''}
-      margin-bottom: ${tight ? '9pt' : '13pt'};
-    }
-    h2 {
-      font-size: ${tight ? '10.5pt' : '11.5pt'};
-      text-transform: uppercase;
-      letter-spacing: 0.6pt;
-      border-bottom: 1px solid #bbb;
-      padding-bottom: 2pt;
-      margin: ${tight ? '11pt 0 5pt' : '15pt 0 7pt'};
-    }
-    /* Never split an entry across a page: a role's dates orphaned from its
-       employer is the classic export bug, and it looks like carelessness. */
-    .entry { margin-bottom: ${tight ? '6pt' : '9pt'}; page-break-inside: avoid; }
-    .row { display: flex; justify-content: space-between; gap: 10pt; }
-    .role { font-weight: 600; }
-    .where { color: #333; }
-    .years { color: #555; white-space: nowrap; font-size: ${tight ? '9.5pt' : '10pt'}; }
-    .desc { margin: 2pt 0 0; color: #222; }
-    .desc-head { margin: 4pt 0 1pt; font-weight: 600; color: #111; }
-    .bullets { margin: 2pt 0 0; padding-left: 14pt; color: #222; }
-    .subjects { margin: 0; color: #222; }
-    .refs { display: grid; grid-template-columns: 1fr 1fr; gap: ${tight ? '6pt' : '10pt'}; }
-    .ref { page-break-inside: avoid; }
-    .muted { color: #555; }
-  `;
-}
+/**
+ * Faces that are already on the device.
+ *
+ * No web fonts. The PDF is rendered by the browser engine on the phone, often
+ * with no network — a face that fails to fetch does not fall back visibly, it
+ * silently reflows the whole document, and the teacher sends something they
+ * never saw. Everything here resolves from the system.
+ */
+export const CV_FONTS = {
+  helvetica: 'Helvetica',
+  arial: 'Arial',
+  system: 'System',
+  georgia: 'Georgia',
+  garamond: 'Garamond',
+  times: 'Times New Roman',
+  trebuchet: 'Trebuchet',
+  courier: 'Courier New',
+} as const;
+export type CvFont = keyof typeof CV_FONTS;
 
-function plainSection(title: string, inner: string): string {
-  return inner.trim() === '' ? '' : `<h2>${esc(title)}</h2>${inner}`;
-}
+const STACK: Readonly<Record<CvFont, string>> = {
+  helvetica: `"Helvetica Neue", Helvetica, Arial, sans-serif`,
+  arial: `Arial, "Helvetica Neue", Helvetica, sans-serif`,
+  system: `"Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif`,
+  georgia: `Georgia, "Times New Roman", Times, serif`,
+  garamond: `Garamond, "Palatino Linotype", Palatino, "Times New Roman", serif`,
+  times: `"Times New Roman", Times, serif`,
+  trebuchet: `"Trebuchet MS", "Lucida Grande", Tahoma, sans-serif`,
+  courier: `"Courier New", Courier, monospace`,
+};
 
-function plainBody(cv: CvData): string {
-  const contact = contactLine(cv);
-  const tsc = some(cv.tscNumber);
-
-  const head = `
-    <div class="head">
-      <h1>${esc(cv.fullName)}</h1>
-      ${some(cv.headline) === null ? '' : `<p class="headline">${esc(cv.headline as string)}</p>`}
-      ${contact === '' ? '' : `<div class="contact">${esc(contact)}</div>`}
-      ${tsc === null ? '' : `<div class="contact">TSC No. ${esc(tsc)}</div>`}
-    </div>`;
-
-  const summary = some(cv.summary) === null
-    ? '' : plainSection('Profile', `<p class="desc">${esc(cv.summary as string)}</p>`);
-
-  const subjects = cv.subjects.length === 0
-    ? '' : plainSection('Subjects', `<p class="subjects">${esc(cv.subjects.join(', '))}</p>`);
-
-  const skills = cv.skills.length === 0
-    ? '' : plainSection('Skills', `<p class="subjects">${esc(cv.skills.join(', '))}</p>`);
-
-  const role = (e: CvExperience) => `
-    <div class="entry">
-      <div class="row">
-        <div><span class="role">${esc(e.role)}</span>${e.organisation.trim() === '' ? '' : ` <span class="where">— ${esc(e.organisation)}</span>`}</div>
-        <div class="years">${esc(formatYearRange(e.startYear, e.endYear, e.isCurrent))}</div>
-      </div>
-      ${some(e.description) === null
-        ? ''
-        : renderBlocks(e.description as string, { list: 'bullets', heading: 'desc-head', para: 'desc' })}
-    </div>`;
-
-  const experience = plainSection('Experience', orderExperience(cv.experience).map(role).join(''));
-  const volunteer = plainSection('Volunteer work', orderExperience(cv.volunteer).map(role).join(''));
-
-  const education = plainSection('Education', orderEducation(cv.education).map((e) => `
-    <div class="entry">
-      <div class="row">
-        <div><span class="role">${esc(e.qualification)}</span> <span class="where">— ${esc(e.institution)}</span></div>
-        <div class="years">${esc(formatYearRange(e.startYear, e.endYear))}</div>
-      </div>
-      ${some(e.grade) === null ? '' : `<p class="desc muted">${esc(e.grade as string)}</p>`}
-    </div>`).join(''));
-
-  const list = (title: string, items: readonly string[]) => (items.length === 0
-    ? ''
-    : plainSection(title, `<p class="subjects">${esc(items.join(', '))}</p>`));
-
-  const certificates = cv.certificates.length === 0 ? '' : plainSection(
-    'Certificates',
-    `<ul class="bullets">${cv.certificates.map((c) => `<li>${esc(certificateLine(c))}</li>`).join('')}</ul>`,
-  );
-  const responsibilities = cv.responsibilities.length === 0 ? '' : plainSection(
-    'Positions of responsibility',
-    `<ul class="bullets">${cv.responsibilities.map((c) => `<li>${esc(c)}</li>`).join('')}</ul>`,
-  );
-
-  const referees = plainSection('Referees', cv.referees.length === 0 ? '' : `
-    <div class="refs">
-      ${cv.referees.map((r) => `
-        <div class="ref">
-          <div class="role">${esc(r.name)}</div>
-          ${[r.title, r.organisation].filter((p): p is string => some(p) !== null)
-            .map((p) => `<div class="muted">${esc(p.trim())}</div>`).join('')}
-          ${[r.phone, r.email].filter((p): p is string => some(p) !== null)
-            .map((p) => `<div>${esc(p.trim())}</div>`).join('')}
-        </div>`).join('')}
-    </div>`);
-
-  return head + summary + subjects + skills + experience + education + volunteer
-    + responsibilities + certificates + list('Languages', cv.languages)
-    + list('Hobbies', cv.hobbies) + referees;
-}
-
-// ------------------------------------------------------------------- portrait
+/** A faint texture on the page. Anything stronger fights the words. */
+export const CV_BACKGROUNDS = {
+  none: 'Plain',
+  dots: 'Dots',
+  lines: 'Lines',
+} as const;
+export type CvBackground = keyof typeof CV_BACKGROUNDS;
 
 /**
- * Two columns, a photograph, and a blue rule down the outside edge.
+ * The dials, and where each one sits.
  *
- * The layout is a float and not flexbox, and that is the whole trick. A CV
- * runs to two or three pages; a flex row fragments unpredictably across a page
- * break, while a floated sidebar with a margined main column is what every
- * print engine has agreed on for twenty years — the sidebar simply ends where
- * its content ends and the main column carries on at its own width.
- *
- * The blue edge is painted by the body background rather than by an element,
- * for the same reason: an element stops at the end of page one. A background
- * on `body` is painted across every page of the print canvas.
+ * 1–5 rather than points and millimetres: the teacher is choosing "a bit
+ * tighter", not typesetting, and a scale cannot produce a document with
+ * four-point text or forty-millimetre margins the way a free number can.
  */
-const INK = '#2f74b5';
-const BAR = '#3d7ea9';
-const RULE = '#cfdae4';
+export type CvScale = 1 | 2 | 3 | 4 | 5;
+
+export interface CvStyle {
+  readonly template: CvTemplate;
+  readonly accent: CvAccent;
+  readonly font: CvFont;
+  readonly fontScale: CvScale;
+  readonly lineHeight: CvScale;
+  /** Space between one role and the next. */
+  readonly entrySpacing: CvScale;
+  readonly sectionSpacing: CvScale;
+  readonly margins: CvScale;
+  readonly background: CvBackground;
+}
+
+export const CV_SCALE_LABEL: Readonly<Record<CvScale, string>> = {
+  1: 'XS', 2: 'S', 3: 'M', 4: 'L', 5: 'XL',
+};
+
+const FONT_PT: Readonly<Record<CvScale, number>> = { 1: 8.2, 2: 8.7, 3: 9.2, 4: 9.8, 5: 10.5 };
+const LEADING: Readonly<Record<CvScale, number>> = { 1: 1.2, 2: 1.3, 3: 1.42, 4: 1.55, 5: 1.7 };
+/** Millimetres, for entry gaps, section gaps and page margins in turn. */
+const ENTRY_MM: Readonly<Record<CvScale, number>> = { 1: 1.8, 2: 2.6, 3: 3.6, 4: 4.8, 5: 6.2 };
+const SECTION_MM: Readonly<Record<CvScale, number>> = { 1: 3, 2: 4.2, 3: 5.8, 4: 7.4, 5: 9.5 };
+const MARGIN_MM: Readonly<Record<CvScale, number>> = { 1: 8, 2: 10.5, 3: 13, 4: 16, 5: 19 };
+
+interface Preset {
+  readonly layout: CvLayout;
+  readonly sidebar: CvSidebar;
+  readonly headings: CvHeading;
+  readonly accent: CvAccent;
+  readonly font: CvFont;
+  /** Whether the name is set in wide capitals, as the sidebar templates do. */
+  readonly capitalName: boolean;
+}
+
+export const CV_TEMPLATES = {
+  portrait: 'Portrait',
+  banner: 'Banner',
+  bold: 'Bold',
+  timeline: 'Timeline',
+  label: 'Label',
+  classic: 'Classic',
+} as const;
+export type CvTemplate = keyof typeof CV_TEMPLATES;
+
+const PRESET: Readonly<Record<CvTemplate, Preset>> = {
+  portrait: { layout: 'sidebar', sidebar: 'edge', headings: 'rule', accent: 'indigo', font: 'system', capitalName: false },
+  banner: { layout: 'sidebar', sidebar: 'banner', headings: 'rule', accent: 'indigo', font: 'system', capitalName: true },
+  bold: { layout: 'sidebar', sidebar: 'filled', headings: 'rule', accent: 'maroon', font: 'system', capitalName: true },
+  timeline: { layout: 'timeline', sidebar: 'edge', headings: 'rule', accent: 'indigo', font: 'system', capitalName: true },
+  label: { layout: 'stacked', sidebar: 'edge', headings: 'band', accent: 'ink', font: 'system', capitalName: true },
+  classic: { layout: 'stacked', sidebar: 'edge', headings: 'rule', accent: 'ink', font: 'times', capitalName: false },
+};
+
+/** What each template is for, shown next to its name in the picker. */
+export const CV_TEMPLATE_HINT: Readonly<Record<CvTemplate, string>> = {
+  portrait: 'Photograph and details down the side, a blue rule along the edge. What most Kenyan employers expect to receive.',
+  banner: 'The same two columns, with your name in a coloured plate at the top of the sidebar.',
+  bold: 'A solid colour down the whole side. It stands out in a pile, and it uses a lot of ink.',
+  timeline: 'Dates in a column of their own, so a reader can follow your years down the page.',
+  label: 'One column, headings in filled labels. Plain enough for any system that reads CVs automatically.',
+  classic: 'One column, set in a serif. The safe choice for TSC and county applications.',
+};
+
+/** The settings a template starts on. Every one of them can then be changed. */
+export function styleFor(template: CvTemplate): CvStyle {
+  const preset = PRESET[template];
+  return {
+    template,
+    accent: preset.accent,
+    font: preset.font,
+    fontScale: 3,
+    lineHeight: 3,
+    entrySpacing: 3,
+    sectionSpacing: 3,
+    margins: 3,
+    background: 'none',
+  };
+}
+
+/** The default document, for callers that have no stored preference yet. */
+export const DEFAULT_CV_STYLE: CvStyle = styleFor('portrait');
+
+// ------------------------------------------------------------------- drawing
+//
+// One stylesheet, one body builder, both parameterised. The three layouts
+// differ in how the page is divided and in nothing else: an entry, a heading,
+// a bulleted description and a dotted list are the same in all of them, which
+// is the whole reason they can share the dials above.
 
 /** 16×16 stroke glyphs, inline so nothing has to be fetched to print a CV. */
 const GLYPH: Readonly<Record<string, string>> = {
@@ -388,93 +427,14 @@ const GLYPH: Readonly<Record<string, string>> = {
   // gender before the teacher's own word for it has been read.
   gender: '<circle cx="7.4" cy="8.2" r="3.3"/><path d="M9.9 5.9 13.6 2.2M10.6 2.2h3v3"/><path d="M7.4 11.5v3M6 13h2.8"/>',
   flag: '<path d="M3.5 14V2.4M3.5 2.9h8.6L10.1 5.9l2 3H3.5"/>',
+  // A chevron, as the reference templates use for the rows a teacher adds
+  // themselves. The first attempt drew an up-arrow, which read as "upload".
+  badge: '<path d="M6.2 3.4 10.8 8l-4.6 4.6"/>',
 };
 
-function icon(name: keyof typeof GLYPH | string): string {
+function icon(name: string, colour: string): string {
   const paths = GLYPH[name] ?? '';
-  return `<svg class="i" viewBox="0 0 16 16" width="11" height="11" fill="none" stroke="${BAR}" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round">${paths}</svg>`;
-}
-
-function portraitStyles(): string {
-  return `
-    /* No page margin: the blue edge has to reach the paper's edge, and the
-       sheet supplies its own padding so it can clear the bar. */
-    @page { size: A4; margin: 0; }
-    * { box-sizing: border-box; }
-    body {
-      font-family: "Segoe UI", "Helvetica Neue", Helvetica, Arial, sans-serif;
-      font-size: 9.2pt;
-      line-height: 1.42;
-      color: #2b2b2b;
-      margin: 0;
-      background: linear-gradient(to right, ${BAR} 0, ${BAR} 9mm, #fff 9mm);
-      -webkit-print-color-adjust: exact;
-      print-color-adjust: exact;
-    }
-    .sheet { padding: 13mm 12mm 14mm 18mm; }
-
-    .side { float: left; width: 48mm; }
-    .main { margin-left: 57mm; }
-
-    .photo {
-      width: 38mm; height: 46mm; object-fit: cover;
-      border-radius: 1.6mm; display: block; margin-bottom: 6mm;
-    }
-
-    /* Name and headline are one unit with one gap under them, so the first
-       heading sits the same distance below whether a headline exists or not. */
-    .namebar { margin-bottom: 5mm; }
-    h1 {
-      font-size: 21pt; font-weight: 700; color: ${INK};
-      margin: 0; line-height: 1.15; letter-spacing: -0.2pt;
-    }
-    .headline { font-size: 10pt; color: #5a5a5a; margin: 1mm 0 0; }
-
-    h2 {
-      font-size: 12.5pt; font-weight: 600; color: ${INK};
-      margin: 0 0 1.6mm; padding-bottom: 1mm;
-      border-bottom: 1px solid ${RULE};
-    }
-    /* The sidebar's headings carry no rule: at 46mm a full-width underline
-       reads as a divider between unrelated things rather than a heading. */
-    .side h2 { border-bottom: none; padding-bottom: 0; font-size: 12pt; }
-    .block { margin-bottom: 5.5mm; }
-    .main .block { margin-bottom: 6mm; }
-
-    .detail { display: flex; gap: 2.4mm; margin-bottom: 1.8mm; align-items: flex-start; font-size: 8.8pt; }
-    .i { flex: 0 0 auto; margin-top: 0.6mm; }
-    /* break-word and not anywhere: a long email should wrap only when it has
-       to, rather than being chopped at whatever character hits the edge. */
-    .detail span { min-width: 0; overflow-wrap: break-word; }
-
-    .plain { margin: 0 0 1.4mm; }
-    .dotted { margin: 0 0 1.6mm; padding-left: 3.6mm; position: relative; }
-    /* A square, not a disc: it is the mark this template uses everywhere, and
-       list-style cannot be coloured separately from the text beside it. */
-    .dotted::before {
-      content: ""; position: absolute; left: 0; top: 1.5mm;
-      width: 1.5mm; height: 1.5mm; background: ${INK};
-    }
-
-    .entry { margin-bottom: 3.6mm; page-break-inside: avoid; }
-    .entry-head { display: flex; justify-content: space-between; gap: 4mm; align-items: baseline; }
-    .title { font-weight: 700; color: #1c1c1c; }
-    .where { color: ${INK}; font-size: 8.8pt; }
-    .years { color: ${INK}; font-size: 8.8pt; white-space: nowrap; }
-    .grade { color: #5a5a5a; font-size: 8.8pt; }
-
-    .desc { margin: 1.4mm 0 0; }
-    .desc-head { margin: 2mm 0 0.6mm; font-weight: 700; color: #1c1c1c; }
-    .bullets { margin: 1mm 0 0; padding-left: 4.6mm; }
-    .bullets li { margin-bottom: 0.8mm; }
-
-    .refs { display: grid; grid-template-columns: 1fr 1fr; gap: 2mm 5mm; }
-    .refs .dotted { margin-bottom: 0; }
-  `;
-}
-
-function portraitBlock(title: string, inner: string): string {
-  return inner.trim() === '' ? '' : `<div class="block"><h2>${esc(title)}</h2>${inner}</div>`;
+  return `<svg class="i" viewBox="0 0 16 16" width="11" height="11" fill="none" stroke="${colour}" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round">${paths}</svg>`;
 }
 
 /**
@@ -491,71 +451,286 @@ function breakableEmail(value: string): string {
   return esc(value).replace(/@/g, '@<wbr>');
 }
 
-function detailRow(glyph: string, value: string | null, html?: (v: string) => string): string {
-  const text = some(value);
-  return text === null
-    ? ''
-    : `<div class="detail">${icon(glyph)}<span>${(html ?? esc)(text)}</span></div>`;
+const PAGE_TEXTURE: Readonly<Record<CvBackground, string>> = {
+  none: '',
+  dots: `radial-gradient(circle at 1px 1px, rgba(0,0,0,.10) 1px, transparent 0) 0 0/4mm 4mm`,
+  lines: `repeating-linear-gradient(45deg, rgba(0,0,0,.055) 0 1px, transparent 1px 4mm)`,
+};
+
+interface Frame {
+  readonly style: CvStyle;
+  readonly preset: Preset;
+  readonly palette: Palette;
+  /** Body text colour inside a filled sidebar, which is the only inverted area. */
+  readonly onFill: string;
 }
 
-function portraitBody(cv: CvData): string {
+function frame(style: CvStyle): Frame {
+  return {
+    style,
+    preset: PRESET[style.template],
+    palette: PALETTE[style.accent],
+    onFill: '#ffffff',
+  };
+}
+
+function styles(f: Frame): string {
+  const { style, preset, palette } = f;
+  const pt = FONT_PT[style.fontScale];
+  const lead = LEADING[style.lineHeight];
+  const entry = ENTRY_MM[style.entrySpacing];
+  const section = SECTION_MM[style.sectionSpacing];
+  const margin = MARGIN_MM[style.margins];
+  const texture = PAGE_TEXTURE[style.background];
+
+  const sidebarWidth = 48;
+  // The sheet's left padding has to clear whatever the sidebar variant paints
+  // underneath it, and the main column has to start clear of the sidebar.
+  const padLeft = preset.layout !== 'sidebar' ? margin
+    : preset.sidebar === 'edge' ? margin + 5
+    : preset.sidebar === 'filled' ? Math.max(margin - 3, 7)
+    : margin;
+  const mainLeft = sidebarWidth + 9;
+  const fillTo = padLeft + sidebarWidth + 5;
+
+  /*
+    The sidebar's colour is painted by the body background, not by the sidebar
+    element, and that is the only reason a CV longer than one page looks right:
+    an element stops at the end of page one, while a background on `body` is
+    painted across the whole print canvas. The same trick draws the thin edge
+    rule and the page texture.
+  */
+  const fill = preset.layout !== 'sidebar' ? ''
+    : preset.sidebar === 'edge'
+      ? `linear-gradient(to right, ${palette.deep} 0, ${palette.deep} ${Math.max(margin - 4, 5)}mm, #fff ${Math.max(margin - 4, 5)}mm)`
+      : preset.sidebar === 'filled'
+        ? `linear-gradient(to right, ${palette.deep} 0, ${palette.deep} ${fillTo}mm, #fff ${fillTo}mm)`
+        : preset.sidebar === 'tint'
+          ? `linear-gradient(to right, ${palette.wash} 0, ${palette.wash} ${fillTo}mm, #fff ${fillTo}mm)`
+          : '';
+  const layers = [texture, fill].filter((l) => l !== '').join(', ');
+
+  const inverted = preset.layout === 'sidebar' && preset.sidebar === 'filled';
+  const sideInk = inverted ? f.onFill : palette.line;
+  const sideText = inverted ? 'rgba(255,255,255,.92)' : '#2b2b2b';
+  const sideRule = inverted ? 'rgba(255,255,255,.35)' : '#d8dee4';
+
+  return `
+    /* No page margin: a filled sidebar and an edge rule both have to reach the
+       paper's edge, so the sheet supplies its own padding instead. */
+    @page { size: A4; margin: 0; }
+    * { box-sizing: border-box; }
+    body {
+      font-family: ${STACK[style.font]};
+      font-size: ${pt}pt;
+      line-height: ${lead};
+      color: #2b2b2b;
+      margin: 0;
+      background: ${layers === '' ? '#fff' : `${layers}, #fff`};
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+    .sheet { padding: ${margin}mm ${margin}mm ${margin + 1}mm ${padLeft}mm; }
+
+    h1 {
+      font-size: ${(pt * 2.28).toFixed(1)}pt;
+      font-weight: 700;
+      color: ${palette.line};
+      margin: 0;
+      line-height: 1.14;
+      ${preset.capitalName ? 'letter-spacing: 0.22em; text-transform: uppercase;' : 'letter-spacing: -0.2pt;'}
+    }
+    .namebar { margin-bottom: ${section}mm;
+      ${preset.headings === 'band' ? `padding-bottom: 2.5mm; border-bottom: 1.2mm solid ${palette.deep};` : ''} }
+    .headline { font-size: ${(pt * 1.08).toFixed(1)}pt; color: #5a5a5a; margin: 1mm 0 0; }
+
+    h2 {
+      font-size: ${(pt * 1.36).toFixed(1)}pt;
+      font-weight: 600;
+      color: ${palette.line};
+      margin: 0 0 1.6mm;
+      ${preset.headings === 'band'
+        ? `background: ${palette.deep}; color: #fff; display: inline-block; padding: 0.8mm 2.2mm; letter-spacing: 0.04em; text-transform: uppercase;`
+        : `padding-bottom: 1mm; border-bottom: 1px solid ${palette.line}33;`}
+    }
+    .block { margin-bottom: ${section}mm; }
+
+    /* Entries never split across a page: a role's dates orphaned from its
+       employer is the classic export bug, and it looks like carelessness. */
+    .entry { margin-bottom: ${entry}mm; page-break-inside: avoid; }
+    .entry:last-child { margin-bottom: 0; }
+    .entry-head { display: flex; justify-content: space-between; gap: 4mm; align-items: baseline; }
+    .title { font-weight: 700; color: #1c1c1c; }
+    .where { color: ${palette.line}; font-size: ${(pt * 0.95).toFixed(1)}pt; }
+    .years { color: ${palette.line}; font-size: ${(pt * 0.95).toFixed(1)}pt; white-space: nowrap; }
+    .grade { color: #5a5a5a; font-size: ${(pt * 0.95).toFixed(1)}pt; }
+
+    .desc { margin: 1.4mm 0 0; }
+    .desc-head { margin: 2mm 0 0.6mm; font-weight: 700; color: #1c1c1c; }
+    .bullets { margin: 1mm 0 0; padding-left: 4.6mm; }
+    .bullets li { margin-bottom: 0.8mm; }
+
+    .plain { margin: 0 0 1.4mm; }
+    .dotted { margin: 0 0 1.6mm; padding-left: 3.6mm; position: relative; }
+    /* A square, not a disc: it is the mark these templates use everywhere, and
+       list-style cannot be coloured separately from the text beside it. */
+    .dotted::before {
+      content: ""; position: absolute; left: 0; top: ${(lead * pt * 0.36).toFixed(2)}pt;
+      width: 1.5mm; height: 1.5mm; background: ${palette.line};
+    }
+    .two { display: grid; grid-template-columns: 1fr 1fr; gap: 1.6mm 6mm; }
+
+    .detail { display: flex; gap: 2.4mm; margin-bottom: 1.8mm; align-items: flex-start;
+              font-size: ${(pt * 0.95).toFixed(1)}pt; }
+    .i { flex: 0 0 auto; margin-top: 0.6mm; }
+    /* break-word and not anywhere: a long email should wrap only when it has
+       to, rather than being chopped at whatever character hits the edge. */
+    .detail span { min-width: 0; overflow-wrap: break-word; }
+
+    /* Five dots, the ones a teacher claimed filled. Drawn rather than written
+       because "Kiswahili — 4/5" on a CV reads like a school report. */
+    .dots { display: inline-flex; gap: 1mm; }
+    .dot { width: 1.6mm; height: 1.6mm; border-radius: 50%; background: ${palette.line}; }
+    .dot.off { background: ${palette.line}33; }
+
+    /* ---- the sidebar layout */
+    .side { float: left; width: ${sidebarWidth}mm; }
+    .main { margin-left: ${mainLeft}mm; }
+    .side h2 { border-bottom: none; padding-bottom: 0; color: ${sideInk};
+               ${preset.headings === 'band' ? `background: ${inverted ? 'rgba(255,255,255,.16)' : palette.deep};` : ''} }
+    .side, .side .title, .side .plain, .side .where, .side .years { color: ${sideText}; }
+    .side .title { font-weight: 700; }
+    .side .dotted::before { background: ${sideInk}; }
+    .side .dot { background: ${sideInk}; }
+    .side .dot.off { background: ${inverted ? 'rgba(255,255,255,.3)' : `${palette.line}33`}; }
+    .side .rule { border-top: 1px solid ${sideRule}; margin: 0 0 2mm; }
+    /* The year goes under the title in the sidebar, not beside it: 48mm is not
+       enough for both, and squeezing them onto one row wrapped "Football coach
+       and learner mentor" into a three-line stack beside its dates. */
+    .side .entry-head { display: block; }
+    .side .years { display: block; margin-top: 0.4mm; }
+
+    .nameplate {
+      background: ${palette.deep}; color: #fff; text-align: center;
+      padding: 6mm 3mm 7mm; margin-bottom: ${section}mm;
+      border-radius: 0 0 42% 42% / 0 0 7mm 7mm;
+    }
+    .nameplate h1 { color: #fff; font-size: ${(pt * 1.5).toFixed(1)}pt; }
+
+    .photo {
+      width: 38mm; height: 46mm; object-fit: cover;
+      border-radius: 1.6mm; display: block; margin-bottom: ${section}mm;
+    }
+
+    /* ---- the timeline layout */
+    .tl-head { color: ${palette.line}; font-weight: 600;
+               font-size: ${(pt * 1.36).toFixed(1)}pt; margin: 0 0 2mm; }
+    .tl-row { display: flex; gap: 4mm; margin-bottom: ${entry}mm; page-break-inside: avoid; }
+    .tl-when { flex: 0 0 32mm; font-weight: 700; font-size: ${(pt * 0.95).toFixed(1)}pt; color: #1c1c1c; }
+    .tl-mark { flex: 0 0 auto; width: 1.8mm; height: 1.8mm; margin-top: ${(lead * pt * 0.34).toFixed(2)}pt;
+               background: ${palette.line}; }
+    .tl-what { min-width: 0; flex: 1; }
+    .tl-card { border-bottom: 1px solid ${palette.line}22; padding-bottom: ${section * 0.6}mm;
+               margin-bottom: ${section}mm; }
+    .tl-card:last-child { border-bottom: none; }
+
+    /* ---- the stacked layout */
+    .stack .entry-head { gap: 6mm; }
+    .refs { display: grid; grid-template-columns: 1fr 1fr; gap: 2mm 5mm; }
+    .refs .dotted { margin-bottom: 0; }
+  `;
+}
+
+/** The sections, as data, so each layout only decides where to put them. */
+interface Piece {
+  readonly title: string;
+  readonly html: string;
+}
+
+const piece = (title: string, html: string): readonly Piece[] =>
+  (html.trim() === '' ? [] : [{ title, html }]);
+
+function detailRow(f: Frame, glyph: string, value: string | null, html?: (v: string) => string): string {
+  const text = some(value);
+  const colour = f.preset.layout === 'sidebar' && f.preset.sidebar === 'filled'
+    ? f.onFill : f.palette.deep;
+  return text === null
+    ? ''
+    : `<div class="detail">${icon(glyph, colour)}<span>${(html ?? esc)(text)}</span></div>`;
+}
+
+/** Everything in the "Personal details" panel, in the order a form asks it. */
+function personalDetails(f: Frame, cv: CvData): string {
   // The address as an employer expects to see it: the line the teacher typed,
   // then "post code, city". Either half can be missing without leaving a gap.
   const cityLine = [some(cv.postCode), some(cv.location)].filter((p) => p !== null).join(' ');
   const home = [some(cv.address), cityLine === '' ? null : cityLine]
     .filter((p): p is string => p !== null).join('\n');
+  const colour = f.preset.layout === 'sidebar' && f.preset.sidebar === 'filled'
+    ? f.onFill : f.palette.deep;
 
-  const personal = portraitBlock('Personal details', [
-    detailRow('user', cv.fullName),
-    detailRow('mail', cv.email, breakableEmail),
-    detailRow('phone', cv.phone),
-    some(home) === null
+  return [
+    detailRow(f, 'user', cv.fullName),
+    detailRow(f, 'mail', cv.email, breakableEmail),
+    detailRow(f, 'phone', cv.phone),
+    home === ''
       ? ''
-      : `<div class="detail">${icon('home')}<span>${home.split('\n').map(esc).join('<br>')}</span></div>`,
-    detailRow('calendar', cv.dateOfBirth),
-    detailRow('gender', cv.gender),
-    detailRow('flag', cv.nationality),
-  ].join(''));
+      : `<div class="detail">${icon('home', colour)}<span>${home.split('\n').map(esc).join('<br>')}</span></div>`,
+    detailRow(f, 'calendar', cv.dateOfBirth),
+    detailRow(f, 'gender', cv.gender),
+    detailRow(f, 'flag', cv.nationality),
+    some(cv.tscNumber) === null
+      ? ''
+      : detailRow(f, 'badge', `TSC Registered Teacher No. ${(cv.tscNumber as string).trim()}`),
+  ].join('');
+}
 
-  const plainList = (title: string, items: readonly string[]) => portraitBlock(
-    title,
-    items.map((i) => `<p class="plain">${esc(i)}</p>`).join(''),
-  );
-  const dottedList = (title: string, items: readonly string[]) => portraitBlock(
-    title,
-    items.map((i) => `<p class="dotted">${esc(i)}</p>`).join(''),
-  );
+/** Five dots, filled to the level the teacher claimed. */
+function dots(level: number): string {
+  return `<span class="dots">${[1, 2, 3, 4, 5]
+    .map((n) => `<span class="dot${n <= level ? '' : ' off'}"></span>`).join('')}</span>`;
+}
 
-  const volunteer = portraitBlock('Volunteer work', orderExperience(cv.volunteer).map((v) => `
+function languageRows(cv: CvData): string {
+  return cv.languages.map((l) => (l.level === null
+    ? `<p class="plain">${esc(l.name)}</p>`
+    : `<div class="detail" style="justify-content:space-between"><span>${esc(l.name)}</span>${dots(l.level)}</div>`))
+    .join('');
+}
+
+const plainLines = (items: readonly string[]): string =>
+  items.map((i) => `<p class="plain">${esc(i)}</p>`).join('');
+
+const dottedLines = (items: readonly string[]): string =>
+  items.map((i) => `<p class="dotted">${esc(i)}</p>`).join('');
+
+/** One referee on one line, the way a head teacher writes them out. */
+function refereeLine(r: CvReferee): string {
+  return [
+    r.name,
+    some(r.title),
+    some(r.organisation),
+    some(r.phone) === null ? null : `Tel. ${(r.phone as string).trim()}`,
+    some(r.email),
+  ].filter((p): p is string => p !== null && p.trim() !== '').join(', ');
+}
+
+function roleEntry(e: CvExperience): string {
+  return `
     <div class="entry">
-      <p class="plain"><span class="title">${esc(v.role)}</span>${v.organisation.trim() === '' ? '' : ` — ${esc(v.organisation)}`}</p>
-      ${formatYearRange(v.startYear, v.endYear, v.isCurrent) === ''
+      <div class="entry-head">
+        <div class="title">${esc(e.role)}</div>
+        <div class="years">${esc(formatYearRange(e.startYear, e.endYear, e.isCurrent))}</div>
+      </div>
+      ${e.organisation.trim() === '' ? '' : `<div class="where">${esc(e.organisation)}</div>`}
+      ${some(e.description) === null
         ? ''
-        : `<p class="years">${esc(formatYearRange(v.startYear, v.endYear, v.isCurrent))}</p>`}
-    </div>`).join(''));
+        : renderBlocks(e.description as string, { list: 'bullets', heading: 'desc-head', para: 'desc' })}
+    </div>`;
+}
 
-  const side = `<div class="side">
-    ${cv.photoDataUri === null ? '' : `<img class="photo" src="${cv.photoDataUri}" alt="">`}
-    ${personal}
-    ${plainList('Skills', cv.skills)}
-    ${plainList('Languages', cv.languages)}
-    ${dottedList('Hobbies', cv.hobbies)}
-    ${volunteer}
-    ${dottedList('Responsibilities', cv.responsibilities)}
-    ${portraitBlock('Certificates', cv.certificates.map((c) => `
-      <div class="entry">
-        <p class="plain"><span class="title">${esc(c.title)}</span></p>
-        ${some(c.description) === null ? '' : `<p class="plain">${esc(c.description as string)}</p>`}
-        ${certificateWhen(c) === '' ? '' : `<p class="years">${esc(certificateWhen(c))}</p>`}
-      </div>`).join(''))}
-  </div>`;
-
-  const tsc = some(cv.tscNumber);
-  const profile = portraitBlock('Profile', some(cv.summary) === null
-    ? ''
-    : `<p class="desc" style="margin-top:0">${esc(cv.summary as string)}</p>`);
-
-  const education = portraitBlock('Education', orderEducation(cv.education).map((e) => `
+function educationEntry(e: CvEducation): string {
+  return `
     <div class="entry">
       <div class="entry-head">
         <div class="title">${esc(e.qualification)}</div>
@@ -563,90 +738,198 @@ function portraitBody(cv: CvData): string {
       </div>
       <div class="where">${esc(e.institution)}</div>
       ${some(e.grade) === null ? '' : `<div class="grade">${esc(e.grade as string)}</div>`}
-    </div>`).join(''));
+    </div>`;
+}
 
-  const experience = portraitBlock('Experience', orderExperience(cv.experience).map((e) => `
+function certificateEntry(c: CvCertificate): string {
+  return `
     <div class="entry">
       <div class="entry-head">
-        <div class="title">${esc(e.role)}</div>
-        <div class="years">${esc(formatYearRange(e.startYear, e.endYear, e.isCurrent))}</div>
+        <div class="title">${esc(c.title)}</div>
+        <div class="years">${esc(certificateWhen(c))}</div>
       </div>
-      <div class="where">${esc(e.organisation)}</div>
-      ${some(e.description) === null
-        ? ''
-        : renderBlocks(e.description as string, { list: 'bullets', heading: 'desc-head', para: 'desc' })}
-    </div>`).join(''));
+      ${some(c.description) === null ? '' : `<div class="grade">${esc(c.description as string)}</div>`}
+    </div>`;
+}
 
-  const subjects = portraitBlock('Subjects', cv.subjects.length === 0
-    ? ''
-    : `<p class="desc" style="margin-top:0">${esc(cv.subjects.join(', '))}</p>`);
+/** What goes beside the career, when there is a column for it. */
+function asidePieces(f: Frame, cv: CvData): readonly Piece[] {
+  return [
+    ...piece('Personal details', personalDetails(f, cv)),
+    ...piece('Skills', plainLines(cv.skills)),
+    ...piece('Languages', languageRows(cv)),
+    ...piece('Hobbies', dottedLines(cv.hobbies)),
+    ...piece('Volunteer work', orderExperience(cv.volunteer).map(roleEntry).join('')),
+    ...piece('Responsibilities', dottedLines(cv.responsibilities)),
+    ...piece('Certificates', cv.certificates.map(certificateEntry).join('')),
+  ];
+}
 
-  // Each referee on one line, the way a head teacher writes them out: name,
-  // what they are, where, and how to reach them.
-  const referees = portraitBlock('Referees', cv.referees.length === 0 ? '' : `
-    <div class="refs">
-      ${cv.referees.map((r) => {
-        const parts = [
-          r.name,
-          some(r.title),
-          some(r.organisation),
-          some(r.phone) === null ? null : `Tel. ${(r.phone as string).trim()}`,
-          some(r.email),
-        ].filter((p): p is string => p !== null && p.trim() !== '');
-        return `<p class="dotted">${esc(parts.join(', '))}</p>`;
-      }).join('')}
-    </div>`);
+/** The career itself. */
+function mainPieces(cv: CvData): readonly Piece[] {
+  return [
+    ...piece('Profile', some(cv.summary) === null
+      ? '' : `<p class="desc" style="margin-top:0">${esc(cv.summary as string)}</p>`),
+    ...piece('Education', orderEducation(cv.education).map(educationEntry).join('')),
+    ...piece('Employment', orderExperience(cv.experience).map(roleEntry).join('')),
+    ...piece('Subjects', cv.subjects.length === 0
+      ? '' : `<p class="desc" style="margin-top:0">${esc(cv.subjects.join(', '))}</p>`),
+    ...piece('Referees', cv.referees.length === 0
+      ? ''
+      : `<div class="refs">${cv.referees
+          .map((r) => `<p class="dotted">${esc(refereeLine(r))}</p>`).join('')}</div>`),
+  ];
+}
 
-  const main = `<div class="main">
+const block = (p: Piece): string =>
+  `<div class="block"><h2>${esc(p.title)}</h2>${p.html}</div>`;
+
+/*
+  The TSC number is not here, deliberately.
+
+  It belongs in Personal details, which every layout renders, and printing it
+  under the name as well put it on the page twice on the one-column templates —
+  a duplication nobody notices while writing the layout and everybody notices
+  on the printed page.
+*/
+function nameBar(_f: Frame, cv: CvData): string {
+  return `
     <div class="namebar">
       <h1>${esc(cv.fullName)}</h1>
       ${some(cv.headline) === null ? '' : `<p class="headline">${esc(cv.headline as string)}</p>`}
-      ${tsc === null ? '' : `<p class="headline">TSC No. ${esc(tsc)}</p>`}
-    </div>
-    ${profile}
-    ${education}
-    ${experience}
-    ${subjects}
-    ${referees}
+    </div>`;
+}
+
+function sidebarBody(f: Frame, cv: CvData): string {
+  const banner = f.preset.sidebar === 'banner';
+  const side = `<div class="side">
+    ${banner ? `<div class="nameplate"><h1>${esc(cv.fullName)}</h1></div>` : ''}
+    ${cv.photoDataUri === null ? '' : `<img class="photo" src="${cv.photoDataUri}" alt="">`}
+    ${asidePieces(f, cv).map(block).join('')}
+  </div>`;
+
+  const main = `<div class="main">
+    ${banner ? '' : nameBar(f, cv)}
+    ${mainPieces(cv).map(block).join('')}
   </div>`;
 
   return `<div class="sheet">${side}${main}</div>`;
 }
 
+/**
+ * Dates in a gutter of their own.
+ *
+ * Every section becomes rows of "when | marker | what", so a reader following
+ * the left edge of the page reads a career in order without their eye having
+ * to re-find the date inside each entry.
+ */
+function timelineBody(f: Frame, cv: CvData): string {
+  const row = (when: string, what: string): string => `
+    <div class="tl-row">
+      <div class="tl-when">${esc(when)}</div>
+      <div class="tl-mark"></div>
+      <div class="tl-what">${what}</div>
+    </div>`;
+
+  /*
+    A row with nothing in the gutter keeps the gutter but loses the marker.
+    Skills and hobbies have no date, and a square sitting alone beside a
+    two-column grid reads as a bullet for the whole list rather than as the
+    timeline mark it is everywhere else.
+  */
+  const bare = (what: string): string => `
+    <div class="tl-row">
+      <div class="tl-when"></div>
+      <div class="tl-mark" style="background:transparent"></div>
+      <div class="tl-what">${what}</div>
+    </div>`;
+
+  const section = (title: string, rows: string): string =>
+    (rows.trim() === '' ? '' : `<div class="tl-card"><div class="tl-head">${esc(title)}</div>${rows}</div>`);
+
+  const roleRows = (entries: readonly CvExperience[]): string =>
+    orderExperience(entries).map((e) => row(
+      formatYearRange(e.startYear, e.endYear, e.isCurrent),
+      `<div class="title">${esc(e.role)}</div>
+       ${e.organisation.trim() === '' ? '' : `<div class="where">${esc(e.organisation)}</div>`}
+       ${some(e.description) === null
+        ? ''
+        : renderBlocks(e.description as string, { list: 'bullets', heading: 'desc-head', para: 'desc' })}`,
+    )).join('');
+
+  const head = `
+    <div class="tl-card">
+      ${cv.photoDataUri === null
+        ? ''
+        : `<img class="photo" src="${cv.photoDataUri}" alt="" style="float:right;margin-left:8mm">`}
+      ${nameBar(f, cv)}
+      <div class="two">${personalDetails(f, cv)}</div>
+      ${some(cv.summary) === null ? '' : `<p class="desc">${esc(cv.summary as string)}</p>`}
+    </div>`;
+
+  const lists = [
+    ['Skills', cv.skills.length === 0 ? '' : `<div class="two">${plainLines(cv.skills)}</div>`],
+    ['Languages', cv.languages.length === 0 ? '' : `<div class="two">${languageRows(cv)}</div>`],
+    ['Hobbies', cv.hobbies.length === 0 ? '' : `<div class="two">${dottedLines(cv.hobbies)}</div>`],
+    ['Responsibilities', cv.responsibilities.length === 0 ? '' : `<div class="two">${dottedLines(cv.responsibilities)}</div>`],
+    ['Subjects', cv.subjects.length === 0 ? '' : `<p class="desc" style="margin:0">${esc(cv.subjects.join(', '))}</p>`],
+    ['Referees', cv.referees.length === 0 ? '' : `<div class="two">${cv.referees.map((r) => `<p class="dotted">${esc(refereeLine(r))}</p>`).join('')}</div>`],
+  ] as const;
+
+  return `<div class="sheet">
+    ${head}
+    ${section('Education', orderEducation(cv.education).map((e) => row(
+      formatYearRange(e.startYear, e.endYear),
+      `<div class="title">${esc(e.qualification)}</div>
+       <div class="where">${esc(e.institution)}</div>
+       ${some(e.grade) === null ? '' : `<div class="grade">${esc(e.grade as string)}</div>`}`,
+    )).join(''))}
+    ${section('Employment', roleRows(cv.experience))}
+    ${section('Volunteer work', roleRows(cv.volunteer))}
+    ${section('Certificates', cv.certificates.map((c) => row(
+      certificateWhen(c),
+      `<div class="title">${esc(c.title)}</div>
+       ${some(c.description) === null ? '' : `<div class="grade">${esc(c.description as string)}</div>`}`,
+    )).join(''))}
+    ${lists.map(([title, html]) => section(title, html === '' ? '' : bare(html))).join('')}
+  </div>`;
+}
+
+/** One column, everything full width. The shape an ATS reads most reliably. */
+function stackedBody(f: Frame, cv: CvData): string {
+  const all = [
+    ...piece('Personal details', personalDetails(f, cv)),
+    ...mainPieces(cv),
+    ...piece('Skills', cv.skills.length === 0 ? '' : `<div class="two">${plainLines(cv.skills)}</div>`),
+    ...piece('Languages', cv.languages.length === 0 ? '' : `<div class="two">${languageRows(cv)}</div>`),
+    ...piece('Hobbies', cv.hobbies.length === 0 ? '' : `<div class="two">${dottedLines(cv.hobbies)}</div>`),
+    ...piece('Volunteer work', orderExperience(cv.volunteer).map(roleEntry).join('')),
+    ...piece('Responsibilities', cv.responsibilities.length === 0
+      ? '' : `<div class="two">${dottedLines(cv.responsibilities)}</div>`),
+    ...piece('Certificates', cv.certificates.map(certificateEntry).join('')),
+  ];
+  return `<div class="sheet stack">
+    ${cv.photoDataUri === null ? '' : `<img class="photo" src="${cv.photoDataUri}" alt="" style="float:right;margin-left:8mm">`}
+    ${nameBar(f, cv)}
+    ${all.map(block).join('')}
+  </div>`;
+}
+
+function body(f: Frame, cv: CvData): string {
+  if (f.preset.layout === 'timeline') return timelineBody(f, cv);
+  if (f.preset.layout === 'stacked') return stackedBody(f, cv);
+  return sidebarBody(f, cv);
+}
+
 // ------------------------------------------------------------------ the shell
 
-interface Layout {
-  readonly css: string;
-  readonly body: string;
-  /** What the on-screen preview needs to look like a sheet of paper. */
-  readonly previewCss: string;
-}
-
-function layout(cv: CvData, template: CvTemplate): Layout {
-  if (template === 'portrait') {
-    return {
-      css: portraitStyles(),
-      body: portraitBody(cv),
-      // The sheet already carries its own padding, so the preview adds none.
-      previewCss: `body { margin: 0 auto; max-width: ${CV_PAGE_WIDTH}px; min-height: 1123px; }`,
-    };
-  }
-  return {
-    css: plainStyles(template),
-    body: plainBody(cv),
-    // Margins come from @page, which only applies when printing, so the
-    // preview supplies its own.
-    previewCss: `body { background: #fff; margin: 0 auto; padding: 16mm; max-width: ${CV_PAGE_WIDTH}px; min-height: 1123px; }`,
-  };
-}
-
 /** Render the CV as a standalone HTML document. */
-export function renderCvHtml(cv: CvData, template: CvTemplate = 'portrait'): string {
-  const { css, body } = layout(cv, template);
+export function renderCvHtml(cv: CvData, style: CvStyle = DEFAULT_CV_STYLE): string {
+  const f = frame(style);
   return `<!DOCTYPE html>
 <html><head><meta charset="utf-8"><title>${esc(cv.fullName)} — CV</title>
-<style>${css}</style></head>
-<body>${body}</body></html>`;
+<style>${styles(f)}</style></head>
+<body>${body(f, cv)}</body></html>`;
 }
 
 /**
@@ -657,8 +940,8 @@ export function renderCvHtml(cv: CvData, template: CvTemplate = 'portrait'): str
  * to someone applying for a job. A real .docx would need a zip writer and an
  * XML layer for no gain a teacher would notice.
  */
-export function renderCvWordHtml(cv: CvData, template: CvTemplate = 'portrait'): string {
-  return renderCvHtml(cv, template).replace(
+export function renderCvWordHtml(cv: CvData, style: CvStyle = DEFAULT_CV_STYLE): string {
+  return renderCvHtml(cv, style).replace(
     '<html>',
     '<html xmlns:o="urn:schemas-microsoft-com:office:office" ' +
     'xmlns:w="urn:schemas-microsoft-com:office:word" ' +
@@ -685,13 +968,15 @@ export const CV_PAGE_WIDTH = 794;
  * viewport meta pinned to the page width, so the browser scales the whole A4
  * sheet down instead of reflowing it into a narrow column — reflowed text
  * would show line breaks that the PDF will not have.
+ *
+ * The sheet carries its own padding, so the preview adds none of its own.
  */
-export function renderCvPreviewHtml(cv: CvData, template: CvTemplate = 'portrait'): string {
-  const { previewCss } = layout(cv, template);
-  return renderCvHtml(cv, template).replace(
+export function renderCvPreviewHtml(cv: CvData, style: CvStyle = DEFAULT_CV_STYLE): string {
+  return renderCvHtml(cv, style).replace(
     '<meta charset="utf-8">',
     `<meta charset="utf-8">` +
     `<meta name="viewport" content="width=${CV_PAGE_WIDTH}, initial-scale=1">` +
-    `<style>html { background: #e9e9e9; } ${previewCss}</style>`,
+    `<style>html { background: #e9e9e9; }` +
+    ` body { margin: 0 auto; max-width: ${CV_PAGE_WIDTH}px; min-height: 1123px; }</style>`,
   );
 }
