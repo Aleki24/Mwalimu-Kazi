@@ -31,6 +31,15 @@ export function ListEditor({
   // twice reads as carelessness by the person who wrote it.
   const already = items.some((i) => i.toLowerCase() === value.toLowerCase());
   const canAdd = value !== '' && !already && items.length < max;
+  /*
+    A disabled button with no explanation reads as broken, not as waiting —
+    "the + isn't clicking" was the first thing anyone said about this. The one
+    that matters is the empty box: the duplicate case at least has the item
+    sitting visibly in the list above.
+  */
+  const why = value === '' ? `Write something first, then press +.`
+    : already ? `${value} is already on the list.`
+    : null;
 
   const add = () => {
     if (!canAdd) return;
@@ -96,10 +105,8 @@ export function ListEditor({
         </View>
       )}
 
-      {already && value !== '' ? (
-        <Text className="text-[10.5px] text-mutedForeground">
-          {value} is already on the list.
-        </Text>
+      {items.length < max && why !== null ? (
+        <Text className="text-[10.5px] text-mutedForeground">{why}</Text>
       ) : null}
     </View>
   );

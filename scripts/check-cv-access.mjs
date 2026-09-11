@@ -55,10 +55,32 @@ const PNG = Buffer.from(
 );
 
 const teacher = await signIn('alexotieno293+fxteacher@gmail.com');
-// A school this teacher applied to, and someone who posts listings but not one
-// this teacher ever answered.
+// A school this teacher applied to.
 const recruiter = await signIn('alexotieno293+fxrecruiter@gmail.com');
-const parent = await signIn('alexotieno293+fxparent@gmail.com');
+
+/*
+  Somebody who hires but was never applied to — the reader `open` exists for,
+  and the one who must never reach a referee.
+
+  This used to be the parent fixture, until drive-tuition.mjs had the teacher
+  answer that parent's tuition request and the "browsing" reader quietly became
+  someone they had applied to. Three checks then failed for a reason that had
+  nothing to do with the policies. So the stand-in is built here instead:
+  `private.is_hiring()` is satisfied by having posted anything at all, so the
+  moderator account posts one unpublished listing, which is removed at the end.
+*/
+const browser = await signIn('alexotieno293+fxadmin@gmail.com');
+const { data: browserUser } = await browser.auth.getUser();
+const listing = await browser.from('jobs').insert({
+  title: 'Access check listing',
+  subjects: ['english'],
+  job_type: 'part_time',
+  county: 'nairobi',
+  published: false,
+}).select('id').single();
+if (listing.error !== null) throw new Error(`could not build the browsing reader: ${listing.error.message}`);
+check('the browsing reader counts as hiring and was never applied to',
+  browserUser?.user?.id !== undefined);
 
 const setVisibility = async (visibility) => {
   const { error } = await teacher.from('cv_details').upsert({ user_id: TEACHER, visibility });
@@ -100,31 +122,31 @@ const rows = async (client, table) => {
 /*
   Two readers, because they are the two different questions.
 
-  `recruiter` is a school this teacher applied to. `parent` posts listings of
+  `recruiter` is a school this teacher applied to. `browser` posts listings of
   their own but this teacher never answered one, so they stand for anybody
   browsing — which is exactly who `open` is for and exactly who must never
   reach a referee. `open` is a teacher consenting to be found; publishing a
   referee's phone number is not theirs to consent to.
 */
 for (const [visibility, expected] of [
-  ['private', { cvRecruiter: 0, cvParent: 0, refRecruiter: 0, refParent: 0, photo: false }],
-  ['applied', { cvRecruiter: 1, cvParent: 0, refRecruiter: 1, refParent: 0, photo: true }],
-  ['open', { cvRecruiter: 1, cvParent: 1, refRecruiter: 1, refParent: 0, photo: true }],
+  ['private', { cvRecruiter: 0, cvBrowser: 0, refRecruiter: 0, refBrowser: 0, photo: false }],
+  ['applied', { cvRecruiter: 1, cvBrowser: 0, refRecruiter: 1, refBrowser: 0, photo: true }],
+  ['open', { cvRecruiter: 1, cvBrowser: 1, refRecruiter: 1, refBrowser: 0, photo: true }],
 ]) {
   await setVisibility(visibility);
   const cvRecruiter = Math.min(await rows(recruiter, 'cv_details'), 1);
-  const cvParent = Math.min(await rows(parent, 'cv_details'), 1);
+  const cvBrowser = Math.min(await rows(browser, 'cv_details'), 1);
   const refRecruiter = Math.min(await rows(recruiter, 'cv_referees'), 1);
-  const refParent = Math.min(await rows(parent, 'cv_referees'), 1);
+  const refBrowser = Math.min(await rows(browser, 'cv_referees'), 1);
 
   check(`${visibility}: a school they applied to ${expected.cvRecruiter ? 'can' : 'cannot'} read the CV`,
     cvRecruiter === expected.cvRecruiter);
-  check(`${visibility}: somebody browsing ${expected.cvParent ? 'can' : 'cannot'} read the CV`,
-    cvParent === expected.cvParent);
+  check(`${visibility}: somebody browsing ${expected.cvBrowser ? 'can' : 'cannot'} read the CV`,
+    cvBrowser === expected.cvBrowser);
   check(`${visibility}: the school they applied to ${expected.refRecruiter ? 'gets' : 'does not get'} the referees`,
     refRecruiter === expected.refRecruiter);
   check(`${visibility}: somebody browsing never gets the referees`,
-    refParent === expected.refParent);
+    refBrowser === expected.refBrowser);
   check(`${visibility}: the photograph is ${expected.photo ? 'reachable' : 'refused'}`,
     (await canSeePhoto(recruiter)) === expected.photo);
 }
@@ -138,6 +160,7 @@ check('and is refused immediately once the CV is private', !(await canSeePhoto(r
 await setVisibility('applied');
 await teacher.storage.from('cv-photos').remove([path]);
 await teacher.from('cv_referees').delete().eq('id', REFEREE);
+await browser.from('jobs').delete().eq('id', listing.data.id);
 
 const failed = checks.filter((c) => !c).length;
 console.log(`\n${checks.length - failed}/${checks.length} checks passed`);

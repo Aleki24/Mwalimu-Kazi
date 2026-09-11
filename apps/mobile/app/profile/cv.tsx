@@ -11,9 +11,10 @@ import {
 import { CvVisibility } from '@mwalimu/types';
 import { colors, radius } from '@mwalimu/ui';
 import {
-  Button, Card, centredContent, Chip, ErrorBanner, NoticeStrip, ToggleRow, WhyDisabled,
+  Button, centredContent, Chip, ErrorBanner, NoticeStrip, ToggleRow, WhyDisabled,
 } from '../../components/ui';
 import { ListEditor } from '../../components/list-editor';
+import { CollapsibleSection } from '../../components/collapsible-section';
 import { useAuth, useTeacher } from '../../lib/auth';
 import {
   deleteCvEntry, EMPTY_CV, fetchCv, fetchPhotoDataUri, removePhoto, saveCertificate,
@@ -92,8 +93,6 @@ export default function CvScreen() {
   const [busy, setBusy] = useState(false);
   const [template, setTemplate] = useState<CvTemplate>('portrait');
 
-  const preview = useMemo(() => toCvData(teacher, cv, photo), [teacher, cv, photo]);
-
   // Personal details.
   const [summary, setSummary] = useState('');
   const [email, setEmail] = useState('');
@@ -111,6 +110,14 @@ export default function CvScreen() {
   const [languages, setLanguages] = useState<readonly string[]>([]);
   const [hobbies, setHobbies] = useState<readonly string[]>([]);
   const [responsibilities, setResponsibilities] = useState<readonly string[]>([]);
+
+  // `skills` and not `teacher.skills`: skills are saved to the profile, and
+  // waiting for that round trip before the document showed one would make
+  // adding a skill feel like it had not worked.
+  const preview = useMemo(
+    () => toCvData({ ...teacher, skills: [...skills] }, cv, photo),
+    [teacher, skills, cv, photo],
+  );
 
   // Draft rows for the "add" forms.
   const [edu, setEdu] = useState({ institution: '', qualification: '', start: '', end: '', grade: '' });
@@ -185,6 +192,46 @@ export default function CvScreen() {
     }
   };
 
+  /**
+   * Save without reloading.
+   *
+   * `run` re-reads the whole CV afterwards, which is right for adding a role
+   * and wrong for adding a skill — the list on screen is already what was just
+   * saved, and a reload per item makes the + button feel like it is thinking.
+   */
+  const persist = async (work: () => Promise<void>, failure: string) => {
+    setError(null);
+    try {
+      await work();
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : failure);
+    }
+  };
+
+  /*
+    Each list saves the moment it changes.
+
+    They used to sit in local state behind a "Save lists" button, so pressing +
+    added a row that vanished on the next screen — indistinguishable, to the
+    person doing it, from a + that does not work. An add is already a
+    deliberate act; it does not need confirming twice.
+  */
+  const editSkills = (next: readonly string[]) => {
+    setSkills(next);
+    void persist(async () => {
+      await saveSkills(teacher.id, next);
+      await refreshProfile();
+    }, 'Could not save your skills');
+  };
+
+  const editList = (
+    key: 'languages' | 'hobbies' | 'responsibilities',
+    set: (v: readonly string[]) => void,
+  ) => (next: readonly string[]) => {
+    set(next);
+    void persist(() => saveCvDetails(teacher.id, { [key]: [...next] }), 'Could not save that');
+  };
+
   const year = (v: string): number | null => {
     const n = Number.parseInt(v, 10);
     return Number.isInteger(n) && n >= 1950 && n <= 2100 ? n : null;
@@ -248,6 +295,19 @@ export default function CvScreen() {
     );
   }
 
+  /**
+   * What a closed section says about itself. Never a bare "0".
+   *
+   * The plural is given rather than guessed: appending "s" turned "entry" into
+   * "4 entrys" on the first screen anyone looked at.
+   */
+  const counted = (n: number, one: string, many: string): string =>
+    (n === 0 ? 'Not filled in' : `${n} ${n === 1 ? one : many}`);
+  const filled = (...values: readonly string[]): string => {
+    const done = values.filter((v) => v.trim() !== '').length;
+    return done === 0 ? 'Not filled in' : `${done} of ${values.length} filled in`;
+  };
+
   const draftRole = (
     draft: typeof exp,
     set: (v: typeof exp) => void,
@@ -295,8 +355,7 @@ export default function CvScreen() {
         </NoticeStrip>
 
         {/* ------------------------------------------------------ visibility */}
-        <Card className="gap-2.5 px-3.5 py-3">
-          <Text className="text-[12.5px] font-medium text-foreground">Who can read it</Text>
+        <CollapsibleSection title="Who can read it" summary={CV_VISIBILITY_LABEL[visibility]}>
           <View className="flex-row flex-wrap gap-1.5">
             {CvVisibility.options.map((v) => (
               <Chip
@@ -313,11 +372,10 @@ export default function CvScreen() {
           <Text className="text-[11px] leading-4 text-mutedForeground">
             {CV_VISIBILITY_HINT[visibility]}
           </Text>
-        </Card>
+        </CollapsibleSection>
 
         {/* -------------------------------------------------------- the photo */}
-        <Card className="gap-2.5 px-3.5 py-3">
-          <Text className="text-[12.5px] font-medium text-foreground">Photograph</Text>
+        <CollapsibleSection title="Photograph" summary={photo === null ? 'Not added' : 'Added'}>
           <View className="flex-row items-center gap-3">
             {photo === null ? (
               <View className="h-[76px] w-[60px] items-center justify-center rounded-md border border-dashed border-border bg-wash">
@@ -347,11 +405,10 @@ export default function CvScreen() {
             Only ever on the CV. Nobody who cannot read your CV can see it, and it travels inside
             the file you download rather than as a link that expires.
           </Text>
-        </Card>
+        </CollapsibleSection>
 
         {/* ------------------------------------------------- personal details */}
-        <Card className="gap-2.5 px-3.5 py-3">
-          <Text className="text-[12.5px] font-medium text-foreground">Personal details</Text>
+        <CollapsibleSection title="Personal details" summary={filled(email, phone, address, location, dob, gender, nationality, summary)}>
           <Field label="Email" value={email} onChangeText={setEmail} keyboardType="email-address" placeholder="you@example.com" />
           <Field label="Phone" value={phone} onChangeText={setPhone} keyboardType="phone-pad" placeholder="+254 712 345678" />
           <Field label="Address" value={address} onChangeText={setAddress} placeholder="P.O. Box 132-50311" maxLength={200} />
@@ -394,11 +451,10 @@ export default function CvScreen() {
             )}
           />
           <WhyDisabled missing={dobUnreadable ? ['a date it can read'] : []} />
-        </Card>
+        </CollapsibleSection>
 
         {/* ------------------------------------------------------ experience */}
-        <Card className="gap-2 px-3.5 py-3">
-          <Text className="text-[12.5px] font-medium text-foreground">Experience</Text>
+        <CollapsibleSection title="Experience" summary={counted(cv.experience.filter((e) => !e.is_volunteer).length, 'role', 'roles')}>
           {cv.experience.filter((e) => !e.is_volunteer).map((row) => (
             <EntryRow
               key={row.id}
@@ -430,11 +486,10 @@ export default function CvScreen() {
             }, 'Could not add that role')}
           />
           <WhyDisabled missing={expMissing} />
-        </Card>
+        </CollapsibleSection>
 
         {/* ------------------------------------------------------- education */}
-        <Card className="gap-2 px-3.5 py-3">
-          <Text className="text-[12.5px] font-medium text-foreground">Education</Text>
+        <CollapsibleSection title="Education" summary={counted(cv.education.length, 'qualification', 'qualifications')}>
           {orderEducation(cv.education.map((e) => ({
             institution: e.institution, qualification: e.qualification,
             startYear: e.start_year, endYear: e.end_year, grade: e.grade,
@@ -475,39 +530,36 @@ export default function CvScreen() {
             }, 'Could not add that qualification')}
           />
           <WhyDisabled missing={eduMissing} />
-        </Card>
+        </CollapsibleSection>
 
         {/* ---------------------------------------------------------- lists */}
-        <Card className="gap-3.5 px-3.5 py-3">
-          <Text className="text-[12.5px] font-medium text-foreground">Skills and languages</Text>
-          <ListEditor label="Skills" items={skills} onChange={setSkills} placeholder="Computer packages" />
-          <ListEditor label="Languages" items={languages} onChange={setLanguages} placeholder="Kiswahili" />
-          <ListEditor label="Hobbies" items={hobbies} onChange={setHobbies} placeholder="Reading novels" />
+        <CollapsibleSection title="Skills and languages" summary={counted(skills.length + languages.length + hobbies.length + responsibilities.length, 'entry', 'entries')}>
+          <ListEditor label="Skills" items={skills} onChange={editSkills} placeholder="Computer packages" />
+          <ListEditor
+            label="Languages"
+            items={languages}
+            onChange={editList('languages', setLanguages)}
+            placeholder="Kiswahili"
+          />
+          <ListEditor
+            label="Hobbies"
+            items={hobbies}
+            onChange={editList('hobbies', setHobbies)}
+            placeholder="Reading novels"
+          />
           <ListEditor
             label="Positions of responsibility"
             items={responsibilities}
-            onChange={setResponsibilities}
+            onChange={editList('responsibilities', setResponsibilities)}
             placeholder="Class teacher, Form 4G"
           />
-          <Button
-            label="Save lists"
-            variant="secondary"
-            onPress={() => void run(async () => {
-              await saveCvDetails(teacher.id, {
-                languages: [...languages], hobbies: [...hobbies],
-                responsibilities: [...responsibilities],
-              });
-              // Skills live on the profile, so the session's copy has to be
-              // told — otherwise the preview below keeps rendering the old set.
-              await saveSkills(teacher.id, skills);
-              await refreshProfile();
-            }, 'Could not save those')}
-          />
-        </Card>
+          <Text className="text-[10.5px] leading-4 text-mutedForeground">
+            These save as you add them.
+          </Text>
+        </CollapsibleSection>
 
         {/* ----------------------------------------------------- volunteering */}
-        <Card className="gap-2 px-3.5 py-3">
-          <Text className="text-[12.5px] font-medium text-foreground">Volunteer work</Text>
+        <CollapsibleSection title="Volunteer work" summary={counted(cv.experience.filter((e) => e.is_volunteer).length, 'entry', 'entries')}>
           {cv.experience.filter((e) => e.is_volunteer).map((row) => (
             <EntryRow
               key={row.id}
@@ -540,11 +592,10 @@ export default function CvScreen() {
             }, 'Could not add that')}
           />
           <WhyDisabled missing={volMissing} />
-        </Card>
+        </CollapsibleSection>
 
         {/* ----------------------------------------------------- certificates */}
-        <Card className="gap-2 px-3.5 py-3">
-          <Text className="text-[12.5px] font-medium text-foreground">Certificates</Text>
+        <CollapsibleSection title="Certificates" summary={counted(cv.certificates.length, 'certificate', 'certificates')}>
           {cv.certificates.map((row) => (
             <EntryRow
               key={row.id}
@@ -585,11 +636,10 @@ export default function CvScreen() {
             }, 'Could not add that certificate')}
           />
           <WhyDisabled missing={certMissing} />
-        </Card>
+        </CollapsibleSection>
 
         {/* -------------------------------------------------------- referees */}
-        <Card className="gap-2 px-3.5 py-3">
-          <Text className="text-[12.5px] font-medium text-foreground">Referees</Text>
+        <CollapsibleSection title="Referees" summary={counted(cv.referees.length, 'referee', 'referees')}>
           <Text className="text-[11px] leading-4 text-mutedForeground">
             Only the people you actually apply to ever see these, whatever the setting above says.
             A referee agreed to vouch for you, not to be in a directory.
@@ -627,11 +677,10 @@ export default function CvScreen() {
             }, 'Could not add that referee')}
           />
           <WhyDisabled missing={refMissing} />
-        </Card>
+        </CollapsibleSection>
 
         {/* -------------------------------------------------------- download */}
-        <Card className="gap-2.5 px-3.5 py-3">
-          <Text className="text-[12.5px] font-medium text-foreground">Preview & download</Text>
+        <CollapsibleSection title="Preview & download" defaultOpen>
           <View className="flex-row flex-wrap gap-1.5">
             {(Object.keys(CV_TEMPLATES) as CvTemplate[]).map((t) => (
               <Chip key={t} label={CV_TEMPLATES[t]} selected={template === t} onPress={() => setTemplate(t)} />
@@ -669,7 +718,7 @@ export default function CvScreen() {
             </Pressable>
           </View>
           {note === null ? null : <Text className="text-[11.5px] text-successForeground">{note}</Text>}
-        </Card>
+        </CollapsibleSection>
 
         {error !== null ? <ErrorBanner message={error} /> : null}
         {busy ? <ActivityIndicator color={colors.mutedForeground} className="py-2" /> : null}

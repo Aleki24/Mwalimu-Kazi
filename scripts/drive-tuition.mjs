@@ -8,8 +8,9 @@
  * teacher gets says "Mary Wambui" and not "A school".
  *
  * See scripts/drive-harness.mjs for how to run it. The listing it reads is the
- * fixture request in supabase/fixtures/dev-seed.sql; re-running needs the
- * application from the previous run removed, or the CTA reads "In touch".
+ * fixture request in supabase/fixtures/dev-seed.sql. It is re-runnable: on a
+ * second pass the teacher has already answered, so the CTA reads "In touch"
+ * and the answering step is skipped rather than failing.
  */
 import { startHarness } from './drive-harness.mjs';
 
@@ -67,21 +68,42 @@ check(
   'detail says what is not',
   detail.includes('cannot travel') || detail.includes('Not available'),
 );
-check('the CTA names the person', detail.includes('Contact Mary'));
+/*
+  The claim is that a household's request never borrows employment language.
+  Which of the two it shows depends on whether this teacher has answered it
+  before, and on a rerun that is "In touch" — so the assertion is on what it
+  must never say, plus the right one of the two.
+*/
+check('the CTA never says "Apply" on a request', !detail.includes('Apply now'));
+const fresh = detail.includes('Contact Mary');
+check('the CTA names the person, or says they are already in touch',
+  fresh || detail.includes('In touch'));
 check('no school reputation block on a request', !detail.includes('What teachers said'));
 // Public questions under a household's request would be a thread of named
 // teachers narrowing down where a family lives.
 check('no public comment thread on a household request', !detail.includes('Comments'));
 
 // --------------------------------------------------------- the teacher answers
-await teacher.getByRole('button', { name: /Contact Mary/ }).first().click();
-await teacher.waitForTimeout(5_000);
+if (fresh) {
+  await teacher.getByRole('button', { name: /Contact Mary/ }).first().click();
+  await teacher.waitForTimeout(5_000);
+}
 check('the teacher can answer it', (await text(teacher)).includes('In touch'));
 
 // ------------------------------------------ the parent sees who answered
 const parent = await signIn('parent');
-const requests = await visit(parent, '/requests', 6_000);
-check('the parent sees their own request', requests.includes('tutor for Form 2'));
+const listed = await visit(parent, '/requests', 6_000);
+check('the parent sees their own request', listed.includes('tutor for Form 2'));
+
+/*
+  Pick the request rather than trusting whichever one the screen opened on.
+  This parent has more than one posting — drive-assignment.mjs posts a one-off
+  as them — and the screen quite correctly selects the most recent, which is
+  not the one this script is about.
+*/
+await parent.getByText('Maths and physics tutor for Form 2').first().click();
+await parent.waitForTimeout(4_000);
+const requests = await text(parent);
 check('the parent sees who answered', requests.includes('Grace Achieng'));
 // A school receives applications; a parent receives answers.
 check(

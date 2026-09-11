@@ -21,6 +21,21 @@ const press = async (page, name) => {
 };
 
 /**
+ * Open a section, if it is not open already.
+ *
+ * The form is eleven collapsed sections, so every field below is behind one.
+ * Matching on `expanded: false` rather than clicking blindly means calling
+ * this twice does not close what it opened.
+ */
+const expand = async (page, title) => {
+  const header = page.getByRole('button', { name: new RegExp(`^${title}`), expanded: false });
+  if (await header.count() > 0) {
+    await header.first().click();
+    await page.waitForTimeout(600);
+  }
+};
+
+/**
  * Empty a list before filling it, so the script can be run twice.
  *
  * It also exercises the remove button, which is the half of the list editor a
@@ -46,6 +61,32 @@ check('the CV screen offers every section', [
 ].every((s) => cv.includes(s)));
 check('Portrait is the template it starts on', cv.includes('Portrait'));
 
+/*
+  Collapsed is the point: eleven sections laid end to end is a page nobody
+  scrolls to the bottom of. The closed rows still have to say where you are,
+  which is what the summary on each header is for.
+*/
+check('the sections start closed', !cv.includes('Personal statement'));
+check('a closed section still says whether it is filled in', cv.includes('Not filled in'));
+await expand(teacher, 'Personal details');
+check('opening one shows its fields', (await text(teacher)).includes('Personal statement'));
+await expand(teacher, 'Personal details');
+await teacher.waitForTimeout(400);
+check('and it stays open rather than toggling twice', (await text(teacher)).includes('Personal statement'));
+
+
+/*
+  Set the sharing explicitly rather than trusting the default: the last thing
+  this script does is switch the CV to "Only me", so a second run starts from
+  a CV the recruiter cannot read. Setting it here also exercises the change in
+  the other direction, which the end of the script does not.
+*/
+await expand(teacher, 'Who can read it');
+await press(teacher, 'People I apply to');
+check('the teacher can share it with the people they apply to',
+  (await text(teacher)).includes('once you have applied to their listing'));
+await expand(teacher, 'Who can read it');
+
 await fill(teacher, 'you@example.com', 'grace@example.com');
 await fill(teacher, '+254 712 345678', '0712345678');
 await fill(teacher, 'P.O. Box 132-50311', 'P.O Box 991-00100');
@@ -61,6 +102,7 @@ check('the personal details save', !(await text(teacher)).includes('Could not sa
 
 // The lists: one from each editor, to prove the shared component is wired to
 // four different pieces of state and not to one.
+await expand(teacher, 'Skills and languages');
 for (const list of ['Skills', 'Languages', 'Hobbies', 'Positions of responsibility']) {
   await clearList(teacher, list);
 }
@@ -70,15 +112,23 @@ for (const [placeholder, value, list] of [
   ['Reading novels', 'Chess', 'Hobbies'],
   ['Class teacher, Form 4G', 'Head of Science', 'Positions of responsibility'],
 ]) {
+  // The + is disabled until there is something to add, and it says so.
+  const plus = teacher.getByLabel(`Add to ${list}`);
+  check(`${list}: the + says why it is not clickable yet`,
+    await plus.isDisabled() && (await text(teacher)).includes('Write something first'));
   await fill(teacher, placeholder, value);
-  await teacher.getByLabel(`Add to ${list}`).click();
-  await teacher.waitForTimeout(500);
+  await plus.click();
+  await teacher.waitForTimeout(1500);
 }
-await press(teacher, 'Save lists');
+// No Save button: an add is already a deliberate act, and one that only
+// survived a second press was indistinguishable from a + that did nothing.
+await visit(teacher, '/profile/cv', 6000);
+await expand(teacher, 'Skills and languages');
 const afterLists = await text(teacher);
-check('every list editor saved its own list', ['Laboratory management', 'Kiswahili', 'Chess', 'Head of Science']
-  .every((v) => afterLists.includes(v)));
+check('every list survived a reload without a Save button',
+  ['Laboratory management', 'Kiswahili', 'Chess', 'Head of Science'].every((v) => afterLists.includes(v)));
 
+await expand(teacher, 'Certificates');
 // Certificates have no duplicate guard — two identical rows are a legitimate
 // thing to have — so a rerun has to clear its own before adding.
 for (let i = 0; i < 5; i += 1) {
@@ -123,6 +173,7 @@ check('and it is the same document', sharedDoc.includes('Laboratory management')
 await recruiter.screenshot({ path: 'shots-audit/cv-recruiter.png', fullPage: true });
 
 await visit(teacher, '/profile/cv', 6000);
+await expand(teacher, 'Who can read it');
 await press(teacher, 'Only me');
 await teacher.waitForTimeout(3000);
 check('the teacher can make it private', (await text(teacher)).includes('Nobody can open your CV here'));
