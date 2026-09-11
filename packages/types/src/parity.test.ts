@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { Constants } from './database.generated';
 import {
-  ApplicationSource, ApplicationStage, Curriculum, CvAccent, CvBackground, CvFont,
+  ApplicationSource, ApplicationStage, Curriculum, CvAccent, CvBackground, CvFont, CvSection,
   CvTemplate, CvVisibility, EngagementKind, JobPosterKind, JobType,
   ModerationStatus, NewsTopic, NotificationKind, RatePeriod, RedFlagKind, ResourceKind,
   GenderPreference, PosterRole, ReviewCategory, SchoolRole, SchoolType, TeachingLevel,
@@ -40,6 +40,7 @@ describe('database and Zod enums agree', () => {
     ['cv_accent', Constants.public.Enums.cv_accent, CvAccent.options],
     ['cv_font', Constants.public.Enums.cv_font, CvFont.options],
     ['cv_background', Constants.public.Enums.cv_background, CvBackground.options],
+    ['cv_section', Constants.public.Enums.cv_section, CvSection.options],
   ];
 
   it.each(cases)('%s', (_name, fromDatabase, fromZod) => {

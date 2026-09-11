@@ -55,6 +55,69 @@ export interface CvReferee {
   readonly email: string | null;
 }
 
+/**
+ * The sections a CV is made of, in the order they arrive by default.
+ *
+ * The order is the document's, not the renderer's: a teacher fresh out of
+ * university leads with Education and one with fifteen years leads with
+ * Employment, and neither is the app's call. `CvData.sections` overrides both
+ * the order and the words.
+ */
+export const CV_SECTIONS = {
+  personal: 'Personal details',
+  profile: 'Profile',
+  education: 'Education',
+  employment: 'Employment',
+  skills: 'Skills',
+  languages: 'Languages',
+  hobbies: 'Hobbies',
+  volunteer: 'Volunteer work',
+  responsibilities: 'Responsibilities',
+  certificates: 'Certificates',
+  subjects: 'Subjects',
+  referees: 'Referees',
+} as const;
+export type CvSectionKey = keyof typeof CV_SECTIONS;
+
+/** One section, as the teacher has it: where it sits and what it is called. */
+export interface CvSection {
+  readonly key: CvSectionKey;
+  readonly title: string;
+}
+
+/**
+ * Which column a section belongs to in a two-column template.
+ *
+ * Reordering moves a section within its column rather than between them —
+ * dropping Employment into a 48mm sidebar would not be a rearrangement, it
+ * would be a different document. The one-column layouts ignore this.
+ */
+const IN_SIDEBAR: Readonly<Record<CvSectionKey, boolean>> = {
+  personal: true, skills: true, languages: true, hobbies: true,
+  volunteer: true, responsibilities: true, certificates: true,
+  profile: false, education: false, employment: false, subjects: false, referees: false,
+};
+
+export const DEFAULT_SECTIONS: readonly CvSection[] =
+  (Object.keys(CV_SECTIONS) as CvSectionKey[]).map((key) => ({ key, title: CV_SECTIONS[key] }));
+
+/** The stored order and titles, filled out with anything nobody has touched. */
+export function sectionsFrom(
+  stored: ReadonlyArray<{ readonly key: CvSectionKey; readonly title: string | null }>,
+): readonly CvSection[] {
+  const byKey = new Map(stored.map((s) => [s.key, s.title]));
+  const named = (key: CvSectionKey): CvSection => {
+    const title = byKey.get(key);
+    return { key, title: title === undefined || title === null ? CV_SECTIONS[key] : title };
+  };
+  const ordered = stored.map((s) => named(s.key));
+  // A section nobody has moved keeps its default place at the back rather than
+  // disappearing, so adding a section to the app later cannot empty a CV.
+  const rest = (Object.keys(CV_SECTIONS) as CvSectionKey[])
+    .filter((k) => !byKey.has(k)).map(named);
+  return [...ordered, ...rest];
+}
+
 export interface CvData {
   readonly fullName: string;
   readonly headline: string | null;
@@ -90,6 +153,8 @@ export interface CvData {
   readonly responsibilities: readonly string[];
   readonly certificates: readonly CvCertificate[];
   readonly volunteer: readonly CvExperience[];
+  /** The order and the headings. Defaults when the teacher has set neither. */
+  readonly sections: readonly CvSection[];
 }
 
 /**
@@ -647,9 +712,6 @@ interface Piece {
   readonly html: string;
 }
 
-const piece = (title: string, html: string): readonly Piece[] =>
-  (html.trim() === '' ? [] : [{ title, html }]);
-
 function detailRow(f: Frame, glyph: string, value: string | null, html?: (v: string) => string): string {
   const text = some(value);
   const colour = f.preset.layout === 'sidebar' && f.preset.sidebar === 'filled'
@@ -752,33 +814,45 @@ function certificateEntry(c: CvCertificate): string {
     </div>`;
 }
 
-/** What goes beside the career, when there is a column for it. */
-function asidePieces(f: Frame, cv: CvData): readonly Piece[] {
-  return [
-    ...piece('Personal details', personalDetails(f, cv)),
-    ...piece('Skills', plainLines(cv.skills)),
-    ...piece('Languages', languageRows(cv)),
-    ...piece('Hobbies', dottedLines(cv.hobbies)),
-    ...piece('Volunteer work', orderExperience(cv.volunteer).map(roleEntry).join('')),
-    ...piece('Responsibilities', dottedLines(cv.responsibilities)),
-    ...piece('Certificates', cv.certificates.map(certificateEntry).join('')),
-  ];
-}
-
-/** The career itself. */
-function mainPieces(cv: CvData): readonly Piece[] {
-  return [
-    ...piece('Profile', some(cv.summary) === null
-      ? '' : `<p class="desc" style="margin-top:0">${esc(cv.summary as string)}</p>`),
-    ...piece('Education', orderEducation(cv.education).map(educationEntry).join('')),
-    ...piece('Employment', orderExperience(cv.experience).map(roleEntry).join('')),
-    ...piece('Subjects', cv.subjects.length === 0
-      ? '' : `<p class="desc" style="margin-top:0">${esc(cv.subjects.join(', '))}</p>`),
-    ...piece('Referees', cv.referees.length === 0
+/**
+ * The content of every section, by key.
+ *
+ * Built once and then arranged, rather than each layout assembling its own
+ * list: the order is the teacher's now, and three layouts each deciding it
+ * separately is three places for their choice to be ignored.
+ */
+function contents(f: Frame, cv: CvData): Readonly<Record<CvSectionKey, string>> {
+  const two = (html: string) => (html === '' ? '' : `<div class="two">${html}</div>`);
+  const wide = f.preset.layout !== 'sidebar';
+  return {
+    personal: personalDetails(f, cv),
+    profile: some(cv.summary) === null
+      ? '' : `<p class="desc" style="margin-top:0">${esc(cv.summary as string)}</p>`,
+    education: orderEducation(cv.education).map(educationEntry).join(''),
+    employment: orderExperience(cv.experience).map(roleEntry).join(''),
+    skills: wide ? two(plainLines(cv.skills)) : plainLines(cv.skills),
+    languages: wide ? two(languageRows(cv)) : languageRows(cv),
+    hobbies: wide ? two(dottedLines(cv.hobbies)) : dottedLines(cv.hobbies),
+    volunteer: orderExperience(cv.volunteer).map(roleEntry).join(''),
+    responsibilities: wide
+      ? two(dottedLines(cv.responsibilities)) : dottedLines(cv.responsibilities),
+    certificates: cv.certificates.map(certificateEntry).join(''),
+    subjects: cv.subjects.length === 0
+      ? '' : `<p class="desc" style="margin-top:0">${esc(cv.subjects.join(', '))}</p>`,
+    referees: cv.referees.length === 0
       ? ''
       : `<div class="refs">${cv.referees
-          .map((r) => `<p class="dotted">${esc(refereeLine(r))}</p>`).join('')}</div>`),
-  ];
+          .map((r) => `<p class="dotted">${esc(refereeLine(r))}</p>`).join('')}</div>`,
+  };
+}
+
+/** The teacher's order, filtered to the sections that have anything in them. */
+function arrange(
+  cv: CvData, filled: Readonly<Record<CvSectionKey, string>>, where?: (k: CvSectionKey) => boolean,
+): readonly Piece[] {
+  return cv.sections
+    .filter((s) => (where === undefined || where(s.key)) && filled[s.key].trim() !== '')
+    .map((s) => ({ title: s.title, html: filled[s.key] }));
 }
 
 const block = (p: Piece): string =>
@@ -802,15 +876,17 @@ function nameBar(_f: Frame, cv: CvData): string {
 
 function sidebarBody(f: Frame, cv: CvData): string {
   const banner = f.preset.sidebar === 'banner';
+  const filled = contents(f, cv);
+
   const side = `<div class="side">
     ${banner ? `<div class="nameplate"><h1>${esc(cv.fullName)}</h1></div>` : ''}
     ${cv.photoDataUri === null ? '' : `<img class="photo" src="${cv.photoDataUri}" alt="">`}
-    ${asidePieces(f, cv).map(block).join('')}
+    ${arrange(cv, filled, (k) => IN_SIDEBAR[k]).map(block).join('')}
   </div>`;
 
   const main = `<div class="main">
     ${banner ? '' : nameBar(f, cv)}
-    ${mainPieces(cv).map(block).join('')}
+    ${arrange(cv, filled, (k) => !IN_SIDEBAR[k]).map(block).join('')}
   </div>`;
 
   return `<div class="sheet">${side}${main}</div>`;
@@ -821,7 +897,9 @@ function sidebarBody(f: Frame, cv: CvData): string {
  *
  * Every section becomes rows of "when | marker | what", so a reader following
  * the left edge of the page reads a career in order without their eye having
- * to re-find the date inside each entry.
+ * to re-find the date inside each entry. The sections that have no dates —
+ * skills, hobbies — keep the gutter and lose the marker, because a square
+ * sitting alone beside a two-column grid reads as a bullet for the whole list.
  */
 function timelineBody(f: Frame, cv: CvData): string {
   const row = (when: string, what: string): string => `
@@ -831,21 +909,12 @@ function timelineBody(f: Frame, cv: CvData): string {
       <div class="tl-what">${what}</div>
     </div>`;
 
-  /*
-    A row with nothing in the gutter keeps the gutter but loses the marker.
-    Skills and hobbies have no date, and a square sitting alone beside a
-    two-column grid reads as a bullet for the whole list rather than as the
-    timeline mark it is everywhere else.
-  */
   const bare = (what: string): string => `
     <div class="tl-row">
       <div class="tl-when"></div>
       <div class="tl-mark" style="background:transparent"></div>
       <div class="tl-what">${what}</div>
     </div>`;
-
-  const section = (title: string, rows: string): string =>
-    (rows.trim() === '' ? '' : `<div class="tl-card"><div class="tl-head">${esc(title)}</div>${rows}</div>`);
 
   const roleRows = (entries: readonly CvExperience[]): string =>
     orderExperience(entries).map((e) => row(
@@ -857,61 +926,59 @@ function timelineBody(f: Frame, cv: CvData): string {
         : renderBlocks(e.description as string, { list: 'bullets', heading: 'desc-head', para: 'desc' })}`,
     )).join('');
 
+  /*
+    Dated sections get their own rows; everything else reuses the shared
+    content so that a list looks the same here as it does in a sidebar. The
+    teacher's order drives both, which is the whole point of building the
+    content once and arranging it after.
+  */
+  const shared = contents(f, cv);
+  const dated: Partial<Record<CvSectionKey, string>> = {
+    education: orderEducation(cv.education).map((e) => row(
+      formatYearRange(e.startYear, e.endYear),
+      `<div class="title">${esc(e.qualification)}</div>
+       <div class="where">${esc(e.institution)}</div>
+       ${some(e.grade) === null ? '' : `<div class="grade">${esc(e.grade as string)}</div>`}`,
+    )).join(''),
+    employment: roleRows(cv.experience),
+    volunteer: roleRows(cv.volunteer),
+    certificates: cv.certificates.map((c) => row(
+      certificateWhen(c),
+      `<div class="title">${esc(c.title)}</div>
+       ${some(c.description) === null ? '' : `<div class="grade">${esc(c.description as string)}</div>`}`,
+    )).join(''),
+  };
+
   const head = `
     <div class="tl-card">
       ${cv.photoDataUri === null
         ? ''
         : `<img class="photo" src="${cv.photoDataUri}" alt="" style="float:right;margin-left:8mm">`}
       ${nameBar(f, cv)}
-      <div class="two">${personalDetails(f, cv)}</div>
-      ${some(cv.summary) === null ? '' : `<p class="desc">${esc(cv.summary as string)}</p>`}
+      ${shared.personal === '' ? '' : `<div class="two">${shared.personal}</div>`}
+      ${shared.profile === '' ? '' : shared.profile}
     </div>`;
 
-  const lists = [
-    ['Skills', cv.skills.length === 0 ? '' : `<div class="two">${plainLines(cv.skills)}</div>`],
-    ['Languages', cv.languages.length === 0 ? '' : `<div class="two">${languageRows(cv)}</div>`],
-    ['Hobbies', cv.hobbies.length === 0 ? '' : `<div class="two">${dottedLines(cv.hobbies)}</div>`],
-    ['Responsibilities', cv.responsibilities.length === 0 ? '' : `<div class="two">${dottedLines(cv.responsibilities)}</div>`],
-    ['Subjects', cv.subjects.length === 0 ? '' : `<p class="desc" style="margin:0">${esc(cv.subjects.join(', '))}</p>`],
-    ['Referees', cv.referees.length === 0 ? '' : `<div class="two">${cv.referees.map((r) => `<p class="dotted">${esc(refereeLine(r))}</p>`).join('')}</div>`],
-  ] as const;
+  // Personal details and the profile are the header; the rest follows the
+  // teacher's order.
+  const body = cv.sections
+    .filter((s) => s.key !== 'personal' && s.key !== 'profile')
+    .map((s) => {
+      const rows = dated[s.key] ?? (shared[s.key] === '' ? '' : bare(shared[s.key]));
+      return rows.trim() === ''
+        ? ''
+        : `<div class="tl-card"><div class="tl-head">${esc(s.title)}</div>${rows}</div>`;
+    }).join('');
 
-  return `<div class="sheet">
-    ${head}
-    ${section('Education', orderEducation(cv.education).map((e) => row(
-      formatYearRange(e.startYear, e.endYear),
-      `<div class="title">${esc(e.qualification)}</div>
-       <div class="where">${esc(e.institution)}</div>
-       ${some(e.grade) === null ? '' : `<div class="grade">${esc(e.grade as string)}</div>`}`,
-    )).join(''))}
-    ${section('Employment', roleRows(cv.experience))}
-    ${section('Volunteer work', roleRows(cv.volunteer))}
-    ${section('Certificates', cv.certificates.map((c) => row(
-      certificateWhen(c),
-      `<div class="title">${esc(c.title)}</div>
-       ${some(c.description) === null ? '' : `<div class="grade">${esc(c.description as string)}</div>`}`,
-    )).join(''))}
-    ${lists.map(([title, html]) => section(title, html === '' ? '' : bare(html))).join('')}
-  </div>`;
+  return `<div class="sheet">${head}${body}</div>`;
 }
 
 /** One column, everything full width. The shape an ATS reads most reliably. */
 function stackedBody(f: Frame, cv: CvData): string {
-  const all = [
-    ...piece('Personal details', personalDetails(f, cv)),
-    ...mainPieces(cv),
-    ...piece('Skills', cv.skills.length === 0 ? '' : `<div class="two">${plainLines(cv.skills)}</div>`),
-    ...piece('Languages', cv.languages.length === 0 ? '' : `<div class="two">${languageRows(cv)}</div>`),
-    ...piece('Hobbies', cv.hobbies.length === 0 ? '' : `<div class="two">${dottedLines(cv.hobbies)}</div>`),
-    ...piece('Volunteer work', orderExperience(cv.volunteer).map(roleEntry).join('')),
-    ...piece('Responsibilities', cv.responsibilities.length === 0
-      ? '' : `<div class="two">${dottedLines(cv.responsibilities)}</div>`),
-    ...piece('Certificates', cv.certificates.map(certificateEntry).join('')),
-  ];
   return `<div class="sheet stack">
     ${cv.photoDataUri === null ? '' : `<img class="photo" src="${cv.photoDataUri}" alt="" style="float:right;margin-left:8mm">`}
     ${nameBar(f, cv)}
-    ${all.map(block).join('')}
+    ${arrange(cv, contents(f, cv)).map(block).join('')}
   </div>`;
 }
 

@@ -156,6 +156,13 @@ export type CvFont = z.infer<typeof CvFont>;
 export const CvBackground = z.enum(['none', 'dots', 'lines']);
 export type CvBackground = z.infer<typeof CvBackground>;
 
+/** The sections a CV is made of. The order is the teacher's, not this list's. */
+export const CvSection = z.enum([
+  'personal', 'profile', 'education', 'employment', 'skills', 'languages',
+  'hobbies', 'volunteer', 'responsibilities', 'certificates', 'subjects', 'referees',
+]);
+export type CvSection = z.infer<typeof CvSection>;
+
 /** File kinds in the resource library. */
 export const ResourceKind = z.enum([
   'notes', 'scheme_of_work', 'lesson_plan', 'past_paper', 'marking_scheme',

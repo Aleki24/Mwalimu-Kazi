@@ -194,6 +194,90 @@ await teacher.waitForTimeout(1000);
 await teacher.getByText('Portrait', { exact: true }).first().click();
 await teacher.waitForTimeout(3000);
 
+// ------------------------------------------------- sections move and get renamed
+await visit(teacher, '/profile/cv', 6000);
+await expand(teacher, 'Sections');
+const startOrder = await teacher.getByLabel(/^Rename /).allTextContents();
+check('the sections are listed in order', startOrder[0] === 'Personal details');
+
+/*
+  Skills and Languages, not Education and Employment.
+
+  A section with nothing in it is left off the document entirely, so moving or
+  renaming an empty one proves nothing about the page — and this fixture has no
+  education or employment rows. These two are both filled in and both live in
+  the sidebar, which is also where a reorder has to stay.
+*/
+await teacher.getByLabel('Move Languages up').click();
+await teacher.waitForTimeout(3000);
+const moved = await teacher.getByLabel(/^Rename /).allTextContents();
+check('an arrow moves a section', moved.indexOf('Languages') < moved.indexOf('Skills'));
+
+/*
+  And the handle itself, not only the arrows.
+
+  They call the same function, so this is really asking whether the pan gesture
+  is wired up at all — which is exactly the thing that silently stops working
+  when a gesture root goes missing, while every arrow keeps on working.
+*/
+const handle = teacher.getByLabel('Move Profile', { exact: true }).first();
+// Scroll it into view first: the drag works in viewport coordinates, and a
+// handle sitting below the fold gets a box the mouse never reaches.
+await handle.scrollIntoViewIfNeeded();
+await teacher.waitForTimeout(400);
+const wasAt = (await teacher.getByLabel(/^Rename /).allTextContents()).indexOf('Profile');
+const box = await handle.boundingBox();
+await teacher.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+await teacher.mouse.down();
+await teacher.waitForTimeout(250);
+for (let i = 1; i <= 10; i += 1) {
+  await teacher.mouse.move(box.x + box.width / 2, box.y + box.height / 2 + i * 10.4);
+  await teacher.waitForTimeout(20);
+}
+await teacher.mouse.up();
+await teacher.waitForTimeout(3500);
+const dragged = await teacher.getByLabel(/^Rename /).allTextContents();
+const nowAt = dragged.indexOf('Profile');
+check(`dragging the handle moves a section too (${wasAt} -> ${nowAt})`, nowAt === wasAt + 2);
+// Back where it was, by the arrows this time.
+for (let i = 0; i < nowAt - wasAt; i += 1) {
+  await teacher.getByLabel('Move Profile up').click();
+  await teacher.waitForTimeout(2200);
+}
+
+const rename = async (from, to) => {
+  await teacher.getByLabel(`Rename ${from}`).click();
+  await teacher.waitForTimeout(700);
+  // Select-all first. The field selects its own text on focus, but a script
+  // that relied on that would pass even if the app stopped doing it.
+  await teacher.keyboard.press('Control+a');
+  await teacher.keyboard.type(to);
+  await teacher.keyboard.press('Enter');
+  await teacher.waitForTimeout(3000);
+};
+
+await rename('Profile', 'About me');
+check('tapping a name renames the section',
+  (await teacher.getByLabel(/^Rename /).allTextContents()).includes('About me'));
+
+await visit(teacher, '/profile/cv-preview', 8000);
+const page = teacher.frameLocator('iframe[title="CV preview"]').locator('body');
+const printed = (await page.innerText()).replace(/\s+/g, ' ');
+check('the document uses the new word', printed.includes('About me'));
+check('and not the old one', !printed.includes('Profile'));
+check('and prints the sections in the new order',
+  printed.indexOf('Languages') < printed.indexOf('Skills'));
+
+// Put it back, so the script can be run twice.
+await visit(teacher, '/profile/cv', 6000);
+await expand(teacher, 'Sections');
+await rename('About me', 'Profile');
+await teacher.getByLabel('Move Languages down').click();
+await teacher.waitForTimeout(2500);
+const restored = await teacher.getByLabel(/^Rename /).allTextContents();
+check('and it can be put back',
+  restored.includes('Profile') && restored.indexOf('Skills') < restored.indexOf('Languages'));
+
 // ------------------------------------- the recruiter reads it, then cannot
 const recruiter = await signIn('recruiter');
 await visit(recruiter, '/recruiter', 6000);

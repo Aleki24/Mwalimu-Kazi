@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
-  CV_TEMPLATES, certificateLine, certificateWhen, contactLine, cvFileName, describeBlocks,
+  CV_SECTIONS, CV_TEMPLATES, DEFAULT_SECTIONS, certificateLine, sectionsFrom, certificateWhen, contactLine, cvFileName, describeBlocks,
   formatYearRange, orderEducation, orderExperience,
   renderCvHtml, renderCvPreviewHtml, renderCvWordHtml, styleFor,
   type CvData, type CvExperience, type CvTemplate,
@@ -17,7 +17,7 @@ const cv = (over: Partial<CvData> = {}): CvData => ({
   tscNumber: null, subjects: [], education: [], experience: [], referees: [],
   photoDataUri: null, dateOfBirth: null, gender: null, nationality: null,
   address: null, postCode: null, skills: [], languages: [], hobbies: [],
-  responsibilities: [], certificates: [], volunteer: [],
+  responsibilities: [], certificates: [], volunteer: [], sections: DEFAULT_SECTIONS,
   ...over,
 });
 
@@ -311,5 +311,68 @@ describe('the portrait template', () => {
 
   it('opens in Word as the same document', () => {
     expect(renderCvWordHtml(full, look('portrait'))).toContain('urn:schemas-microsoft-com:office:word');
+  });
+});
+
+describe('the order of a CV', () => {
+  const both = cv({
+    summary: 'A profile.',
+    education: [{ institution: 'UoN', qualification: 'B.Ed', startYear: 2012, endYear: 2016, grade: null }],
+    experience: [role()],
+  });
+
+  it('puts the sections where the teacher put them', () => {
+    const first = renderCvHtml(both, look('classic'));
+    const swapped = renderCvHtml(
+      { ...both, sections: sectionsFrom([{ key: 'employment', title: null }, { key: 'education', title: null }]) },
+      look('classic'),
+    );
+    expect(first.indexOf('>Education</h2>')).toBeLessThan(first.indexOf('>Employment</h2>'));
+    expect(swapped.indexOf('>Employment</h2>')).toBeLessThan(swapped.indexOf('>Education</h2>'));
+  });
+
+  it('uses the words the teacher chose', () => {
+    const renamed = renderCvHtml(
+      { ...both, sections: sectionsFrom([{ key: 'employment', title: 'Work Experience' }]) },
+      look('classic'),
+    );
+    expect(renamed).toContain('>Work Experience</h2>');
+    expect(renamed).not.toContain('>Employment</h2>');
+  });
+
+  /**
+   * Dropping Employment into a 48mm sidebar is not a rearrangement, it is a
+   * different document — so an order moves a section within its column.
+   */
+  it('keeps a sidebar section in the sidebar', () => {
+    const html = renderCvHtml(
+      {
+        ...both,
+        skills: ['Laboratory management'],
+        sections: sectionsFrom([{ key: 'skills', title: null }, { key: 'employment', title: null }]),
+      },
+      look('portrait'),
+    );
+    const side = html.slice(html.indexOf('class="side"'), html.indexOf('class="main"'));
+    expect(side).toContain('>Skills</h2>');
+    expect(side).not.toContain('>Employment</h2>');
+  });
+
+  it('keeps a section nobody moved rather than dropping it', () => {
+    // Adding a section to the app later must not empty every stored CV.
+    const filled = sectionsFrom([{ key: 'referees', title: null }]);
+    expect(filled).toHaveLength(Object.keys(CV_SECTIONS).length);
+    expect(filled[0]?.key).toBe('referees');
+  });
+
+  it('falls back to the default word when the title is null', () => {
+    expect(sectionsFrom([{ key: 'employment', title: null }])[0]?.title).toBe('Employment');
+  });
+
+  it('leaves every template in the default order alone', () => {
+    for (const t of Object.keys(CV_TEMPLATES) as CvTemplate[]) {
+      expect(renderCvHtml({ ...both, sections: DEFAULT_SECTIONS }, look(t)))
+        .toBe(renderCvHtml(both, look(t)));
+    }
   });
 });

@@ -1,8 +1,11 @@
 import type {
-  CvCertificate, CvData, CvEducation, CvExperience, CvLanguage, CvReferee, CvStyle,
+  CvCertificate, CvData, CvEducation, CvExperience, CvLanguage, CvReferee, CvSection,
+  CvSectionKey, CvStyle,
 } from '@mwalimu/core';
 import type { Tables, TablesInsert, TeacherProfile } from '@mwalimu/types';
-import { DEFAULT_CV_STYLE, formatLabel, formatPhoneForDisplay, toE164Kenya } from '@mwalimu/core';
+import {
+  CV_SECTIONS, DEFAULT_CV_STYLE, formatLabel, formatPhoneForDisplay, sectionsFrom, toE164Kenya,
+} from '@mwalimu/core';
 import { supabase } from './supabase';
 
 /**
@@ -16,6 +19,7 @@ export type ExperienceRow = Tables<'cv_experience'>;
 export type RefereeRow = Tables<'cv_referees'>;
 export type CertificateRow = Tables<'cv_certificates'>;
 export type LanguageRow = Tables<'cv_languages'>;
+export type SectionRow = Tables<'cv_sections'>;
 
 export interface CvRecord {
   readonly details: Tables<'cv_details'> | null;
@@ -24,10 +28,12 @@ export interface CvRecord {
   readonly referees: readonly RefereeRow[];
   readonly certificates: readonly CertificateRow[];
   readonly languages: readonly LanguageRow[];
+  readonly sections: readonly SectionRow[];
 }
 
 export const EMPTY_CV: CvRecord = {
-  details: null, education: [], experience: [], referees: [], certificates: [], languages: [],
+  details: null, education: [], experience: [], referees: [], certificates: [],
+  languages: [], sections: [],
 };
 
 /**
@@ -42,16 +48,17 @@ export async function fetchCv(userId?: string): Promise<CvRecord> {
   const scope = <T extends { eq: (column: string, value: string) => T }>(query: T): T =>
     (userId === undefined ? query : query.eq('user_id', userId));
 
-  const [details, education, experience, referees, certificates, languages] = await Promise.all([
+  const [details, education, experience, referees, certificates, languages, sections] = await Promise.all([
     scope(supabase.from('cv_details').select('*')).maybeSingle(),
     scope(supabase.from('cv_education').select('*')),
     scope(supabase.from('cv_experience').select('*')),
     scope(supabase.from('cv_referees').select('*').order('created_at')),
     scope(supabase.from('cv_certificates').select('*').order('created_at')),
     scope(supabase.from('cv_languages').select('*').order('created_at')),
+    scope(supabase.from('cv_sections').select('*').order('position')),
   ]);
 
-  for (const r of [details, education, experience, referees, certificates, languages]) {
+  for (const r of [details, education, experience, referees, certificates, languages, sections]) {
     if (r.error !== null) throw new Error(r.error.message);
   }
 
@@ -62,6 +69,7 @@ export async function fetchCv(userId?: string): Promise<CvRecord> {
     referees: referees.data ?? [],
     certificates: certificates.data ?? [],
     languages: languages.data ?? [],
+    sections: sections.data ?? [],
   };
 }
 
@@ -236,7 +244,45 @@ export function toCvData(
     hobbies: cv.details?.hobbies ?? [],
     responsibilities: cv.details?.responsibilities ?? [],
     certificates,
+    // Already ordered by `position` in the query; anything the teacher has
+    // never touched is filled in behind them by `sectionsFrom`.
+    sections: sectionsFrom(cv.sections.map((r) => ({ key: r.section, title: r.title }))),
   };
+}
+
+/**
+ * Write the whole order at once.
+ *
+ * Every row carries its position, so moving one section renumbers the rest —
+ * saving only the moved row would leave two sections claiming the same place
+ * and the order decided by whichever the database returned first.
+ */
+export async function saveSectionOrder(
+  userId: string, sections: readonly CvSection[],
+): Promise<void> {
+  const { error } = await supabase.from('cv_sections').upsert(
+    sections.map((s, position) => ({
+      user_id: userId,
+      section: s.key,
+      position,
+      // The default word is stored as "no title", so renaming a section back
+      // to what it was leaves nothing behind to go stale if the word changes.
+      title: s.title === CV_SECTIONS[s.key] ? null : s.title,
+    })),
+    { onConflict: 'user_id,section' },
+  );
+  if (error !== null) throw new Error(error.message);
+}
+
+export async function renameSection(
+  userId: string, sections: readonly CvSection[], key: CvSectionKey, title: string | null,
+): Promise<void> {
+  await saveSectionOrder(
+    userId,
+    sections.map((s) => (s.key === key
+      ? { ...s, title: title ?? CV_SECTIONS[key] }
+      : s)),
+  );
 }
 
 /** Everything on `cv_details` a teacher may set from the CV screen. */

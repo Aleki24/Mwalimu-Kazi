@@ -5,7 +5,7 @@ import { Stack, router } from 'expo-router';
 import Feather from '@expo/vector-icons/Feather';
 import {
   CV_VISIBILITY_HINT, CV_VISIBILITY_LABEL,
-  certificateWhen, formatYearRange, orderEducation, orderExperience,
+  certificateWhen, formatYearRange, orderEducation, orderExperience, sectionsFrom,
 } from '@mwalimu/core';
 import { CvVisibility } from '@mwalimu/types';
 import { colors, radius } from '@mwalimu/ui';
@@ -14,12 +14,13 @@ import {
 } from '../../components/ui';
 import { ListEditor } from '../../components/list-editor';
 import { LanguageEditor } from '../../components/language-editor';
+import { SectionOrder } from '../../components/section-order';
 import { CollapsibleSection } from '../../components/collapsible-section';
 import { useAuth, useTeacher } from '../../lib/auth';
 import {
   deleteCvEntry, EMPTY_CV, fetchCv, fetchPhotoDataUri, removePhoto, saveCertificate,
-  saveCvDetails, saveCvPhotoPath, saveEducation, saveExperience, saveLanguage, saveReferee,
-  saveSkills, uploadPhoto, type CvRecord, type CvTable,
+  renameSection, saveCvDetails, saveCvPhotoPath, saveEducation, saveExperience, saveLanguage,
+  saveReferee, saveSectionOrder, saveSkills, uploadPhoto, type CvRecord, type CvTable,
 } from '../../lib/cv';
 import { pickPhoto } from '../../lib/pick-photo';
 
@@ -267,6 +268,8 @@ export default function CvScreen() {
     );
   }
 
+  const sections = sectionsFrom(cv.sections.map((r) => ({ key: r.section, title: r.title })));
+
   /**
    * What a closed section says about itself. Never a bare "0".
    *
@@ -325,6 +328,20 @@ export default function CvScreen() {
             you match can never disagree. Edit them there.
           </Text>
         </NoticeStrip>
+
+        {/* --------------------------------------------------------- sections */}
+        <CollapsibleSection
+          title="Sections"
+          summary={sections.map((x) => x.title).join(', ').slice(0, 24)}
+        >
+          <SectionOrder
+            sections={sections}
+            onReorder={(next) => void run(
+              () => saveSectionOrder(teacher.id, next), 'Could not save that order')}
+            onRename={(key, title) => void run(
+              () => renameSection(teacher.id, sections, key, title), 'Could not rename that')}
+          />
+        </CollapsibleSection>
 
         {/* ------------------------------------------------------ visibility */}
         <CollapsibleSection title="Who can read it" summary={CV_VISIBILITY_LABEL[visibility]}>

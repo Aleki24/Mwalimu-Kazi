@@ -3,6 +3,7 @@ import { ActivityIndicator, Pressable, Text, View } from 'react-native';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import * as SplashScreen from 'expo-splash-screen';
 import {
   InterTight_300Light, InterTight_400Regular, InterTight_500Medium, useFonts,
@@ -139,11 +140,17 @@ export default function RootLayout() {
   if (!fontsLoaded) return null;
 
   return (
-    <SafeAreaProvider>
-      <StatusBar style="dark" />
-      <AuthProvider>
-        <RootNavigator />
-      </AuthProvider>
-    </SafeAreaProvider>
+    // Gesture Handler needs a root of its own for any pan gesture to be
+    // recognised on a device — the CV's section list is the first thing here
+    // that drags, and without this it silently does nothing on a phone while
+    // working perfectly in a browser.
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <SafeAreaProvider>
+        <StatusBar style="dark" />
+        <AuthProvider>
+          <RootNavigator />
+        </AuthProvider>
+      </SafeAreaProvider>
+    </GestureHandlerRootView>
   );
 }

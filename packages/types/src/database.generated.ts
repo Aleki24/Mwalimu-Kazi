@@ -1008,6 +1008,35 @@ export type Database = {
           },
         ]
       }
+      cv_sections: {
+        Row: {
+          position: number
+          section: Database["public"]["Enums"]["cv_section"]
+          title: string | null
+          user_id: string
+        }
+        Insert: {
+          position: number
+          section: Database["public"]["Enums"]["cv_section"]
+          title?: string | null
+          user_id: string
+        }
+        Update: {
+          position?: number
+          section?: Database["public"]["Enums"]["cv_section"]
+          title?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cv_sections_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       job_comments: {
         Row: {
           author_id: string
@@ -1207,6 +1236,19 @@ export type Database = {
         | "slate"
         | "terracotta"
       cv_background: "none" | "dots" | "lines"
+      cv_section:
+        | "personal"
+        | "profile"
+        | "education"
+        | "employment"
+        | "skills"
+        | "languages"
+        | "hobbies"
+        | "volunteer"
+        | "responsibilities"
+        | "certificates"
+        | "subjects"
+        | "referees"
       cv_font:
         | "helvetica"
         | "arial"
@@ -1440,6 +1482,20 @@ export const Constants = {
         "terracotta",
       ],
       cv_background: ["none", "dots", "lines"],
+      cv_section: [
+        "personal",
+        "profile",
+        "education",
+        "employment",
+        "skills",
+        "languages",
+        "hobbies",
+        "volunteer",
+        "responsibilities",
+        "certificates",
+        "subjects",
+        "referees",
+      ],
       cv_font: [
         "helvetica",
         "arial",
