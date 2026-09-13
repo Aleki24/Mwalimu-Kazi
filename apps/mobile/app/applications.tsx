@@ -1,13 +1,13 @@
 import { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, FlatList, Pressable, Text, View } from 'react-native';
 import { Stack, router } from 'expo-router';
-import { formatLabel, formatPostedAge } from '@mwalimu/core';
+import { describeDecision, formatLabel, formatPostedAge } from '@mwalimu/core';
 import { colors } from '@mwalimu/ui';
 import type { Tables } from '@mwalimu/types';
 import { centredContent, EmptyState, ErrorBanner } from '../components/ui';
 import { JobCard } from '../components/job-card';
 import { Pipeline, pipelineProgress } from '../components/pipeline';
-import { fetchApplications, type AppliedJob } from '../lib/applications';
+import { fetchApplications, withdrawApplication, type AppliedJob } from '../lib/applications';
 import { useTeacher } from '../lib/auth';
 import { openThread } from '../lib/messages';
 import { matchScore } from '@mwalimu/core';
@@ -36,6 +36,15 @@ export default function ApplicationsScreen() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [now] = useState(() => new Date());
+
+  const withdraw = async (applicationId: string) => {
+    try {
+      await withdrawApplication(applicationId);
+      await load();
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : 'Could not withdraw that application');
+    }
+  };
 
   const message = async (applicationId: string) => {
     try {
@@ -76,7 +85,15 @@ export default function ApplicationsScreen() {
               body="Apply from a job page and it will appear here, with whatever the school does next."
             />
           }
-          renderItem={({ item }) => (
+          renderItem={({ item }) => {
+            const decision = describeDecision({
+              stage: item.application.stage,
+              decisionNote: item.application.decision_note,
+              interviewAt: item.application.interview_at,
+              interviewPlace: item.application.interview_place,
+            });
+            const open = !['rejected', 'withdrawn', 'offered'].includes(item.application.stage);
+            return (
             <View className="gap-1.5">
               <JobCard
                 entry={{ ...item.entry, match: matchScore(item.entry.job, teacher) }}
@@ -92,7 +109,16 @@ export default function ApplicationsScreen() {
               <View className="px-1 pt-0.5">
                 <Pipeline {...pipelineProgress(item.application.stage)} />
               </View>
-              <View className="flex-row items-baseline gap-2 px-1">
+              {/*
+                What the school actually said. The stage word was the whole of
+                it before — a teacher read "Rejected" and had no idea whether
+                the role was filled or their subjects were wrong, which is the
+                complaint this app exists to answer.
+              */}
+              {decision === null ? null : (
+                <Text className="px-1 text-[11.5px] leading-4 text-foreground">{decision}</Text>
+              )}
+              <View className="flex-row flex-wrap items-baseline gap-2 px-1">
                 <Text className={`text-[11.5px] font-medium ${STAGE_TONE[item.application.stage]}`}>
                   {formatLabel(item.application.stage)}
                 </Text>
@@ -103,6 +129,19 @@ export default function ApplicationsScreen() {
                 >
                   <Text className="text-[11.5px] font-medium text-primary">Message</Text>
                 </Pressable>
+                {/*
+                  Only while it is still live. Withdrawing something already
+                  rejected is a button that does nothing but reopen the wound.
+                */}
+                {open ? (
+                  <Pressable
+                    accessibilityRole="button"
+                    onPress={() => void withdraw(item.application.id)}
+                    hitSlop={6}
+                  >
+                    <Text className="text-[11.5px] font-medium text-mutedForeground">Withdraw</Text>
+                  </Pressable>
+                ) : null}
                 <Text className="text-[11px] text-mutedForeground">
                   {/*
                     The score the school received, not today's. It was frozen at
@@ -113,7 +152,8 @@ export default function ApplicationsScreen() {
                 </Text>
               </View>
             </View>
-          )}
+            );
+          }}
         />
       )}
     </View>

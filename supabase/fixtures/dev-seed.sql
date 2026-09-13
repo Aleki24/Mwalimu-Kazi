@@ -101,10 +101,18 @@ values
    'A fixture school. Nothing here describes a real institution.', 620, 34, 'fixturevalley.example'),
   ('00000000-0000-4000-8000-0000000000fb', 'Fixture Ridge Academy', 'fixture-ridge-academy',
    'kiambu', 'private', array['cbc']::curriculum[], 'pending',
-   'A fixture school awaiting verification.', 410, 22, 'fixtureridge.example');
+   'A fixture school awaiting verification.', 410, 22, 'fixtureridge.example'),
+  -- And one that has never asked, so the "Ask to be verified" path has
+  -- somewhere to start. Ridge stays `pending` because the admin queue reads
+  -- that, and a fixture set that empties another screen's queue to fill this
+  -- one is a fixture set that makes two drives fight.
+  ('00000000-0000-4000-8000-0000000000fe', 'Fixture Hill School', 'fixture-hill-school',
+   'nairobi', 'private', array['cbc']::curriculum[], 'unverified',
+   'A fixture school that has not asked to be checked.', 300, 18, 'fixturehill.example');
 
 insert into school_members (school_id, user_id, role) values
-  ('00000000-0000-4000-8000-0000000000fa', '00000000-0000-4000-8000-0000000000f2', 'admin');
+  ('00000000-0000-4000-8000-0000000000fa', '00000000-0000-4000-8000-0000000000f2', 'admin'),
+  ('00000000-0000-4000-8000-0000000000fe', '00000000-0000-4000-8000-0000000000f2', 'admin');
 
 -- -------------------------------------------------------------------- jobs
 insert into jobs (id, school_id, title, subjects, job_type, county, salary_min,

@@ -1,11 +1,14 @@
 import { useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
 import Feather from '@expo/vector-icons/Feather';
-import { formatLabel, formatPostedAge, matchBand } from '@mwalimu/core';
+import {
+  decisionNeedsDetail, formatInterviewWhen, formatLabel, formatPostedAge, matchBand,
+} from '@mwalimu/core';
 import { colors } from '@mwalimu/ui';
 import type { Tables } from '@mwalimu/types';
 import { Avatar, Card, Chip, Tag, tabularNums } from './ui';
-import type { Applicant } from '../lib/recruiter';
+import { DecisionSheet } from './decision-sheet';
+import type { Applicant, Decision } from '../lib/recruiter';
 
 type Stage = Tables<'applications'>['stage'];
 
@@ -35,13 +38,20 @@ const STAGE_TONE: Readonly<Record<string, string>> = {
  */
 export function ApplicantCard({ item, onStage, onMessage, onViewCv, now, verb = 'applied' }: {
   item: Applicant;
-  onStage: (stage: Stage) => void;
+  onStage: (stage: Stage, decision?: Decision) => void;
   onMessage: () => void;
   onViewCv: () => void;
   now: Date;
   verb?: 'applied' | 'answered';
 }) {
   const [open, setOpen] = useState(false);
+  /*
+    Two of the six stages are questions rather than buttons. Tapping Interview
+    or Rejected opens the sheet instead of sending, because the stage alone is
+    the thing this screen used to get wrong: it changed a word here and told
+    the applicant nothing.
+  */
+  const [asking, setAsking] = useState<'interview' | 'rejected' | null>(null);
   const live = item.liveMatch;
   const frozen = item.application.match_score;
   const teacher = item.teacher;
@@ -51,6 +61,15 @@ export function ApplicantCard({ item, onStage, onMessage, onViewCv, now, verb = 
     place that would otherwise say "Applied" reads this instead.
   */
   const invited = item.application.source === 'invited';
+
+  const when = item.application.interview_at;
+  const place = item.application.interview_place;
+  const note = item.application.decision_note;
+  const said = [
+    when === null ? null : formatInterviewWhen(when),
+    place === null || place.trim() === '' ? null : place.trim(),
+    note === null || note.trim() === '' ? null : note.trim(),
+  ].filter((part): part is string => part !== null && part !== '').join(' · ') || null;
 
   return (
     <Card className="gap-2.5 p-3.5">
@@ -124,6 +143,15 @@ export function ApplicantCard({ item, onStage, onMessage, onViewCv, now, verb = 
       </Pressable>
 
       {/*
+        What you already told them, in the words they received. A recruiter
+        working down a list a week later has no other way to remember whether
+        this one was invited for Tuesday or told the role was filled.
+      */}
+      {said === null ? null : (
+        <Text className="text-[11px] leading-4 text-mutedForeground">You told them: {said}</Text>
+      )}
+
+      {/*
         Talking to them is never behind a tap. It was inside the collapsed
         block with the stage chips, which is defensible for a school triaging
         twenty applicants and wrong for a parent looking at two tutors — there,
@@ -164,11 +192,29 @@ export function ApplicantCard({ item, onStage, onMessage, onViewCv, now, verb = 
               key={s}
               label={formatLabel(s)}
               selected={item.application.stage === s}
-              onPress={() => onStage(s)}
+              onPress={() => {
+                if (decisionNeedsDetail(s)) {
+                  setAsking((current) => (current === s ? null : s));
+                  return;
+                }
+                setAsking(null);
+                onStage(s);
+              }}
             />
           ))}
         </View>
       ) : null}
+
+      {asking === null ? null : (
+        <DecisionSheet
+          stage={asking}
+          teacherName={teacher?.fullName ?? 'this teacher'}
+          verb={verb}
+          busy={false}
+          onCancel={() => setAsking(null)}
+          onConfirm={(decision) => { setAsking(null); onStage(asking, decision); }}
+        />
+      )}
     </Card>
   );
 }

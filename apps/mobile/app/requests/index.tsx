@@ -13,7 +13,7 @@ import {
 import { ApplicantCard } from '../../components/applicant-card';
 import { MeetingIcons } from '../../components/meeting-icons';
 import {
-  fetchApplicants, fetchMyPostings, setApplicationStage, type Applicant,
+  fetchApplicants, fetchMyPostings, setApplicationStage, type Applicant, type Decision,
 } from '../../lib/recruiter';
 import { openThread } from '../../lib/messages';
 import { useTeacher } from '../../lib/auth';
@@ -33,6 +33,27 @@ type Stage = Tables<'applications'>['stage'];
  * place is something the parent types into the conversation once they have
  * decided who they want, which is why the only action on an answer is to talk.
  */
+
+/**
+ * The decision as the row will hold it, for the optimistic update.
+ *
+ * Absent means untouched; an empty string means the recruiter left the field
+ * blank, which is a null in the database rather than ''. Doing this in one
+ * place keeps the card's "You told them" line honest on both screens.
+ */
+const patchOf = (decision?: Decision) => {
+  if (decision === undefined) return {};
+  const trimmed = (value: string | undefined): string | null => {
+    const text = (value ?? '').trim();
+    return text === '' ? null : text;
+  };
+  return {
+    decision_note: trimmed(decision.note),
+    interview_at: trimmed(decision.interviewAt),
+    interview_place: trimmed(decision.interviewPlace),
+  };
+};
+
 export default function MyRequestsScreen() {
   const teacher = useTeacher();
   const [postings, setPostings] = useState<readonly Tables<'jobs'>[]>([]);
@@ -86,13 +107,16 @@ export default function MyRequestsScreen() {
     }
   };
 
-  const move = async (applicationId: string, stage: Stage) => {
+  const move = async (applicationId: string, stage: Stage, decision?: Decision) => {
+    // The decision goes into the optimistic row too, not just the stage. A
+    // recruiter who has just typed a reason should see it on the card, and
+    // showing the new stage with the old note reads as the note being ignored.
     setApplicants((prev) => prev.map((a) =>
       a.application.id === applicationId
-        ? { ...a, application: { ...a.application, stage } }
+        ? { ...a, application: { ...a.application, stage, ...patchOf(decision) } }
         : a));
     try {
-      await setApplicationStage(applicationId, stage);
+      await setApplicationStage(applicationId, stage, decision);
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : 'Could not save that');
       if (selected !== null) setApplicants(await fetchApplicants(selected));
@@ -199,7 +223,7 @@ export default function MyRequestsScreen() {
                   key={a.application.id}
                   item={a}
                   now={now}
-                  onStage={(stage) => void move(a.application.id, stage)}
+                  onStage={(stage, decision) => void move(a.application.id, stage, decision)}
                   onMessage={() => void message(a.application.id)}
                   onViewCv={() => router.push({
                     pathname: '/applicant/[id]/cv',

@@ -23,6 +23,8 @@ const TONE: Readonly<Record<Kind, { fg: string; mark: string }>> = {
   shortlisted:         { fg: 'text-warningForeground', mark: '★' },
   rejected:            { fg: 'text-mutedForeground', mark: '—' },
   interview_invite:    { fg: 'text-warningForeground', mark: '◷' },
+  // The one everybody is here for, and the only green mark in the list.
+  offered:             { fg: 'text-successForeground', mark: '✓' },
   profile_viewed:      { fg: 'text-infoForeground', mark: '◉' },
   school_review:       { fg: 'text-destructiveForeground', mark: '⚑' },
   followed_school_job: { fg: 'text-foreground', mark: '◆' },

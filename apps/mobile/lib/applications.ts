@@ -75,3 +75,19 @@ export async function applyToJob(
   if (error.code === UNIQUE_VIOLATION) return false;
   throw new Error(error.message);
 }
+
+/**
+ * Take an application back.
+ *
+ * `withdrawn` has been in the stage enum since the first migration and was
+ * unreachable: every UPDATE policy on applications belonged to the school or
+ * the poster, so the one person who cannot change their mind was the applicant.
+ * 0035 gives them an UPDATE narrowed by a guard to this single word — they
+ * still cannot shortlist themselves, rewrite the school's note, or touch the
+ * score the school received.
+ */
+export async function withdrawApplication(applicationId: string): Promise<void> {
+  const { error } = await supabase
+    .from('applications').update({ stage: 'withdrawn' }).eq('id', applicationId);
+  if (error !== null) throw new Error(error.message);
+}

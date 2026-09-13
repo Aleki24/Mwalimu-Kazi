@@ -192,7 +192,7 @@ export type NewsTopic = z.infer<typeof NewsTopic>;
 export const NotificationKind = z.enum([
   'job_match', 'auto_apply_sent', 'auto_apply_failed', 'application_viewed',
   'shortlisted', 'rejected', 'interview_invite', 'profile_viewed',
-  'school_review', 'followed_school_job', 'news', 'resource', 'message',
+  'school_review', 'followed_school_job', 'news', 'resource', 'message', 'offered',
 ]);
 export type NotificationKind = z.infer<typeof NotificationKind>;
 

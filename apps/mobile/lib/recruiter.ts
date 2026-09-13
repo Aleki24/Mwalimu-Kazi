@@ -63,6 +63,31 @@ export async function fetchMySchools(): Promise<readonly MySchool[]> {
   });
 }
 
+/**
+ * One school, with this person's standing at it.
+ *
+ * fetchMySchools answers "where do I recruit"; this answers "what am I allowed
+ * to do here", which the school screen needs and a list of every school would
+ * be a wasteful way to get.
+ */
+export async function fetchMySchool(schoolId: string): Promise<MySchool | null> {
+  const { data, error } = await supabase
+    .from('school_members').select('role, schools ( * )')
+    .eq('school_id', schoolId).maybeSingle();
+  if (error !== null) throw new Error(error.message);
+
+  const row = data as unknown as {
+    role: Tables<'school_members'>['role'];
+    schools: Tables<'schools'> | null;
+  } | null;
+  if (row === null || row.schools === null) return null;
+
+  // openRoles and newApplicants belong to the dashboard's summary, and this
+  // caller has the real numbers in front of it. Zero rather than a second
+  // round trip to compute something nothing reads.
+  return { school: row.schools, role: row.role, openRoles: 0, newApplicants: 0 };
+}
+
 export async function createSchool(input: {
   readonly name: string;
   readonly county: County;
@@ -175,11 +200,63 @@ export async function fetchMyPostings(posterId: string): Promise<readonly Tables
   return data ?? [];
 }
 
+/**
+ * What a school attaches to a decision.
+ *
+ * Optional because most stages need nothing — shortlisting somebody is the
+ * whole message. An interview and a rejection are the two that are useless on
+ * their own, and `decisionNeedsDetail` in @mwalimu/core is what says so, in
+ * one place, so the screen and the check cannot drift apart.
+ */
+export interface Decision {
+  readonly note?: string | undefined;
+  /** ISO 8601. The database formats it in Africa/Nairobi for the notification. */
+  readonly interviewAt?: string | undefined;
+  readonly interviewPlace?: string | undefined;
+}
+
+const trimmedOrNull = (value: string | undefined): string | null => {
+  const text = (value ?? '').trim();
+  return text === '' ? null : text;
+};
+
+/**
+ * Move somebody along, and say something while doing it.
+ *
+ * The notification is not sent from here. A trigger on `applications` writes
+ * it, because a school holds UPDATE on this row and a client-written
+ * notification is both forgeable and one refactor away from being forgotten.
+ * This function's only job is the record; the telling follows from it.
+ */
 export async function setApplicationStage(
   applicationId: string,
   stage: Tables<'applications'>['stage'],
+  decision?: Decision,
 ): Promise<void> {
+  const patch = decision === undefined
+    ? { stage }
+    : {
+        stage,
+        decision_note: trimmedOrNull(decision.note),
+        interview_at: trimmedOrNull(decision.interviewAt),
+        interview_place: trimmedOrNull(decision.interviewPlace),
+      };
+
   const { error } = await supabase
-    .from('applications').update({ stage }).eq('id', applicationId);
+    .from('applications').update(patch).eq('id', applicationId);
+  if (error !== null) throw new Error(error.message);
+}
+
+/**
+ * Ask the platform to check this school.
+ *
+ * `verification` is guarded: a school cannot mark itself verified, and until
+ * now it could not ask either, so the moderator's queue could only ever be
+ * filled by hand in SQL. The guard now allows exactly one move — unverified to
+ * under_review, by the school's own admin — which is asking, not granting.
+ */
+export async function requestSchoolVerification(schoolId: string): Promise<void> {
+  const { error } = await supabase
+    .from('schools').update({ verification: 'under_review' }).eq('id', schoolId);
   if (error !== null) throw new Error(error.message);
 }

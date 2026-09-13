@@ -17,7 +17,11 @@ export type Database = {
       applications: {
         Row: {
           created_at: string
+          decided_at: string | null
+          decision_note: string | null
           id: string
+          interview_at: string | null
+          interview_place: string | null
           job_id: string
           match_score: number
           source: Database["public"]["Enums"]["application_source"]
@@ -26,7 +30,11 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          decided_at?: string | null
+          decision_note?: string | null
           id?: string
+          interview_at?: string | null
+          interview_place?: string | null
           job_id: string
           match_score: number
           source?: Database["public"]["Enums"]["application_source"]
@@ -35,7 +43,11 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          decided_at?: string | null
+          decision_note?: string | null
           id?: string
+          interview_at?: string | null
+          interview_place?: string | null
           job_id?: string
           match_score?: number
           source?: Database["public"]["Enums"]["application_source"]
@@ -157,98 +169,467 @@ export type Database = {
           },
         ]
       }
+      cv_certificates: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          is_ongoing: boolean
+          title: string
+          user_id: string
+          year: number | null
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_ongoing?: boolean
+          title: string
+          user_id: string
+          year?: number | null
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_ongoing?: boolean
+          title?: string
+          user_id?: string
+          year?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cv_certificates_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cv_details: {
+        Row: {
+          accent: Database["public"]["Enums"]["cv_accent"]
+          address: string | null
+          background: Database["public"]["Enums"]["cv_background"]
+          date_of_birth: string | null
+          email: string | null
+          entry_spacing: number
+          font: Database["public"]["Enums"]["cv_font"]
+          font_scale: number
+          gender: string | null
+          hobbies: string[]
+          line_height: number
+          location: string | null
+          nationality: string | null
+          page_margins: number
+          phone: string | null
+          photo_path: string | null
+          post_code: string | null
+          responsibilities: string[]
+          section_spacing: number
+          summary: string | null
+          template: Database["public"]["Enums"]["cv_template"]
+          updated_at: string
+          user_id: string
+          visibility: Database["public"]["Enums"]["cv_visibility"]
+        }
+        Insert: {
+          accent?: Database["public"]["Enums"]["cv_accent"]
+          address?: string | null
+          background?: Database["public"]["Enums"]["cv_background"]
+          date_of_birth?: string | null
+          email?: string | null
+          entry_spacing?: number
+          font?: Database["public"]["Enums"]["cv_font"]
+          font_scale?: number
+          gender?: string | null
+          hobbies?: string[]
+          line_height?: number
+          location?: string | null
+          nationality?: string | null
+          page_margins?: number
+          phone?: string | null
+          photo_path?: string | null
+          post_code?: string | null
+          responsibilities?: string[]
+          section_spacing?: number
+          summary?: string | null
+          template?: Database["public"]["Enums"]["cv_template"]
+          updated_at?: string
+          user_id: string
+          visibility?: Database["public"]["Enums"]["cv_visibility"]
+        }
+        Update: {
+          accent?: Database["public"]["Enums"]["cv_accent"]
+          address?: string | null
+          background?: Database["public"]["Enums"]["cv_background"]
+          date_of_birth?: string | null
+          email?: string | null
+          entry_spacing?: number
+          font?: Database["public"]["Enums"]["cv_font"]
+          font_scale?: number
+          gender?: string | null
+          hobbies?: string[]
+          line_height?: number
+          location?: string | null
+          nationality?: string | null
+          page_margins?: number
+          phone?: string | null
+          photo_path?: string | null
+          post_code?: string | null
+          responsibilities?: string[]
+          section_spacing?: number
+          summary?: string | null
+          template?: Database["public"]["Enums"]["cv_template"]
+          updated_at?: string
+          user_id?: string
+          visibility?: Database["public"]["Enums"]["cv_visibility"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cv_details_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cv_education: {
+        Row: {
+          created_at: string
+          end_year: number | null
+          grade: string | null
+          id: string
+          institution: string
+          qualification: string
+          start_year: number | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          end_year?: number | null
+          grade?: string | null
+          id?: string
+          institution: string
+          qualification: string
+          start_year?: number | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          end_year?: number | null
+          grade?: string | null
+          id?: string
+          institution?: string
+          qualification?: string
+          start_year?: number | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cv_education_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cv_experience: {
+        Row: {
+          created_at: string
+          description: string | null
+          end_year: number | null
+          id: string
+          is_current: boolean
+          is_volunteer: boolean
+          organisation: string
+          role: string
+          start_year: number | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          end_year?: number | null
+          id?: string
+          is_current?: boolean
+          is_volunteer?: boolean
+          organisation: string
+          role: string
+          start_year?: number | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          end_year?: number | null
+          id?: string
+          is_current?: boolean
+          is_volunteer?: boolean
+          organisation?: string
+          role?: string
+          start_year?: number | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cv_experience_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cv_languages: {
+        Row: {
+          created_at: string
+          id: string
+          level: number | null
+          name: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          level?: number | null
+          name: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          level?: number | null
+          name?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cv_languages_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cv_referees: {
+        Row: {
+          created_at: string
+          email: string | null
+          id: string
+          name: string
+          organisation: string | null
+          phone: string | null
+          title: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          email?: string | null
+          id?: string
+          name: string
+          organisation?: string | null
+          phone?: string | null
+          title?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          email?: string | null
+          id?: string
+          name?: string
+          organisation?: string | null
+          phone?: string | null
+          title?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cv_referees_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cv_sections: {
+        Row: {
+          position: number
+          section: Database["public"]["Enums"]["cv_section"]
+          title: string | null
+          user_id: string
+        }
+        Insert: {
+          position: number
+          section: Database["public"]["Enums"]["cv_section"]
+          title?: string | null
+          user_id: string
+        }
+        Update: {
+          position?: number
+          section?: Database["public"]["Enums"]["cv_section"]
+          title?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cv_sections_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      job_comments: {
+        Row: {
+          author_id: string
+          body: string
+          created_at: string
+          id: string
+          job_id: string
+        }
+        Insert: {
+          author_id: string
+          body: string
+          created_at?: string
+          id?: string
+          job_id: string
+        }
+        Update: {
+          author_id?: string
+          body?: string
+          created_at?: string
+          id?: string
+          job_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "job_comments_author_id_fkey"
+            columns: ["author_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "job_comments_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "jobs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       jobs: {
         Row: {
           area: string | null
+          closes_at: string | null
+          county: string
+          created_at: string
+          engagement: Database["public"]["Enums"]["engagement_kind"]
+          id: string
+          job_type: Database["public"]["Enums"]["job_type"]
+          learner_level: string | null
           level: Database["public"]["Enums"]["teaching_level"] | null
           meets_at_student: boolean
           meets_at_teacher: boolean
           meets_online: boolean
-          posted_by_name: string | null
-          poster_role: Database["public"]["Enums"]["poster_role"] | null
-          preferred_gender: Database["public"]["Enums"]["gender_preference"] | null
-          prefers_locality: string | null
-          engagement: Database["public"]["Enums"]["engagement_kind"]
-          learner_level: string | null
-          rate_period: Database["public"]["Enums"]["rate_period"]
-          sessions_per_week: number | null
-          closes_at: string | null
-          county: string
-          created_at: string
-          id: string
-          job_type: Database["public"]["Enums"]["job_type"]
           posted_at: string
+          posted_by: string | null
+          posted_by_name: string | null
+          poster_kind: Database["public"]["Enums"]["job_poster_kind"]
+          poster_role: Database["public"]["Enums"]["poster_role"] | null
+          preferred_gender:
+            | Database["public"]["Enums"]["gender_preference"]
+            | null
+          prefers_locality: string | null
           published: boolean
+          rate_period: Database["public"]["Enums"]["rate_period"]
           requirements: Json
           salary_max: number | null
-          posted_by: string | null
-          poster_kind: Database["public"]["Enums"]["job_poster_kind"]
           salary_min: number | null
           school_id: string | null
+          sessions_per_week: number | null
           subjects: string[]
           title: string
         }
         Insert: {
           area?: string | null
+          closes_at?: string | null
+          county: string
+          created_at?: string
+          engagement?: Database["public"]["Enums"]["engagement_kind"]
+          id?: string
+          job_type: Database["public"]["Enums"]["job_type"]
+          learner_level?: string | null
           level?: Database["public"]["Enums"]["teaching_level"] | null
           meets_at_student?: boolean
           meets_at_teacher?: boolean
           meets_online?: boolean
-          posted_by_name?: string | null
-          poster_role?: Database["public"]["Enums"]["poster_role"] | null
-          preferred_gender?: Database["public"]["Enums"]["gender_preference"] | null
-          prefers_locality?: string | null
-          engagement?: Database["public"]["Enums"]["engagement_kind"]
-          learner_level?: string | null
-          rate_period?: Database["public"]["Enums"]["rate_period"]
-          sessions_per_week?: number | null
-          closes_at?: string | null
-          county: string
-          created_at?: string
-          id?: string
-          job_type: Database["public"]["Enums"]["job_type"]
           posted_at?: string
+          posted_by?: string | null
+          posted_by_name?: string | null
+          poster_kind?: Database["public"]["Enums"]["job_poster_kind"]
+          poster_role?: Database["public"]["Enums"]["poster_role"] | null
+          preferred_gender?:
+            | Database["public"]["Enums"]["gender_preference"]
+            | null
+          prefers_locality?: string | null
           published?: boolean
+          rate_period?: Database["public"]["Enums"]["rate_period"]
           requirements?: Json
           salary_max?: number | null
-          posted_by?: string | null
-          poster_kind?: Database["public"]["Enums"]["job_poster_kind"]
           salary_min?: number | null
           school_id?: string | null
+          sessions_per_week?: number | null
           subjects: string[]
           title: string
         }
         Update: {
           area?: string | null
+          closes_at?: string | null
+          county?: string
+          created_at?: string
+          engagement?: Database["public"]["Enums"]["engagement_kind"]
+          id?: string
+          job_type?: Database["public"]["Enums"]["job_type"]
+          learner_level?: string | null
           level?: Database["public"]["Enums"]["teaching_level"] | null
           meets_at_student?: boolean
           meets_at_teacher?: boolean
           meets_online?: boolean
-          posted_by_name?: string | null
-          poster_role?: Database["public"]["Enums"]["poster_role"] | null
-          preferred_gender?: Database["public"]["Enums"]["gender_preference"] | null
-          prefers_locality?: string | null
-          engagement?: Database["public"]["Enums"]["engagement_kind"]
-          learner_level?: string | null
-          rate_period?: Database["public"]["Enums"]["rate_period"]
-          sessions_per_week?: number | null
-          closes_at?: string | null
-          county?: string
-          created_at?: string
-          id?: string
-          job_type?: Database["public"]["Enums"]["job_type"]
           posted_at?: string
+          posted_by?: string | null
+          posted_by_name?: string | null
+          poster_kind?: Database["public"]["Enums"]["job_poster_kind"]
+          poster_role?: Database["public"]["Enums"]["poster_role"] | null
+          preferred_gender?:
+            | Database["public"]["Enums"]["gender_preference"]
+            | null
+          prefers_locality?: string | null
           published?: boolean
+          rate_period?: Database["public"]["Enums"]["rate_period"]
           requirements?: Json
           salary_max?: number | null
-          posted_by?: string | null
-          poster_kind?: Database["public"]["Enums"]["job_poster_kind"]
           salary_min?: number | null
           school_id?: string | null
+          sessions_per_week?: number | null
           subjects?: string[]
           title?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "jobs_posted_by_fkey"
+            columns: ["posted_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "jobs_school_id_fkey"
             columns: ["school_id"]
@@ -311,17 +692,17 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "messages_thread_id_fkey"
-            columns: ["thread_id"]
-            isOneToOne: false
-            referencedRelation: "message_threads"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "messages_sender_id_fkey"
             columns: ["sender_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "messages_thread_id_fkey"
+            columns: ["thread_id"]
+            isOneToOne: false
+            referencedRelation: "message_threads"
             referencedColumns: ["id"]
           },
         ]
@@ -397,6 +778,130 @@ export type Database = {
           {
             foreignKeyName: "notifications_user_id_fkey"
             columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      platform_admins: {
+        Row: {
+          granted_at: string
+          user_id: string
+        }
+        Insert: {
+          granted_at?: string
+          user_id: string
+        }
+        Update: {
+          granted_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "platform_admins_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      post_comments: {
+        Row: {
+          author_id: string
+          body: string
+          created_at: string
+          id: string
+          post_id: string
+        }
+        Insert: {
+          author_id: string
+          body: string
+          created_at?: string
+          id?: string
+          post_id: string
+        }
+        Update: {
+          author_id?: string
+          body?: string
+          created_at?: string
+          id?: string
+          post_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "post_comments_author_id_fkey"
+            columns: ["author_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "post_comments_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "posts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      post_likes: {
+        Row: {
+          created_at: string
+          post_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          post_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          post_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "post_likes_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "posts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "post_likes_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      posts: {
+        Row: {
+          author_id: string
+          body: string
+          created_at: string
+          id: string
+        }
+        Insert: {
+          author_id: string
+          body: string
+          created_at?: string
+          id?: string
+        }
+        Update: {
+          author_id?: string
+          body?: string
+          created_at?: string
+          id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "posts_author_id_fkey"
+            columns: ["author_id"]
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
@@ -720,471 +1225,6 @@ export type Database = {
         }
         Relationships: []
       }
-      cv_details: {
-        Row: {
-          address: string | null
-          date_of_birth: string | null
-          accent: Database["public"]["Enums"]["cv_accent"]
-          background: Database["public"]["Enums"]["cv_background"]
-          entry_spacing: number
-          font: Database["public"]["Enums"]["cv_font"]
-          font_scale: number
-          line_height: number
-          page_margins: number
-          section_spacing: number
-          template: Database["public"]["Enums"]["cv_template"]
-          email: string | null
-          gender: string | null
-          hobbies: string[]
-          location: string | null
-          nationality: string | null
-          phone: string | null
-          photo_path: string | null
-          post_code: string | null
-          responsibilities: string[]
-          summary: string | null
-          updated_at: string
-          user_id: string
-          visibility: Database["public"]["Enums"]["cv_visibility"]
-        }
-        Insert: {
-          address?: string | null
-          date_of_birth?: string | null
-          accent?: Database["public"]["Enums"]["cv_accent"]
-          background?: Database["public"]["Enums"]["cv_background"]
-          entry_spacing?: number
-          font?: Database["public"]["Enums"]["cv_font"]
-          font_scale?: number
-          line_height?: number
-          page_margins?: number
-          section_spacing?: number
-          template?: Database["public"]["Enums"]["cv_template"]
-          email?: string | null
-          gender?: string | null
-          hobbies?: string[]
-          location?: string | null
-          nationality?: string | null
-          phone?: string | null
-          photo_path?: string | null
-          post_code?: string | null
-          responsibilities?: string[]
-          summary?: string | null
-          updated_at?: string
-          user_id: string
-          visibility?: Database["public"]["Enums"]["cv_visibility"]
-        }
-        Update: {
-          address?: string | null
-          date_of_birth?: string | null
-          accent?: Database["public"]["Enums"]["cv_accent"]
-          background?: Database["public"]["Enums"]["cv_background"]
-          entry_spacing?: number
-          font?: Database["public"]["Enums"]["cv_font"]
-          font_scale?: number
-          line_height?: number
-          page_margins?: number
-          section_spacing?: number
-          template?: Database["public"]["Enums"]["cv_template"]
-          email?: string | null
-          gender?: string | null
-          hobbies?: string[]
-          location?: string | null
-          nationality?: string | null
-          phone?: string | null
-          photo_path?: string | null
-          post_code?: string | null
-          responsibilities?: string[]
-          summary?: string | null
-          updated_at?: string
-          user_id?: string
-          visibility?: Database["public"]["Enums"]["cv_visibility"]
-        }
-        Relationships: [
-          {
-            foreignKeyName: "cv_details_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      cv_certificates: {
-        Row: {
-          created_at: string
-          description: string | null
-          id: string
-          is_ongoing: boolean
-          title: string
-          user_id: string
-          year: number | null
-        }
-        Insert: {
-          created_at?: string
-          description?: string | null
-          id?: string
-          is_ongoing?: boolean
-          title: string
-          user_id: string
-          year?: number | null
-        }
-        Update: {
-          created_at?: string
-          description?: string | null
-          id?: string
-          is_ongoing?: boolean
-          title?: string
-          user_id?: string
-          year?: number | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "cv_certificates_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      cv_education: {
-        Row: {
-          created_at: string
-          end_year: number | null
-          grade: string | null
-          id: string
-          institution: string
-          qualification: string
-          start_year: number | null
-          user_id: string
-        }
-        Insert: {
-          created_at?: string
-          end_year?: number | null
-          grade?: string | null
-          id?: string
-          institution: string
-          qualification: string
-          start_year?: number | null
-          user_id: string
-        }
-        Update: {
-          created_at?: string
-          end_year?: number | null
-          grade?: string | null
-          id?: string
-          institution?: string
-          qualification?: string
-          start_year?: number | null
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "cv_education_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      cv_experience: {
-        Row: {
-          created_at: string
-          description: string | null
-          end_year: number | null
-          id: string
-          is_current: boolean
-          is_volunteer: boolean
-          organisation: string
-          role: string
-          start_year: number | null
-          user_id: string
-        }
-        Insert: {
-          created_at?: string
-          description?: string | null
-          end_year?: number | null
-          id?: string
-          is_current?: boolean
-          is_volunteer?: boolean
-          organisation: string
-          role: string
-          start_year?: number | null
-          user_id: string
-        }
-        Update: {
-          created_at?: string
-          description?: string | null
-          end_year?: number | null
-          id?: string
-          is_current?: boolean
-          is_volunteer?: boolean
-          organisation?: string
-          role?: string
-          start_year?: number | null
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "cv_experience_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      cv_languages: {
-        Row: {
-          created_at: string
-          id: string
-          level: number | null
-          name: string
-          user_id: string
-        }
-        Insert: {
-          created_at?: string
-          id?: string
-          level?: number | null
-          name: string
-          user_id: string
-        }
-        Update: {
-          created_at?: string
-          id?: string
-          level?: number | null
-          name?: string
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "cv_languages_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      cv_referees: {
-        Row: {
-          created_at: string
-          email: string | null
-          id: string
-          name: string
-          organisation: string | null
-          phone: string | null
-          title: string | null
-          user_id: string
-        }
-        Insert: {
-          created_at?: string
-          email?: string | null
-          id?: string
-          name: string
-          organisation?: string | null
-          phone?: string | null
-          title?: string | null
-          user_id: string
-        }
-        Update: {
-          created_at?: string
-          email?: string | null
-          id?: string
-          name?: string
-          organisation?: string | null
-          phone?: string | null
-          title?: string | null
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "cv_referees_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      cv_sections: {
-        Row: {
-          position: number
-          section: Database["public"]["Enums"]["cv_section"]
-          title: string | null
-          user_id: string
-        }
-        Insert: {
-          position: number
-          section: Database["public"]["Enums"]["cv_section"]
-          title?: string | null
-          user_id: string
-        }
-        Update: {
-          position?: number
-          section?: Database["public"]["Enums"]["cv_section"]
-          title?: string | null
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "cv_sections_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      job_comments: {
-        Row: {
-          author_id: string
-          body: string
-          created_at: string
-          id: string
-          job_id: string
-        }
-        Insert: {
-          author_id: string
-          body: string
-          created_at?: string
-          id?: string
-          job_id: string
-        }
-        Update: {
-          author_id?: string
-          body?: string
-          created_at?: string
-          id?: string
-          job_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "job_comments_job_id_fkey"
-            columns: ["job_id"]
-            isOneToOne: false
-            referencedRelation: "jobs"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "job_comments_author_id_fkey"
-            columns: ["author_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      platform_admins: {
-        Row: {
-          granted_at: string
-          user_id: string
-        }
-        Insert: {
-          granted_at?: string
-          user_id: string
-        }
-        Update: {
-          granted_at?: string
-          user_id?: string
-        }
-        Relationships: []
-      }
-      post_comments: {
-        Row: {
-          author_id: string
-          body: string
-          created_at: string
-          id: string
-          post_id: string
-        }
-        Insert: {
-          author_id: string
-          body: string
-          created_at?: string
-          id?: string
-          post_id: string
-        }
-        Update: {
-          author_id?: string
-          body?: string
-          created_at?: string
-          id?: string
-          post_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "post_comments_post_id_fkey"
-            columns: ["post_id"]
-            isOneToOne: false
-            referencedRelation: "posts"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "post_comments_author_id_fkey"
-            columns: ["author_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      post_likes: {
-        Row: {
-          created_at: string
-          post_id: string
-          user_id: string
-        }
-        Insert: {
-          created_at?: string
-          post_id: string
-          user_id: string
-        }
-        Update: {
-          created_at?: string
-          post_id?: string
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "post_likes_post_id_fkey"
-            columns: ["post_id"]
-            isOneToOne: false
-            referencedRelation: "posts"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      posts: {
-        Row: {
-          author_id: string
-          body: string
-          created_at: string
-          id: string
-        }
-        Insert: {
-          author_id: string
-          body: string
-          created_at?: string
-          id?: string
-        }
-        Update: {
-          author_id?: string
-          body?: string
-          created_at?: string
-          id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "posts_author_id_fkey"
-            columns: ["author_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       tutor_profiles: {
         Row: {
           about: string | null
@@ -1256,6 +1296,15 @@ export type Database = {
     }
     Functions: {
       am_i_platform_admin: { Args: never; Returns: boolean }
+      create_school: {
+        Args: {
+          p_county: string
+          p_curricula?: Database["public"]["Enums"]["curriculum"][]
+          p_name: string
+          p_school_type: Database["public"]["Enums"]["school_type"]
+        }
+        Returns: string
+      }
       find_tutors: {
         Args: {
           p_at_student?: boolean
@@ -1286,19 +1335,13 @@ export type Database = {
           user_id: string
         }[]
       }
-      invite_tutor: { Args: { p_job: string; p_tutor: string }; Returns: string }
+      invite_tutor: {
+        Args: { p_job: string; p_tutor: string }
+        Returns: string
+      }
       record_resource_download: {
         Args: { target_resource: string }
         Returns: undefined
-      }
-      create_school: {
-        Args: {
-          p_county: string
-          p_curricula?: Database["public"]["Enums"]["curriculum"][]
-          p_name: string
-          p_school_type: Database["public"]["Enums"]["school_type"]
-        }
-        Returns: string
       }
       submit_school_review: {
         Args: {
@@ -1332,6 +1375,15 @@ export type Database = {
         | "slate"
         | "terracotta"
       cv_background: "none" | "dots" | "lines"
+      cv_font:
+        | "helvetica"
+        | "arial"
+        | "system"
+        | "georgia"
+        | "garamond"
+        | "times"
+        | "trebuchet"
+        | "courier"
       cv_section:
         | "personal"
         | "profile"
@@ -1345,15 +1397,6 @@ export type Database = {
         | "certificates"
         | "subjects"
         | "referees"
-      cv_font:
-        | "helvetica"
-        | "arial"
-        | "system"
-        | "georgia"
-        | "garamond"
-        | "times"
-        | "trebuchet"
-        | "courier"
       cv_template:
         | "portrait"
         | "banner"
@@ -1364,9 +1407,6 @@ export type Database = {
       cv_visibility: "private" | "applied" | "open"
       engagement_kind: "employment" | "tuition" | "homeschool" | "assignment"
       gender_preference: "any" | "female" | "male"
-      poster_role: "parent" | "student" | "professional" | "school"
-      teaching_level: "beginner" | "intermediate" | "expert"
-      rate_period: "month" | "hour" | "session"
       job_poster_kind: "school" | "individual" | "platform"
       job_type: "full_time" | "part_time" | "contract" | "locum"
       moderation_status: "pending" | "approved" | "rejected"
@@ -1393,6 +1433,9 @@ export type Database = {
         | "news"
         | "resource"
         | "message"
+        | "offered"
+      poster_role: "parent" | "student" | "professional" | "school"
+      rate_period: "month" | "hour" | "session"
       red_flag_kind:
         | "salary_delays"
         | "excessive_workload"
@@ -1424,6 +1467,7 @@ export type Database = {
         | "communication"
       school_role: "recruiter" | "admin"
       school_type: "private" | "international" | "public"
+      teaching_level: "beginner" | "intermediate" | "expert"
       verification_status:
         | "unverified"
         | "pending"
@@ -1578,6 +1622,16 @@ export const Constants = {
         "terracotta",
       ],
       cv_background: ["none", "dots", "lines"],
+      cv_font: [
+        "helvetica",
+        "arial",
+        "system",
+        "georgia",
+        "garamond",
+        "times",
+        "trebuchet",
+        "courier",
+      ],
       cv_section: [
         "personal",
         "profile",
@@ -1592,16 +1646,6 @@ export const Constants = {
         "subjects",
         "referees",
       ],
-      cv_font: [
-        "helvetica",
-        "arial",
-        "system",
-        "georgia",
-        "garamond",
-        "times",
-        "trebuchet",
-        "courier",
-      ],
       cv_template: [
         "portrait",
         "banner",
@@ -1613,9 +1657,6 @@ export const Constants = {
       cv_visibility: ["private", "applied", "open"],
       engagement_kind: ["employment", "tuition", "homeschool", "assignment"],
       gender_preference: ["any", "female", "male"],
-      poster_role: ["parent", "student", "professional", "school"],
-      teaching_level: ["beginner", "intermediate", "expert"],
-      rate_period: ["month", "hour", "session"],
       job_poster_kind: ["school", "individual", "platform"],
       job_type: ["full_time", "part_time", "contract", "locum"],
       moderation_status: ["pending", "approved", "rejected"],
@@ -1643,7 +1684,10 @@ export const Constants = {
         "news",
         "resource",
         "message",
+        "offered",
       ],
+      poster_role: ["parent", "student", "professional", "school"],
+      rate_period: ["month", "hour", "session"],
       red_flag_kind: [
         "salary_delays",
         "excessive_workload",
@@ -1678,6 +1722,7 @@ export const Constants = {
       ],
       school_role: ["recruiter", "admin"],
       school_type: ["private", "international", "public"],
+      teaching_level: ["beginner", "intermediate", "expert"],
       verification_status: [
         "unverified",
         "pending",
