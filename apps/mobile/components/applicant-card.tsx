@@ -45,6 +45,12 @@ export function ApplicantCard({ item, onStage, onMessage, onViewCv, now, verb = 
   const live = item.liveMatch;
   const frozen = item.application.match_score;
   const teacher = item.teacher;
+  /*
+    They did not come to you — you went and found them in the tutor directory.
+    The stage enum has no word for that, so `source` carries it, and every
+    place that would otherwise say "Applied" reads this instead.
+  */
+  const invited = item.application.source === 'invited';
 
   return (
     <Card className="gap-2.5 p-3.5">
@@ -80,7 +86,10 @@ export function ApplicantCard({ item, onStage, onMessage, onViewCv, now, verb = 
         forged; the live one is recomputed here by the same matcher. When they
         disagree it is worth saying so rather than quietly showing one.
       */}
-      {live !== null && Math.abs(live.score - frozen) > 2 ? (
+      {/* No score on an invitation. `match_score` is what the client asserted
+          when applying, and nobody applied — it is zero because nothing
+          calculated it, and "scored 0% when they applied" would be nonsense. */}
+      {!invited && live !== null && Math.abs(live.score - frozen) > 2 ? (
         <Text className="text-[11px] text-mutedForeground">
           Scored {frozen}% when they applied — {live.score}% against their profile today.
         </Text>
@@ -101,12 +110,15 @@ export function ApplicantCard({ item, onStage, onMessage, onViewCv, now, verb = 
         className="flex-row items-center gap-1.5"
       >
         <Text className={`text-[11.5px] font-medium ${STAGE_TONE[item.application.stage] ?? ''}`}>
-          {item.application.stage === 'applied' && verb === 'answered'
-            ? 'Answered'
+          {item.application.stage !== 'applied'
+            ? formatLabel(item.application.stage)
+            : invited ? 'Invited'
+            : verb === 'answered' ? 'Answered'
             : formatLabel(item.application.stage)}
         </Text>
         <Text className="text-[11px] text-mutedForeground">
-          {` · ${verb} `}{formatPostedAge(new Date(item.application.created_at), now)}
+          {` · ${invited ? 'you got in touch' : verb} `}
+          {formatPostedAge(new Date(item.application.created_at), now)}
         </Text>
         <Feather name={open ? 'chevron-up' : 'chevron-down'} size={13} color={colors.mutedForeground} />
       </Pressable>

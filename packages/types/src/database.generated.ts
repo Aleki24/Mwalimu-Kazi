@@ -1185,12 +1185,108 @@ export type Database = {
           },
         ]
       }
+      tutor_profiles: {
+        Row: {
+          about: string | null
+          area: string | null
+          available: boolean
+          county: string | null
+          gender: string | null
+          headline: string | null
+          learner_levels: string[]
+          meets_at_student: boolean
+          meets_at_teacher: boolean
+          meets_online: boolean
+          rate_max: number | null
+          rate_min: number | null
+          rate_period: Database["public"]["Enums"]["rate_period"]
+          subjects: string[]
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          about?: string | null
+          area?: string | null
+          available?: boolean
+          county?: string | null
+          gender?: string | null
+          headline?: string | null
+          learner_levels?: string[]
+          meets_at_student?: boolean
+          meets_at_teacher?: boolean
+          meets_online?: boolean
+          rate_max?: number | null
+          rate_min?: number | null
+          rate_period?: Database["public"]["Enums"]["rate_period"]
+          subjects?: string[]
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          about?: string | null
+          area?: string | null
+          available?: boolean
+          county?: string | null
+          gender?: string | null
+          headline?: string | null
+          learner_levels?: string[]
+          meets_at_student?: boolean
+          meets_at_teacher?: boolean
+          meets_online?: boolean
+          rate_max?: number | null
+          rate_min?: number | null
+          rate_period?: Database["public"]["Enums"]["rate_period"]
+          subjects?: string[]
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tutor_profiles_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
       am_i_platform_admin: { Args: never; Returns: boolean }
+      find_tutors: {
+        Args: {
+          p_at_student?: boolean
+          p_county?: string
+          p_limit?: number
+          p_online?: boolean
+          p_search?: string
+          p_subject?: string
+          p_tutor?: string
+        }
+        Returns: {
+          about: string
+          area: string
+          county: string
+          experience_years: number
+          full_name: string
+          gender: string
+          headline: string
+          learner_levels: string[]
+          meets_at_student: boolean
+          meets_at_teacher: boolean
+          meets_online: boolean
+          rate_max: number
+          rate_min: number
+          rate_period: Database["public"]["Enums"]["rate_period"]
+          subjects: string[]
+          tsc_verified: boolean
+          user_id: string
+        }[]
+      }
+      invite_tutor: { Args: { p_job: string; p_tutor: string }; Returns: string }
       record_resource_download: {
         Args: { target_resource: string }
         Returns: undefined
@@ -1216,7 +1312,7 @@ export type Database = {
       }
     }
     Enums: {
-      application_source: "manual" | "auto_apply"
+      application_source: "manual" | "auto_apply" | "invited"
       application_stage:
         | "saved"
         | "applied"
@@ -1460,7 +1556,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      application_source: ["manual", "auto_apply"],
+      application_source: ["manual", "auto_apply", "invited"],
       application_stage: [
         "saved",
         "applied",

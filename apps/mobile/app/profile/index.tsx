@@ -110,6 +110,11 @@ export default function ProfileScreen() {
             // needs a tutor for their own child.
             { href: '/requests', icon: 'home', label: 'Your requests',
               hint: 'Tuition or homeschooling you asked for' },
+            // The other side of the same market, and the same reasoning: the
+            // teacher who tutors in the evenings is usually the one who also
+            // has a full-time post.
+            { href: '/profile/tutoring', icon: 'user-check', label: 'Offer tuition',
+              hint: 'Be found by parents looking for a tutor' },
             // Only staff see this, and only because the RPC said so — the
             // membership table itself stays unreadable.
             ...(isAdmin

@@ -95,6 +95,9 @@ function RootNavigator() {
         <Stack.Screen name="messages/index" options={{ title: 'Messages' }} />
         <Stack.Screen name="messages/[threadId]" options={{ title: 'Conversation' }} />
         <Stack.Screen name="requests/index" options={{ title: 'Your requests' }} />
+        <Stack.Screen name="tutors/index" options={{ title: 'Find a tutor' }} />
+        <Stack.Screen name="tutors/[id]" options={{ title: 'Tutor' }} />
+        <Stack.Screen name="profile/tutoring" options={{ title: 'Offer tuition' }} />
         <Stack.Screen name="recruiter/index" options={{ title: 'For schools' }} />
         <Stack.Screen name="recruiter/[schoolId]" options={{ title: 'Applicants' }} />
         <Stack.Screen name="profile/index" options={{ title: 'Your profile' }} />

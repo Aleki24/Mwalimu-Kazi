@@ -34,7 +34,14 @@ export const ApplicationStage = z.enum([
 export type ApplicationStage = z.infer<typeof ApplicationStage>;
 
 /** How an application was sent - auto-applications must stay distinguishable. */
-export const ApplicationSource = z.enum(['manual', 'auto_apply']);
+/**
+ * How an application came about.
+ *
+ * `invited` is a parent who found a teacher in the tutor directory and got in
+ * touch — nobody applied, and a screen that said they had would be lying about
+ * who approached whom.
+ */
+export const ApplicationSource = z.enum(['manual', 'auto_apply', 'invited']);
 export type ApplicationSource = z.infer<typeof ApplicationSource>;
 
 export const VerificationStatus = z.enum(['unverified', 'pending', 'verified', 'under_review']);

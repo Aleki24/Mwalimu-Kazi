@@ -31,7 +31,10 @@ const QUICK_ACTIONS = [
   { href: '/applications', label: 'My applications', icon: 'send' },
   { href: '/profile/cv', label: 'Documents', icon: 'file-text' },
   { href: '/(tabs)/schools', label: 'Schools', icon: 'map-pin' },
-  { href: '/requests', label: 'Find a tutor', icon: 'home' },
+  // It said "Find a tutor" and opened your own postings. Now it opens the
+  // directory, and the postings have their own tile.
+  { href: '/tutors', label: 'Find a tutor', icon: 'search' },
+  { href: '/requests', label: 'Your requests', icon: 'home' },
   { href: '/feed', label: 'Staffroom', icon: 'message-square' },
 ] as const satisfies ReadonlyArray<{
   href: string;
