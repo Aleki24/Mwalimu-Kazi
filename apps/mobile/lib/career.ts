@@ -1,5 +1,6 @@
 import { profileStrength, type ProfileStrength } from '@mwalimu/core';
 import type { Tables, TeacherProfile } from '@mwalimu/types';
+import { fetchCvFacts } from './cv';
 import { supabase } from './supabase';
 
 /**
@@ -51,16 +52,16 @@ const STAGE_RANK: Readonly<Record<Tables<'applications'>['stage'], number>> = {
 };
 
 export async function fetchCareerSnapshot(teacher: TeacherProfile): Promise<CareerSnapshot> {
-  // Four small reads in parallel. Counts use head:true so no rows travel —
-  // this runs on every Home load, often on a phone paying for the data.
-  const [applications, cvDetails, experience, education, referees] = await Promise.all([
+  // Two reads in parallel: the applications, and the CV counts — which come
+  // from `fetchCvFacts` rather than from a second set of count queries here.
+  // The dashboard and the CV editor were both deciding what "filled in" means,
+  // and only agreed by coincidence; `CvFacts` extends the `CvCompleteness`
+  // that `profileStrength` takes, so one read now feeds both.
+  const [applications, facts] = await Promise.all([
     supabase
       .from('applications')
       .select('id, stage, created_at, job_id, jobs ( title, schools ( name ) )'),
-    supabase.from('cv_details').select('summary').maybeSingle(),
-    supabase.from('cv_experience').select('id', { count: 'exact', head: true }),
-    supabase.from('cv_education').select('id', { count: 'exact', head: true }),
-    supabase.from('cv_referees').select('id', { count: 'exact', head: true }),
+    fetchCvFacts(teacher),
   ]);
 
   const rows = applications.data ?? [];
@@ -73,12 +74,7 @@ export async function fetchCareerSnapshot(teacher: TeacherProfile): Promise<Care
     // interviewed and then offered has passed through it either way.
     interviews: stages.filter((s) => s === 'interview' || s === 'offered').length,
     offers: stages.filter((s) => s === 'offered').length,
-    strength: profileStrength(teacher, {
-      hasSummary: (cvDetails.data?.summary ?? '').trim() !== '',
-      experienceCount: experience.count ?? 0,
-      educationCount: education.count ?? 0,
-      refereeCount: referees.count ?? 0,
-    }),
+    strength: profileStrength(teacher, facts),
   };
 }
 

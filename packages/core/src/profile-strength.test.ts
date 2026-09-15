@@ -44,6 +44,19 @@ describe('profileStrength', () => {
     expect(full).toBeGreaterThan(bare);
   });
 
+  it('sends each item to the screen that can actually fix it', () => {
+    const s = profileStrength(
+      teacher({ tscNumber: undefined, headline: undefined, curricula: [] }),
+      emptyCv,
+    );
+    const where = (label: string) => s.missing.find((m) => m.label === label)?.where;
+    expect(where('Add your TSC number')).toBe('profile');
+    expect(where('Add a headline')).toBe('profile');
+    expect(where('Say which curricula you know')).toBe('profile');
+    expect(where('Add a referee')).toBe('cv');
+    expect(where('Add work experience to your CV')).toBe('cv');
+  });
+
   it('treats a whitespace headline as missing', () => {
     const s = profileStrength(teacher({ headline: '   ' }), fullCv);
     expect(s.missing.some((m) => m.label === 'Add a headline')).toBe(true);

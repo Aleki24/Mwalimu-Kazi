@@ -3,7 +3,10 @@ import { ActivityIndicator, Pressable, RefreshControl, ScrollView, Text, View } 
 import { Link, router } from 'expo-router';
 import Feather from '@expo/vector-icons/Feather';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { closingSoon, formatLabel, rankJobs, type JobWithSchool, type RankedJob } from '@mwalimu/core';
+import {
+  closingSoon, formatLabel, rankJobs,
+  type JobWithSchool, type RankedJob, type StrengthTarget,
+} from '@mwalimu/core';
 import { colors } from '@mwalimu/ui';
 import {
   Avatar, Card, centredContent, EmptyState, ErrorBanner, NoticeStrip, tabularNums,
@@ -43,6 +46,18 @@ const QUICK_ACTIONS = [
   label: string;
   icon: React.ComponentProps<typeof Feather>['name'];
 }>;
+
+/**
+ * Where an unfinished item is actually fixed.
+ *
+ * Every one of them used to link to the CV editor, including "Add your TSC
+ * number", which that screen does not collect — being sent somewhere that
+ * cannot help is worse than not being pointed anywhere.
+ */
+const STRENGTH_ROUTE = {
+  profile: '/profile/edit',
+  cv: '/profile/cv',
+} as const satisfies Readonly<Record<StrengthTarget, string>>;
 
 export default function HomeScreen() {
   const tabBarClearance = useTabBarClearance();
@@ -210,7 +225,7 @@ export default function HomeScreen() {
             </View>
 
             {snapshot.strength.missing[0] === undefined ? null : (
-              <Link href="/profile/cv" asChild>
+              <Link href={STRENGTH_ROUTE[snapshot.strength.missing[0].where]} asChild>
                 <Pressable accessibilityRole="link" className="flex-row items-center gap-1.5">
                   <Feather name="arrow-right" size={13} color={colors.primary} />
                   <Text className="text-[12px] font-medium text-primary">

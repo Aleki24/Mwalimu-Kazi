@@ -1,5 +1,5 @@
 import type {
-  CvCertificate, CvData, CvEducation, CvExperience, CvLanguage, CvReferee, CvSection,
+  CvCertificate, CvData, CvEducation, CvExperience, CvFacts, CvLanguage, CvReferee, CvSection,
   CvSectionKey, CvStyle,
 } from '@mwalimu/core';
 import type { Tables, TablesInsert, TeacherProfile } from '@mwalimu/types';
@@ -13,6 +13,20 @@ import { supabase } from './supabase';
  * id on reads — the database decides who may see what, and `visibility` on
  * `cv_details` is the teacher's half of that decision.
  */
+
+/**
+ * The one thing these need from a profile.
+ *
+ * Narrower than `Pick<TeacherProfile, 'skills'>` on purpose: the profile's own
+ * array is mutable, a screen holding its edited copy has a readonly one, and
+ * only the length is read here either way.
+ */
+export interface TeacherSkills {
+  readonly skills: readonly string[];
+}
+
+/** A value a teacher actually typed something into. */
+const filled = (value: string | null | undefined): boolean => (value ?? '').trim() !== '';
 
 export type EducationRow = Tables<'cv_education'>;
 export type ExperienceRow = Tables<'cv_experience'>;
@@ -251,6 +265,75 @@ export function toCvData(
 }
 
 /**
+ * What the CV checklist reads, from a record already in hand.
+ *
+ * Skills live on the profile rather than on the CV — the matcher reads that
+ * column — so the teacher is passed in beside the record instead of the count
+ * being taken from a table that does not hold it.
+ */
+export function cvFactsFrom(teacher: TeacherSkills, cv: CvRecord): CvFacts {
+  return {
+    // Either one is enough to be reached; insisting on both would mark a CV
+    // unready over a field its owner deliberately left out.
+    hasContact: filled(cv.details?.phone) || filled(cv.details?.email),
+    hasSummary: filled(cv.details?.summary),
+    experienceCount: cv.experience.filter((e) => !e.is_volunteer).length,
+    volunteerCount: cv.experience.filter((e) => e.is_volunteer).length,
+    educationCount: cv.education.length,
+    refereeCount: cv.referees.length,
+    certificateCount: cv.certificates.length,
+    skillCount: teacher.skills.length,
+    languageCount: cv.languages.length,
+    hasPhoto: filled(cv.details?.photo_path),
+  };
+}
+
+/**
+ * The same facts for a screen that does not need the CV itself.
+ *
+ * Counts with `head: true`, so no rows travel — this runs on Home and on the
+ * Profile screen, often on a phone paying for the data. A count that fails
+ * reads as zero rather than throwing: a checklist line is not worth failing a
+ * screen over, and the editor loads the real rows anyway.
+ */
+export async function fetchCvFacts(teacher: TeacherSkills): Promise<CvFacts> {
+  const countOf = (table: 'cv_education' | 'cv_referees' | 'cv_certificates' | 'cv_languages') =>
+    supabase.from(table).select('id', { count: 'exact', head: true });
+
+  // Separate from `countOf`: a union of table names narrows the columns the
+  // query builder will accept a filter on to the ones every table in the union
+  // shares, and `is_volunteer` is not one of them.
+  const roles = (isVolunteer: boolean) =>
+    supabase.from('cv_experience')
+      .select('id', { count: 'exact', head: true })
+      .eq('is_volunteer', isVolunteer);
+
+  const [details, experience, volunteer, education, referees, certificates, languages] =
+    await Promise.all([
+      supabase.from('cv_details').select('summary, phone, email, photo_path').maybeSingle(),
+      roles(false),
+      roles(true),
+      countOf('cv_education'),
+      countOf('cv_referees'),
+      countOf('cv_certificates'),
+      countOf('cv_languages'),
+    ]);
+
+  return {
+    hasContact: filled(details.data?.phone) || filled(details.data?.email),
+    hasSummary: filled(details.data?.summary),
+    hasPhoto: filled(details.data?.photo_path),
+    experienceCount: experience.count ?? 0,
+    volunteerCount: volunteer.count ?? 0,
+    educationCount: education.count ?? 0,
+    refereeCount: referees.count ?? 0,
+    certificateCount: certificates.count ?? 0,
+    languageCount: languages.count ?? 0,
+    skillCount: teacher.skills.length,
+  };
+}
+
+/**
  * Write the whole order at once.
  *
  * Every row carries its position, so moving one section renumbers the rest —
@@ -274,15 +357,15 @@ export async function saveSectionOrder(
   if (error !== null) throw new Error(error.message);
 }
 
-export async function renameSection(
-  userId: string, sections: readonly CvSection[], key: CvSectionKey, title: string | null,
-): Promise<void> {
-  await saveSectionOrder(
-    userId,
-    sections.map((s) => (s.key === key
-      ? { ...s, title: title ?? CV_SECTIONS[key] }
-      : s)),
-  );
+/**
+ * The same list with one section renamed, so a screen can show the new word
+ * before the write comes back. A blank name means the default word: a section
+ * with no heading is a mistake, not a choice.
+ */
+export function withRenamedSection(
+  sections: readonly CvSection[], key: CvSectionKey, title: string | null,
+): readonly CvSection[] {
+  return sections.map((s) => (s.key === key ? { ...s, title: title ?? CV_SECTIONS[key] } : s));
 }
 
 /** Everything on `cv_details` a teacher may set from the CV screen. */

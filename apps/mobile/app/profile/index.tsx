@@ -3,11 +3,12 @@ import { Pressable, ScrollView, Text, View } from 'react-native';
 import { Link } from 'expo-router';
 import Feather from '@expo/vector-icons/Feather';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { formatLabel, formatPhoneForDisplay } from '@mwalimu/core';
+import { cvReadiness, formatLabel, formatPhoneForDisplay, type CvReadiness } from '@mwalimu/core';
 import { colors } from '@mwalimu/ui';
 import { Avatar, Badge, Card, centredContent, ErrorBanner, Tag, ToggleRow } from '../../components/ui';
 import { useAuth, useTeacher } from '../../lib/auth';
 import { supabase } from '../../lib/supabase';
+import { fetchCvFacts } from '../../lib/cv';
 import { playNotificationSound, setNotificationSound } from '../../lib/sound';
 import { amIAdmin } from '../../lib/admin';
 
@@ -26,6 +27,28 @@ export default function ProfileScreen() {
     void amIAdmin().then((yes) => { if (!cancelled) setIsAdmin(yes); });
     return () => { cancelled = true; };
   }, []);
+
+  /*
+    How the CV is doing, counted rather than guessed.
+
+    The row used to say "Build it once, download as PDF or Word" whether the CV
+    was finished or empty, which is a description of a feature rather than of
+    your CV. Counts only — no rows travel — and a read that fails leaves the
+    row saying the general thing instead of failing the screen.
+  */
+  const [cvState, setCvState] = useState<CvReadiness | null>(null);
+  useEffect(() => {
+    let cancelled = false;
+    void fetchCvFacts(teacher)
+      .then((facts) => { if (!cancelled) setCvState(cvReadiness(facts)); })
+      .catch(() => { if (!cancelled) setCvState(null); });
+    return () => { cancelled = true; };
+  }, [teacher]);
+
+  const cvHint = cvState === null ? 'Build it once, download as PDF or Word'
+    : cvState.next === null ? `${cvState.percent}% complete · every section filled in`
+    : cvState.ready ? `${cvState.percent}% complete · ready to send`
+    : `${cvState.percent}% complete · ${cvState.next.action.toLowerCase()} next`;
 
   const email = (session?.user.email ?? '').trim();
   const phone = (session?.user.phone ?? '').trim();
@@ -100,8 +123,7 @@ export default function ProfileScreen() {
           {([
             { href: '/profile/edit', icon: 'user', label: 'Edit profile',
               hint: 'Name, subjects, county, TSC number' },
-            { href: '/profile/cv', icon: 'file-text', label: 'Your CV',
-              hint: 'Build it once, download as PDF or Word' },
+            { href: '/profile/cv', icon: 'file-text', label: 'Your CV', hint: cvHint },
             // Not a separate account type: a head of department is often also
             // a teacher looking for their own next role.
             { href: '/recruiter', icon: 'briefcase', label: 'For schools',

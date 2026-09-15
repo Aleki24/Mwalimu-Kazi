@@ -194,15 +194,21 @@ export function formatYearRange(
  * A current role outranks everything: it is the thing a recruiter looks for
  * first, and it has no end year to sort by, so it cannot be ordered correctly
  * by date alone.
+ *
+ * Generic over the entry rather than narrowed to `CvExperience`, so the editor
+ * can order the database rows it has to edit and delete without losing their
+ * ids on the way through. It used to re-find each row by matching on its
+ * title and organisation afterwards, which quietly deleted the wrong entry for
+ * anyone who had taught the same subject at two schools.
  */
-export function orderExperience(entries: readonly CvExperience[]): readonly CvExperience[] {
+export function orderExperience<T extends CvExperience>(entries: readonly T[]): readonly T[] {
   return [...entries].sort((a, b) => {
     if (a.isCurrent !== b.isCurrent) return a.isCurrent ? -1 : 1;
     return (b.endYear ?? b.startYear ?? 0) - (a.endYear ?? a.startYear ?? 0);
   });
 }
 
-export function orderEducation(entries: readonly CvEducation[]): readonly CvEducation[] {
+export function orderEducation<T extends CvEducation>(entries: readonly T[]): readonly T[] {
   return [...entries].sort((a, b) => (b.endYear ?? b.startYear ?? 0) - (a.endYear ?? a.startYear ?? 0));
 }
 
