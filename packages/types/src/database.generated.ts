@@ -1343,6 +1343,16 @@ export type Database = {
         Args: { target_resource: string }
         Returns: undefined
       }
+      reviews_i_could_write: {
+        Args: never
+        Returns: {
+          reason: string
+          role_title: string
+          school_id: string
+          school_name: string
+          school_slug: string
+        }[]
+      }
       submit_school_review: {
         Args: {
           p_body: string

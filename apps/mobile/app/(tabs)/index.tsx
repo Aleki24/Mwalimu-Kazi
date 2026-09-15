@@ -13,9 +13,11 @@ import { ProgressRing } from '../../components/progress-ring';
 import { PIPELINE_STAGES, pipelineProgress } from '../../components/pipeline';
 import { useTabBarClearance } from '../../components/floating-tab-bar';
 import { JobCard } from '../../components/job-card';
+import { ReviewPrompt } from '../../components/review-prompt';
 import { fetchOpenJobs } from '../../lib/jobs';
 import { fetchCareerSnapshot, type CareerSnapshot, type LeadApplication } from '../../lib/career';
 import { fetchRule } from '../../lib/auto-apply';
+import { fetchReviewInvitations, type ReviewInvitation } from '../../lib/reviews';
 import { useTeacher } from '../../lib/auth';
 
 /**
@@ -54,16 +56,18 @@ export default function HomeScreen() {
   const [now, setNow] = useState(() => new Date());
   const [snapshot, setSnapshot] = useState<CareerSnapshot | null>(null);
   const [autoApplyOn, setAutoApplyOn] = useState(false);
+  const [toReview, setToReview] = useState<readonly ReviewInvitation[]>([]);
 
   const load = useCallback(async () => {
     try {
       // In parallel: the snapshot is secondary, so it must not delay the jobs.
-      const [{ jobs }, career, rule] = await Promise.all([
-        fetchOpenJobs(), fetchCareerSnapshot(teacher), fetchRule(),
+      const [{ jobs }, career, rule, invitations] = await Promise.all([
+        fetchOpenJobs(), fetchCareerSnapshot(teacher), fetchRule(), fetchReviewInvitations(),
       ]);
       setAll(jobs);
       setSnapshot(career);
       setAutoApplyOn(rule?.enabled ?? false);
+      setToReview(invitations);
       setNow(new Date());
       setError(null);
     } catch (cause) {
@@ -217,6 +221,14 @@ export default function HomeScreen() {
             )}
           </Card>
         )}
+
+        {/*
+          One, not the list. A teacher who has been through three schools is
+          being asked a favour, and a column of four cards asking it is a
+          column of four cards they scroll past. The rest are on /applications,
+          next to the applications they came from.
+        */}
+        {toReview[0] === undefined ? null : <ReviewPrompt invitation={toReview[0]} />}
 
         {/* Reads the real rule rather than always claiming to be off. */}
         <Link href="/auto-apply" asChild>

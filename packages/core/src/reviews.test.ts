@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { aggregateSchoolRatings, reviewAverage, summariseRedFlags, type RatedReview } from './reviews';
+import {
+  aggregateSchoolRatings, reviewAverage, reviewPromptFor, summariseRedFlags, type RatedReview,
+} from './reviews';
 
 const NOW = new Date('2026-09-06T12:00:00Z');
 
@@ -114,5 +116,29 @@ describe('summariseRedFlags', () => {
   it('breaks a count tie deterministically', () => {
     const r = review({ redFlags: [{ kind: 'unclear_hours' }, { kind: 'contract_issues' }] });
     expect(summariseRedFlags([r], NOW).map((f) => f.kind)).toEqual(['contract_issues', 'unclear_hours']);
+  });
+});
+
+describe('why we are asking', () => {
+  it('says what the app actually knows, per standing', () => {
+    expect(reviewPromptFor('works_there')).toBe('You are on the staff here.');
+    expect(reviewPromptFor('interviewed')).toBe('You met them.');
+    expect(reviewPromptFor('answered')).toBe('You applied here and they answered.');
+  });
+
+  /*
+    The reason comes out of the database as a bare word. A build that does not
+    know one must render nothing — a card reading "undefined" under a school's
+    name is worse than no card, and the failure is silent on the server.
+  */
+  it('returns null for a word this build does not know', () => {
+    expect(reviewPromptFor('worked_there_in_1998')).toBeNull();
+    expect(reviewPromptFor('')).toBeNull();
+  });
+
+  it('never claims somebody merely applied', () => {
+    // 'applied' is deliberately not a reason: submitting a form is an
+    // experience of a job advert, not of a school.
+    expect(reviewPromptFor('applied')).toBeNull();
   });
 });

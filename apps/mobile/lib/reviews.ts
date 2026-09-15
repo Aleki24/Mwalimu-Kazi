@@ -77,3 +77,37 @@ export async function submitReview(draft: ReviewDraft): Promise<string> {
   }
   return data;
 }
+
+/**
+ * Schools this teacher could write about and has not.
+ *
+ * Deliberately an RPC rather than a query. Answering it means asking "which
+ * schools have I already reviewed", and `school_reviews.author_id` is
+ * unreadable on purpose — a review that can be traced back to its author is a
+ * review nobody writes. The function answers about the caller and nobody else.
+ *
+ * Strongest claim first: on the staff, then met them, then answered by them.
+ * Somebody who only submitted a form is not in here — that is an experience of
+ * a job advert, not of a school.
+ */
+export interface ReviewInvitation {
+  readonly schoolId: string;
+  readonly schoolName: string;
+  readonly schoolSlug: string;
+  /** 'works_there' | 'interviewed' | 'answered'; @mwalimu/core turns it into a sentence. */
+  readonly reason: string;
+  readonly roleTitle: string | null;
+}
+
+export async function fetchReviewInvitations(): Promise<readonly ReviewInvitation[]> {
+  const { data, error } = await supabase.rpc('reviews_i_could_write');
+  if (error !== null) throw new Error(error.message);
+
+  return (data ?? []).map((row) => ({
+    schoolId: row.school_id,
+    schoolName: row.school_name,
+    schoolSlug: row.school_slug,
+    reason: row.reason,
+    roleTitle: row.role_title,
+  }));
+}

@@ -8,6 +8,8 @@ import { centredContent, EmptyState, ErrorBanner } from '../components/ui';
 import { JobCard } from '../components/job-card';
 import { Pipeline, pipelineProgress } from '../components/pipeline';
 import { fetchApplications, withdrawApplication, type AppliedJob } from '../lib/applications';
+import { fetchReviewInvitations, type ReviewInvitation } from '../lib/reviews';
+import { ReviewPrompt } from '../components/review-prompt';
 import { useTeacher } from '../lib/auth';
 import { openThread } from '../lib/messages';
 import { matchScore } from '@mwalimu/core';
@@ -33,6 +35,7 @@ const STAGE_TONE: Readonly<Record<Stage, string>> = {
 export default function ApplicationsScreen() {
   const teacher = useTeacher();
   const [items, setItems] = useState<readonly AppliedJob[]>([]);
+  const [toReview, setToReview] = useState<readonly ReviewInvitation[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [now] = useState(() => new Date());
@@ -57,7 +60,11 @@ export default function ApplicationsScreen() {
 
   const load = useCallback(async () => {
     try {
-      setItems(await fetchApplications());
+      const [applications, invitations] = await Promise.all([
+        fetchApplications(), fetchReviewInvitations(),
+      ]);
+      setItems(applications);
+      setToReview(invitations);
       setError(null);
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : 'Could not load your applications');
@@ -78,7 +85,27 @@ export default function ApplicationsScreen() {
           data={items}
           keyExtractor={(item) => item.application.id}
           contentContainerStyle={{ padding: 16, gap: 12, paddingBottom: 32, ...centredContent }}
-          ListHeaderComponent={error !== null ? <ErrorBanner message={error} /> : null}
+          ListHeaderComponent={
+            <View className="gap-2">
+              {error !== null ? <ErrorBanner message={error} /> : null}
+              {/*
+                Every school that answered you, not just the first. This is the
+                screen where a teacher is already looking back over who replied
+                and who did not, which is the moment they have something to say
+                about it.
+              */}
+              {toReview.length === 0 ? null : (
+                <View className="gap-2 pb-1">
+                  <Text className="text-[11px] uppercase tracking-wider text-mutedForeground">
+                    Tell other teachers
+                  </Text>
+                  {toReview.map((invitation) => (
+                    <ReviewPrompt key={invitation.schoolId} invitation={invitation} />
+                  ))}
+                </View>
+              )}
+            </View>
+          }
           ListEmptyComponent={
             <EmptyState
               title="No applications yet"

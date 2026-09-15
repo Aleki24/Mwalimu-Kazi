@@ -66,11 +66,19 @@ function RatingRow({
 }
 
 export default function NewReviewScreen() {
-  const { schoolId, schoolName } = useLocalSearchParams<{ schoolId: string; schoolName?: string }>();
+  const { schoolId, schoolName, roleTitle: fromLink } = useLocalSearchParams<{
+    schoolId: string; schoolName?: string; roleTitle?: string;
+  }>();
   const insets = useSafeAreaInsets();
 
   const [scores, setScores] = useState<Readonly<Partial<Record<ReviewCategory, number>>>>({});
-  const [roleTitle, setRoleTitle] = useState('');
+  /*
+    Seeded from the link when the prompt knew it — the vacancy the teacher
+    applied for. Still a plain editable field: plenty of people apply for one
+    role and are interviewed for another, and a title they cannot change would
+    put a wrong word in their mouth on a public page.
+  */
+  const [roleTitle, setRoleTitle] = useState(fromLink ?? '');
   const [body, setBody] = useState('');
   const [flagReasons, setFlagReasons] = useState<Readonly<Partial<Record<RedFlagKind, string>>>>({});
   const [error, setError] = useState<string | null>(null);

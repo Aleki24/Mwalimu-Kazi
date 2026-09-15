@@ -135,3 +135,26 @@ export const REVIEW_CATEGORY_LABEL: Readonly<Record<ReviewCategory, string>> = {
   resources: 'Resources',
   communication: 'Communication',
 };
+
+/**
+ * Why we are asking this person about this school.
+ *
+ * `reviews_i_could_write()` returns a word — works_there, interviewed,
+ * answered — rather than a sentence, so the copy can change without a
+ * migration. This is the sentence. It says what the app knows and does not
+ * dress it up: somebody who was turned down has still seen how a school
+ * treats people, and pretending otherwise would be the app flattering them.
+ */
+export const REVIEW_PROMPT: Readonly<Record<string, string>> = {
+  works_there: 'You are on the staff here.',
+  interviewed: 'You met them.',
+  answered: 'You applied here and they answered.',
+};
+
+/**
+ * Null for a reason nobody planned for, so a caller renders nothing rather
+ * than a card explaining that the database said a word it does not recognise.
+ */
+export function reviewPromptFor(reason: string): string | null {
+  return REVIEW_PROMPT[reason] ?? null;
+}
