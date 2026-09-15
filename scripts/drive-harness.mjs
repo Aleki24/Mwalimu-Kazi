@@ -88,7 +88,19 @@ export async function startHarness({ root, port } = {}) {
   const { chromium } = createRequire(import.meta.url)(
     process.env.PLAYWRIGHT_PATH ?? 'playwright',
   );
-  const browser = await chromium.launch();
+  /*
+    A sandbox that ships a browser and a repo that installs its own Playwright
+    will not always agree on the build number, and the mismatch reads as
+    "Playwright was just installed" rather than as what it is. PLAYWRIGHT_CHROMIUM
+    points at the one that is actually on disk; without it, Playwright picks the
+    build it was compiled against, which is right on a machine that downloaded
+    its own.
+  */
+  const browser = await chromium.launch(
+    process.env.PLAYWRIGHT_CHROMIUM === undefined
+      ? {}
+      : { executablePath: process.env.PLAYWRIGHT_CHROMIUM },
+  );
 
   const checks = [];
   const pageErrors = [];
@@ -171,5 +183,29 @@ export async function startHarness({ root, port } = {}) {
     process.exit(failed.length === 0 ? 0 : 1);
   }
 
-  return { check, signIn, text, type, visit, finish, port: PORT };
+  /**
+   * The user id behind a fixture account.
+   *
+   * These used to be literals — `…0000f1` and friends — because the seed file
+   * created the accounts and chose their ids. It no longer does: the accounts
+   * are signed up through the app's own endpoint so their password never has
+   * to be handed to anything, and the ids are whatever GoTrue minted. A stale
+   * literal did not fail loudly either; it made a "the recruiter cannot read
+   * this CV" check pass because the CV belonged to nobody.
+   */
+  const idOf = async (who) => {
+    const email = ACCOUNTS[who] ?? who;
+    const res = await fetch(`${process.env.EXPO_PUBLIC_SUPABASE_URL}/auth/v1/token?grant_type=password`, {
+      method: 'POST',
+      headers: {
+        apikey: process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY,
+        'content-type': 'application/json',
+      },
+      body: JSON.stringify({ email, password: PASSWORD }),
+    });
+    if (!res.ok) throw new Error(`could not resolve ${email}: ${res.status}`);
+    return (await res.json()).user.id;
+  };
+
+  return { check, signIn, text, type, visit, finish, idOf, port: PORT };
 }

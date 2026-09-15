@@ -32,8 +32,6 @@ if (!URL || !KEY || !PASSWORD) {
   process.exit(2);
 }
 
-const TEACHER = '00000000-0000-4000-8000-0000000000f1';
-const RECRUITER_FOLDER = '00000000-0000-4000-8000-0000000000f2';
 
 const checks = [];
 const check = (label, ok) => {
@@ -57,6 +55,20 @@ const PNG = Buffer.from(
 const teacher = await signIn('alexotieno293+fxteacher@gmail.com');
 // A school this teacher applied to.
 const recruiter = await signIn('alexotieno293+fxrecruiter@gmail.com');
+
+/*
+  Asked, not assumed. These were literals matching the ids the seed file used
+  to mint. The seed no longer creates accounts — they are signed up through the
+  app's own endpoint so the password never leaves .env — and a stale literal
+  here did not fail loudly: it made the storage check upload into a folder
+  nobody owned and pass for the wrong reason.
+*/
+const idOf = async (client) => (await client.auth.getUser()).data.user?.id;
+const TEACHER = await idOf(teacher);
+const RECRUITER_FOLDER = await idOf(recruiter);
+if (TEACHER === undefined || RECRUITER_FOLDER === undefined) {
+  throw new Error('could not resolve the fixture accounts');
+}
 
 /*
   Somebody who hires but was never applied to — the reader `open` exists for,

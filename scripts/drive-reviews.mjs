@@ -44,15 +44,18 @@ if (asked) {
     /You met them|they answered|on the staff/.test(home));
 
   const list = await visit(teacher, '/applications', 6_000);
+  // Case-insensitively: the heading is styled `uppercase`, and innerText
+  // returns what is rendered, not what the source says.
   check('the applications screen asks too, where the answer came from',
-    list.includes('Tell other teachers') && list.includes(ASK));
+    /tell other teachers/i.test(list) && list.includes(ASK));
 
   // ------------------------------------------------------- and gets answered
   await press(teacher, ASK, 5_000);
   const form = await text(teacher);
   check('the form opens on the school it asked about', form.includes(SCHOOL));
-  check('and fills in the role they applied for',
-    form.includes('Mathematics Teacher') || form.includes('Form 3'));
+  // A TextInput's value is not in innerText. Read the field, not the page.
+  const role = await teacher.getByPlaceholder(/Mathematics teacher, 2021/).first().inputValue();
+  check('and fills in the role they applied for', /Mathematics Teacher/i.test(role));
 
   // One rating is enough for the schema; a teacher is not made to score ten.
   await teacher.getByLabel(/Pay reliability: 4 of 5/).first().click();
@@ -80,9 +83,21 @@ if (queue.includes(SCHOOL) && queue.includes('Publish')) {
   check('the review reaches the moderator with the school named', true);
   check('and the moderator is told what to reject',
     queue.includes('names an individual'));
-  await press(moderator, 'Publish', 5_000);
-  check('publishing clears it from the queue',
-    !(await text(moderator)).includes(BODY.slice(0, 40)));
+
+  /*
+    Clear the queue, not "press Publish once". The fixture set seeds a pending
+    review of its own, so a single press published somebody else's and left
+    this one waiting — which then failed three later checks for a reason that
+    had nothing to do with what they were testing.
+  */
+  for (let i = 0; i < 6; i += 1) {
+    const publish = moderator.getByRole('button', { name: 'Publish', exact: true });
+    if (await publish.count() === 0) break;
+    await publish.first().click();
+    await moderator.waitForTimeout(4_000);
+  }
+  check('publishing clears the queue',
+    await moderator.getByRole('button', { name: 'Publish', exact: true }).count() === 0);
 }
 
 // --------------------------------------------------- and the author is told

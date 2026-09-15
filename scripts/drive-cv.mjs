@@ -11,8 +11,11 @@
  */
 import { startHarness } from './drive-harness.mjs';
 
-const TEACHER = '00000000-0000-4000-8000-0000000000f1';
-const { check, signIn, text, type, visit, finish } = await startHarness({ port: 4600 });
+const { check, signIn, text, type, visit, finish, idOf } =
+  await startHarness({ port: 4600 });
+
+// Resolved, not assumed: see idOf in drive-harness.mjs for why.
+const TEACHER = await idOf('teacher');
 
 const fill = (page, label, value) => type(page, label, value);
 const press = async (page, name) => {
