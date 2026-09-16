@@ -1,6 +1,6 @@
 import type {
   CvCertificate, CvData, CvEducation, CvExperience, CvFacts, CvLanguage, CvReferee, CvSection,
-  CvSectionKey, CvStyle,
+  CvStyle,
 } from '@mwalimu/core';
 import type { Tables, TablesInsert, TeacherProfile } from '@mwalimu/types';
 import {
@@ -355,17 +355,6 @@ export async function saveSectionOrder(
     { onConflict: 'user_id,section' },
   );
   if (error !== null) throw new Error(error.message);
-}
-
-/**
- * The same list with one section renamed, so a screen can show the new word
- * before the write comes back. A blank name means the default word: a section
- * with no heading is a mistake, not a choice.
- */
-export function withRenamedSection(
-  sections: readonly CvSection[], key: CvSectionKey, title: string | null,
-): readonly CvSection[] {
-  return sections.map((s) => (s.key === key ? { ...s, title: title ?? CV_SECTIONS[key] } : s));
 }
 
 /** Everything on `cv_details` a teacher may set from the CV screen. */

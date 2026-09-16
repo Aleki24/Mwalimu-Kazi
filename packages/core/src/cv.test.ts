@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import {
   CV_SECTIONS, CV_TEMPLATES, DEFAULT_SECTIONS, certificateLine, sectionsFrom, certificateWhen, contactLine, cvFileName, describeBlocks,
-  formatYearRange, orderEducation, orderExperience,
-  renderCvHtml, renderCvPreviewHtml, renderCvWordHtml, styleFor,
-  type CvData, type CvExperience, type CvTemplate,
+  formatYearRange, movedSection, orderEducation, orderExperience,
+  renderCvHtml, renderCvPreviewHtml, renderCvWordHtml, styleFor, withRenamedSection,
+  type CvData, type CvExperience, type CvSection, type CvSectionKey, type CvTemplate,
 } from './cv';
 
 /** Shorthand: a template's own settings, with anything the test wants changed. */
@@ -374,5 +374,45 @@ describe('the order of a CV', () => {
       expect(renderCvHtml({ ...both, sections: DEFAULT_SECTIONS }, look(t)))
         .toBe(renderCvHtml(both, look(t)));
     }
+  });
+});
+
+describe('arranging the sections', () => {
+  const sections = sectionsFrom([]);
+  const keys = (list: readonly CvSection[]) => list.map((s) => s.key);
+
+  it('renames one section and leaves the rest alone', () => {
+    const next = withRenamedSection(sections, 'employment', 'Work Experience');
+    expect(next.find((s) => s.key === 'employment')?.title).toBe('Work Experience');
+    expect(next.find((s) => s.key === 'education')?.title).toBe(CV_SECTIONS.education);
+    expect(keys(next)).toEqual(keys(sections));
+  });
+
+  it('treats a blank name as going back to the default word', () => {
+    const renamed = withRenamedSection(sections, 'employment', 'Work Experience');
+    for (const blank of [null, '', '   ']) {
+      expect(withRenamedSection(renamed, 'employment', blank)
+        .find((s) => s.key === 'employment')?.title).toBe(CV_SECTIONS.employment);
+    }
+  });
+
+  it('moves a section one place and shifts the one it passed', () => {
+    const [first, second] = keys(sections);
+    const moved = movedSection(sections, second as CvSectionKey, -1);
+    expect(keys(moved).slice(0, 2)).toEqual([second, first]);
+    expect(moved).toHaveLength(sections.length);
+  });
+
+  it('refuses a move off either end rather than clamping it', () => {
+    const first = sections[0]?.key as CvSectionKey;
+    const last = sections[sections.length - 1]?.key as CvSectionKey;
+    expect(movedSection(sections, first, -1)).toBe(sections);
+    expect(movedSection(sections, last, 1)).toBe(sections);
+  });
+
+  it('keeps a move a teacher can undo by moving it back', () => {
+    const key = sections[3]?.key as CvSectionKey;
+    const there = movedSection(sections, key, 1);
+    expect(keys(movedSection(there, key, -1))).toEqual(keys(sections));
   });
 });

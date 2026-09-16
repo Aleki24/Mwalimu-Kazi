@@ -118,6 +118,40 @@ export function sectionsFrom(
   return [...ordered, ...rest];
 }
 
+/**
+ * The same list with one section renamed, so a screen can show the new word
+ * before the write comes back. A blank name means the default word: a section
+ * with no heading is a mistake, not a choice.
+ */
+export function withRenamedSection(
+  sections: readonly CvSection[], key: CvSectionKey, title: string | null,
+): readonly CvSection[] {
+  const wanted = (title ?? '').trim();
+  return sections.map((s) => (s.key === key
+    ? { ...s, title: wanted === '' ? CV_SECTIONS[key] : wanted }
+    : s));
+}
+
+/**
+ * One section moved a place up or down.
+ *
+ * A move that would fall off either end returns the list it was given rather
+ * than clamping: the caller is a button that should have been disabled, and
+ * silently moving the section somewhere else is worse than doing nothing.
+ */
+export function movedSection(
+  sections: readonly CvSection[], key: CvSectionKey, delta: -1 | 1,
+): readonly CvSection[] {
+  const from = sections.findIndex((s) => s.key === key);
+  const to = from + delta;
+  if (from < 0 || to < 0 || to >= sections.length) return sections;
+  const next = [...sections];
+  const [moved] = next.splice(from, 1);
+  if (moved === undefined) return sections;
+  next.splice(to, 0, moved);
+  return next;
+}
+
 export interface CvData {
   readonly fullName: string;
   readonly headline: string | null;

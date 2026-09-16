@@ -3,16 +3,15 @@ import { ActivityIndicator, Pressable, ScrollView, Text, View } from 'react-nati
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Stack } from 'expo-router';
 import Feather from '@expo/vector-icons/Feather';
-import { CV_TEMPLATES, sectionsFrom, type CvSection, type CvStyle } from '@mwalimu/core';
+import { CV_TEMPLATES, type CvStyle } from '@mwalimu/core';
 import { colors, radius } from '@mwalimu/ui';
 import { Card, centredContent, ErrorBanner } from '../../components/ui';
 import { CvPreview } from '../../components/cv-preview';
 import { StyleControls } from '../../components/style-controls';
-import { SectionOrder } from '../../components/section-order';
 import { useTeacher } from '../../lib/auth';
 import {
-  EMPTY_CV, fetchCv, fetchPhotoDataUri, saveCvDetails, saveSectionOrder, styleColumns,
-  toCvData, toCvStyle, withRenamedSection, type CvRecord,
+  EMPTY_CV, fetchCv, fetchPhotoDataUri, saveCvDetails, styleColumns, toCvData, toCvStyle,
+  type CvRecord,
 } from '../../lib/cv';
 import { exportCv, type CvFormat } from '../../lib/cv-export';
 
@@ -25,10 +24,10 @@ import { exportCv, type CvFormat } from '../../lib/cv-export';
  * it is where the look is chosen, because choosing a template is something you
  * do by looking at the result rather than by reading its name.
  *
- * The order of the sections and the words over them are chosen here too, for
- * the same reason. Dragging "Employment" above "Education" on the editor moved
- * a row in a list of names; here it moves the block on the page, and you can
- * see which one you meant.
+ * The order of the sections and the words over them are NOT chosen here. They
+ * belong to the sections themselves, on the editor, where each card is the
+ * block it renames and moves — a second place to decide the same thing is how
+ * "Sections" became a list nobody could tell the purpose of.
  */
 export default function CvPreviewScreen() {
   const teacher = useTeacher();
@@ -42,20 +41,8 @@ export default function CvPreviewScreen() {
   const [error, setError] = useState<string | null>(null);
   const [note, setNote] = useState<string | null>(null);
   const [showControls, setShowControls] = useState(false);
-  /*
-    Held beside the record rather than derived from it on every render: a
-    reorder saves in the background, and a list that waited for the round trip
-    would snap back under the finger that moved it.
-  */
-  const [sections, setSections] = useState<readonly CvSection[]>([]);
 
-  const document = useMemo(() => {
-    const base = toCvData(teacher, cv, photo);
-    // The order being dragged wins over the one the record was loaded with, so
-    // the page moves under the finger that moved the row. The list is only
-    // empty before the first load, when nothing is on screen to disagree with.
-    return sections.length === 0 ? base : { ...base, sections };
-  }, [teacher, cv, photo, sections]);
+  const document = useMemo(() => toCvData(teacher, cv, photo), [teacher, cv, photo]);
 
   useEffect(() => {
     let cancelled = false;
@@ -64,7 +51,6 @@ export default function CvPreviewScreen() {
         const record = await fetchCv();
         if (cancelled) return;
         setCv(record);
-        setSections(sectionsFrom(record.sections.map((r) => ({ key: r.section, title: r.title }))));
         setStyle(toCvStyle(record.details));
         setPhoto(await fetchPhotoDataUri(record.details?.photo_path ?? null));
       } catch (cause) {
@@ -93,24 +79,6 @@ export default function CvPreviewScreen() {
       }
     })();
   }, [teacher.id]);
-
-  /**
-   * A reorder or a rename: shown at once, written behind it.
-   *
-   * Every row carries its position, so the whole list is written rather than
-   * the one row that moved — two sections claiming the same place would leave
-   * the order decided by whichever the database returned first.
-   */
-  const saveOrder = (next: readonly CvSection[]) => {
-    setSections(next);
-    void (async () => {
-      try {
-        await saveSectionOrder(teacher.id, next);
-      } catch (cause) {
-        setError(cause instanceof Error ? cause.message : 'Could not save that order');
-      }
-    })();
-  };
 
   const doExport = async (format: CvFormat) => {
     if (style === null) return;
@@ -162,35 +130,14 @@ export default function CvPreviewScreen() {
             color={colors.primary}
           />
           <Text className="text-[12.5px] font-medium text-primary">
-            {showControls
-              ? 'Hide the controls'
-              : `Change the look and order — ${CV_TEMPLATES[style.template]}`}
+            {showControls ? 'Hide the controls' : `Change the look — ${CV_TEMPLATES[style.template]}`}
           </Text>
         </Pressable>
 
         {showControls ? (
-          <>
-            <Card className="px-3.5 py-3.5">
-              <StyleControls style={style} onChange={choose} />
-            </Card>
-
-            {/*
-              The order lives beside the look rather than on the editor. Moving
-              "Employment" above "Education" there rearranged a list of names;
-              here it rearranges the page above it, which is the thing anyone
-              was actually trying to decide.
-            */}
-            <Card className="gap-2.5 px-3.5 py-3.5">
-              <Text className="text-[12.5px] font-medium text-foreground">
-                Order and headings
-              </Text>
-              <SectionOrder
-                sections={sections}
-                onReorder={saveOrder}
-                onRename={(key, title) => saveOrder(withRenamedSection(sections, key, title))}
-              />
-            </Card>
-          </>
+          <Card className="px-3.5 py-3.5">
+            <StyleControls style={style} onChange={choose} />
+          </Card>
         ) : null}
 
         {note === null ? null : (
