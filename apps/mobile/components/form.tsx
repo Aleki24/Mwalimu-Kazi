@@ -50,6 +50,30 @@ const spanStyle = (span: FieldSpan) => ({
   minWidth: 0,
 });
 
+/**
+ * Full width without the row-flex properties, for a field that is not in a row.
+ *
+ * `spanStyle` is written for `FieldGrid`, which is a flex *row*: there
+ * `flexBasis: '100%'` means the whole width and `flexGrow: 1` fills the line.
+ * Every multiline field in the CV editor sits outside a FieldGrid, as a direct
+ * child of the section's column — and in a column those same two properties
+ * are read against the main axis, so the basis became 100% of the section's
+ * *height* and the box grew to fill whatever was left.
+ *
+ * It was not subtle. The description box on every entry form rendered about
+ * 650px tall, and the form's own Add button was pushed past the bottom of its
+ * card and painted underneath the next one, where a teacher could not click it
+ * — so no role, qualification, certificate, referee or volunteer entry could
+ * be added at all. `width` does the same job in a row and means nothing in a
+ * column, which is why it is the one to use here.
+ */
+const FULL_WIDTH = {
+  width: '100%' as const,
+  flexGrow: 0,
+  flexShrink: 0,
+  minWidth: 0,
+};
+
 /** The row fields sit in. Anything inside it pairs up when the width allows. */
 export function FieldGrid({ children }: { readonly children: ReactNode }) {
   return <View className="flex-row flex-wrap gap-x-2.5 gap-y-3">{children}</View>;
@@ -78,7 +102,7 @@ export function Field({
   const border = invalid ? colors.destructive : focused ? colors.ring : 'transparent';
 
   return (
-    <View style={multiline ? spanStyle('full') : spanStyle(span)} className="gap-1.5">
+    <View style={multiline ? FULL_WIDTH : spanStyle(span)} className="gap-1.5">
       <Text className="text-[11.5px] font-medium text-mutedForeground">{label}</Text>
       <TextInput
         value={value}
