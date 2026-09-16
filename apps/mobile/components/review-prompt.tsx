@@ -48,7 +48,12 @@ export function ReviewPrompt({ invitation }: { invitation: ReviewInvitation }) {
             <Text className="text-[13px] font-medium text-foreground">
               What was {invitation.schoolName} like?
             </Text>
-            <Text className="mt-1 text-[11.5px] leading-4 text-mutedForeground">
+            {/*
+              Two lines, then an ellipsis. Unbounded, this ran to three or four
+              and pushed the card taller than everything around it — and the
+              last line finished under the chevron.
+            */}
+            <Text numberOfLines={2} className="mt-1 text-[11.5px] leading-4 text-mutedForeground">
               {because} Teachers deciding whether to apply there have nothing to read yet.
             </Text>
           </View>

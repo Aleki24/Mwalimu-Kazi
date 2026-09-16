@@ -13,8 +13,11 @@ import raw from '../tokens.json';
  *    closed listing, a rejection. Spending it anywhere else is what makes an
  *    app feel like it is shouting, so `urgent` and `destructive` are the same
  *    hue on purpose — they are the same message.
- * 3. **Charcoal ink on a grey canvas.** White plates float on `background`;
- *    the gap between plates is the divider, so there are no rules.
+ * 3. **Charcoal ink on a soft blue canvas.** White plates float on
+ *    `background`; the gap between plates is the divider, so there are no
+ *    rules. The canvas was a neutral grey and is now the palest tint of the
+ *    brand, which is what makes a white card read as lifted off it rather than
+ *    as a slightly different shade of the same nothing.
  *
  * Two translations, because a design brief is written for a browser and this is
  * React Native:
@@ -52,7 +55,7 @@ export interface SemanticTriple {
 }
 
 export interface Palette {
-  /** The grey stage the white plates float on. */
+  /** The pale blue stage the white plates float on. */
   readonly background: string;
   readonly card: string;
   readonly popover: string;

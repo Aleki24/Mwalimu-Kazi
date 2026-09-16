@@ -31,6 +31,17 @@ import { useTeacher } from '../../lib/auth';
  * Every route without a tab of its own has to appear in one of those two
  * places or it is unreachable — which is what nearly happened to Messages.
  */
+/**
+ * Two to a line at every width, and an odd one out that does not stretch.
+ *
+ * A percentage rather than a pixel basis, because `centredContent` already caps
+ * the column at 620 — so 47% is a predictable half on a phone and on a desktop
+ * alike, with no width listener and no breakpoint. `flexGrow: 0` is the point:
+ * with it at 1 the seventh tile, alone on the last row, stretched the full
+ * width of the screen and stopped looking like part of the same grid.
+ */
+const TILE_BASIS = '47%';
+
 const QUICK_ACTIONS = [
   { href: '/(tabs)/jobs', label: 'Find jobs', icon: 'search' },
   { href: '/applications', label: 'My applications', icon: 'send' },
@@ -106,7 +117,12 @@ export default function HomeScreen() {
 
   return (
     <View className="flex-1 bg-background" style={{ paddingTop: insets.top }}>
-      <View className="flex-row items-center gap-1 bg-card px-5 pb-4 pt-2">
+      {/*
+        On the canvas, not on a white bar. The bar cut the blue off at the
+        greeting and made the screen read as two surfaces stacked; the header is
+        part of the page, so it sits on the page.
+      */}
+      <View className="flex-row items-center gap-1 px-5 pb-4 pt-2">
         <View className="min-w-0 flex-1">
           <Text numberOfLines={1} className="text-2xl font-medium tracking-tight text-foreground">
             {`Hi, ${teacher.fullName.split(' ')[0] ?? teacher.fullName}`}
@@ -178,11 +194,25 @@ export default function HomeScreen() {
               <Pressable
                 accessibilityRole="button"
                 accessibilityLabel={item.label}
-                style={{ flexBasis: '47%', flexGrow: 1 }}
+                style={{ flexBasis: TILE_BASIS, flexGrow: 0 }}
               >
-                <Card className="items-center gap-2 px-2 py-4">
-                  <Feather name={item.icon} size={19} color={colors.primary} />
-                  <Text numberOfLines={1} className="text-[11.5px] font-medium text-foreground">
+                <Card className="gap-2.5 px-3.5 py-3.5">
+                  <View className="flex-row items-start justify-between">
+                    {/*
+                      The icon in a tinted disc rather than bare on white. One
+                      tint, the palest brand blue: this app spends colour on
+                      meaning — coral is urgency, green is good news — so seven
+                      decorative pastels here would be seven false signals.
+                    */}
+                    <View
+                      style={{ width: 38, height: 38, borderRadius: 999 }}
+                      className="items-center justify-center bg-primarySurface"
+                    >
+                      <Feather name={item.icon} size={17} color={colors.primary} />
+                    </View>
+                    <Feather name="chevron-right" size={16} color={colors.mutedForeground} />
+                  </View>
+                  <Text numberOfLines={1} className="text-[13px] font-medium text-foreground">
                     {item.label}
                   </Text>
                 </Card>
