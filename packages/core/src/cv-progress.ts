@@ -1,16 +1,22 @@
+import type { CvSectionKey } from './cv';
 import type { CvCompleteness } from './profile-strength';
 
 /**
  * How far a CV has got, and what to write next.
  *
- * The CV screen asks for nine different things and presented them as nine
- * equal folds. That is a filing cabinet, not a task: nothing on the page said
- * which parts a school actually reads, which were already done, or what to do
- * next — so a teacher who opened it saw a form and closed it again.
+ * The editor presented its nine folds as nine equal rows. That is a filing
+ * cabinet, not a task: nothing on the page said which parts a school actually
+ * reads, which were already done, or what to do next — so a teacher who opened
+ * it saw a form and closed it again.
  *
  * This is the model that was missing. One weighted checklist, derived from
  * counts the screen already holds, so the editor, the profile row and the
  * dashboard can never disagree about how complete a CV is.
+ *
+ * Every step but the photograph is a section of the document, named by the
+ * same key. That is deliberate: the editor puts one card on each section of
+ * the CV, so there is no second list of "sections" to keep in step with the
+ * first, and the fold you fill in is the block that prints.
  *
  * The weights are not a field count. They are the order a Kenyan head teacher
  * reads in: employment and qualifications first, then a way to reach you, then
@@ -19,20 +25,31 @@ import type { CvCompleteness } from './profile-strength';
  * less than one line of experience.
  */
 
-/** Every part of a CV a teacher fills in, in the order the editor asks. */
+/** The parts of a CV that carry weight, in the order the editor asks. */
 export const CV_STEP_IDS = [
-  'contact', 'statement', 'experience', 'education',
-  'certificates', 'skills', 'volunteer', 'referees', 'photo',
+  'personal', 'photo', 'profile', 'employment', 'education',
+  'certificates', 'skills', 'languages', 'volunteer', 'referees',
 ] as const;
 
 export type CvStepId = (typeof CV_STEP_IDS)[number];
 
+/**
+ * Whether a section of the document has a step of its own.
+ *
+ * Hobbies, positions of responsibility and the subject list are sections a
+ * teacher can write and reorder, but nothing is owed on them, so they carry no
+ * weight and no nagging.
+ */
+export function isCvStep(key: CvSectionKey): key is CvSectionKey & CvStepId {
+  return (CV_STEP_IDS as readonly string[]).includes(key);
+}
+
 interface CvStepDefinition {
-  /** The section's name, as the editor titles it. */
+  /** The app's own word for it, before a teacher renames the section. */
   readonly label: string;
   /** What this part does for the teacher, in one line they can act on. */
   readonly why: string;
-  /** The words on the button that fixes it. */
+  /** The words on the row that fixes it. */
   readonly action: string;
   /** Share of the total, out of 100 across every step. */
   readonly weight: number;
@@ -48,22 +65,29 @@ interface CvStepDefinition {
 }
 
 const STEPS = {
-  contact: {
-    label: 'Contact details',
+  personal: {
+    label: 'Personal details',
     why: 'A school that wants to interview you has to be able to reach you today.',
     action: 'Add a phone number or email',
-    weight: 16,
+    weight: 14,
     essential: true,
   },
-  statement: {
-    label: 'Personal statement',
+  photo: {
+    label: 'Photograph',
+    why: 'Kenyan employers expect a head-and-shoulders photograph on a CV, and notice when there is none.',
+    action: 'Add a photograph',
+    weight: 5,
+    essential: false,
+  },
+  profile: {
+    label: 'Profile',
     why: 'Two or three sentences at the top of the page: what you teach, for how long, and what you are looking for.',
-    action: 'Write a short statement',
+    action: 'Write a short profile',
     weight: 12,
     essential: true,
   },
-  experience: {
-    label: 'Work experience',
+  employment: {
+    label: 'Employment',
     why: 'The first thing a head teacher reads. Your most recent role does most of the work.',
     action: 'Add a role',
     weight: 20,
@@ -84,17 +108,24 @@ const STEPS = {
     essential: false,
   },
   skills: {
-    label: 'Skills and languages',
+    label: 'Skills',
     why: 'Your skills are read by the matcher as well as by a person, so what you list here changes which roles find you.',
     action: 'Add a skill',
     weight: 8,
+    essential: false,
+  },
+  languages: {
+    label: 'Languages',
+    why: 'Worth stating plainly on a CV read in a country where most classrooms run in two.',
+    action: 'Add a language',
+    weight: 3,
     essential: false,
   },
   volunteer: {
     label: 'Volunteer work',
     why: 'Worth adding early in a career, when it is the clearest evidence of what you can already do.',
     action: 'Add volunteer work',
-    weight: 3,
+    weight: 2,
     essential: false,
   },
   referees: {
@@ -103,13 +134,6 @@ const STEPS = {
     action: 'Add a referee',
     weight: 12,
     essential: true,
-  },
-  photo: {
-    label: 'Photograph',
-    why: 'Kenyan employers expect a head-and-shoulders photograph on a CV, and notice when there is none.',
-    action: 'Add a photograph',
-    weight: 5,
-    essential: false,
   },
 } as const satisfies Readonly<Record<CvStepId, CvStepDefinition>>;
 
@@ -177,17 +201,16 @@ export const EMPTY_CV_FACTS: CvFacts = {
 function countsFor(facts: CvFacts): Readonly<Record<CvStepId, number>> {
   const one = (yes: boolean): number => (yes ? 1 : 0);
   return {
-    contact: one(facts.hasContact),
-    statement: one(facts.hasSummary),
-    experience: facts.experienceCount,
+    personal: one(facts.hasContact),
+    photo: one(facts.hasPhoto),
+    profile: one(facts.hasSummary),
+    employment: facts.experienceCount,
     education: facts.educationCount,
     certificates: facts.certificateCount,
-    // Skills and languages share a section, so they share a step: a teacher
-    // who listed four languages and no skills has filled that fold in.
-    skills: facts.skillCount + facts.languageCount,
+    skills: facts.skillCount,
+    languages: facts.languageCount,
     volunteer: facts.volunteerCount,
     referees: facts.refereeCount,
-    photo: one(facts.hasPhoto),
   };
 }
 
@@ -208,8 +231,8 @@ export function cvReadiness(facts: CvFacts): CvReadiness {
 
   const missing = steps.filter((s) => !s.done).sort((a, b) => b.weight - a.weight);
   const essentialsLeft = missing.filter((s) => s.essential).length;
-  // Essentials first whatever they weigh: a referee is lighter than a skill
-  // list would be if it were essential, and still the thing to do before it.
+  // Essentials first whatever they weigh: what a CV is missing before it can
+  // be sent outranks what would merely improve it.
   const next = missing.find((s) => s.essential) ?? missing[0] ?? null;
 
   return {

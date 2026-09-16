@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { CV_STEP_IDS, cvReadiness, EMPTY_CV_FACTS, type CvFacts } from './cv-progress';
+import { CV_STEP_IDS, cvReadiness, EMPTY_CV_FACTS, isCvStep, type CvFacts, type CvStepId } from './cv-progress';
+import { CV_SECTIONS, type CvSectionKey } from './cv';
 
 const full: CvFacts = {
   hasContact: true, hasSummary: true, experienceCount: 2, educationCount: 1,
@@ -43,7 +44,7 @@ describe('cvReadiness', () => {
   });
 
   it('asks for a missing essential before anything optional', () => {
-    const r = cvReadiness({ ...full, refereeCount: 0, skillCount: 0, languageCount: 0 });
+    const r = cvReadiness({ ...full, refereeCount: 0, skillCount: 0 });
     expect(r.next?.id).toBe('referees');
   });
 
@@ -57,16 +58,10 @@ describe('cvReadiness', () => {
     expect([...weights].sort((a, b) => b - a)).toEqual(weights);
   });
 
-  it('counts languages as filling the skills fold', () => {
-    const r = cvReadiness({ ...EMPTY_CV_FACTS, languageCount: 2 });
-    expect(r.byId.skills.done).toBe(true);
-    expect(r.byId.skills.count).toBe(2);
-  });
-
   it('reports entry counts a screen can print beside a closed section', () => {
     const r = cvReadiness(full);
-    expect(r.byId.experience.count).toBe(2);
-    expect(r.byId.skills.count).toBe(6);
+    expect(r.byId.employment.count).toBe(2);
+    expect(r.byId.skills.count).toBe(4);
     // A single answer still counts as one, so a caller never special-cases it.
     expect(r.byId.photo.count).toBe(1);
   });
@@ -75,10 +70,10 @@ describe('cvReadiness', () => {
     expect(cvReadiness(full).steps.map((s) => s.id)).toEqual([...CV_STEP_IDS]);
   });
 
-  it('weights experience above everything else a teacher writes', () => {
+  it('weights employment above everything else a teacher writes', () => {
     const { byId } = cvReadiness(EMPTY_CV_FACTS);
     const heaviest = [...Object.values(byId)].sort((a, b) => b.weight - a.weight)[0];
-    expect(heaviest?.id).toBe('experience');
+    expect(heaviest?.id).toBe('employment');
   });
 
   it('shares its facts with profileStrength rather than restating them', () => {
@@ -86,5 +81,33 @@ describe('cvReadiness', () => {
     // compile — not at runtime — if the two ever drift apart.
     const completeness: Pick<CvFacts, 'hasSummary' | 'experienceCount' | 'educationCount' | 'refereeCount'> = full;
     expect(completeness.experienceCount).toBe(2);
+  });
+});
+
+describe('steps and sections', () => {
+  /*
+    The editor hangs one card on each section of the document and reads that
+    section's step for its status. If a step id stopped being a section key the
+    two would silently stop lining up, so the compiler is made to check it: the
+    assignment below fails to build rather than shipping a card with no status.
+  */
+  it('names every step but the photograph after a section of the document', () => {
+    const sections: readonly CvSectionKey[] = CV_STEP_IDS.filter(
+      (id): id is Exclude<CvStepId, 'photo'> => id !== 'photo',
+    );
+    for (const key of sections) expect(CV_SECTIONS[key]).toBeTypeOf('string');
+  });
+
+  it('knows which sections carry weight and which are garnish', () => {
+    expect(isCvStep('employment')).toBe(true);
+    expect(isCvStep('referees')).toBe(true);
+    // Real sections of the CV, but nothing is owed on them.
+    expect(isCvStep('hobbies')).toBe(false);
+    expect(isCvStep('responsibilities')).toBe(false);
+    expect(isCvStep('subjects')).toBe(false);
+  });
+
+  it('gives the photograph no section of its own — it belongs to personal details', () => {
+    expect(Object.keys(CV_SECTIONS)).not.toContain('photo');
   });
 });

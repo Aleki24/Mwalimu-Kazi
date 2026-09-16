@@ -1,85 +1,62 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import {
-  ActivityIndicator, Image, type LayoutChangeEvent, Pressable, ScrollView, Text, TextInput, View,
+  ActivityIndicator, Image, type LayoutChangeEvent, Pressable, ScrollView, Text, View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Stack, router } from 'expo-router';
 import Feather from '@expo/vector-icons/Feather';
 import {
-  CV_VISIBILITY_HINT, CV_VISIBILITY_LABEL, certificateWhen, cvReadiness, formatYearRange,
-  orderEducation, orderExperience, type CvStep, type CvStepId,
+  CV_SECTIONS, CV_VISIBILITY_HINT, CV_VISIBILITY_LABEL, certificateWhen, cvReadiness, formatLabel,
+  formatYearRange, isCvStep, movedSection, orderEducation, orderExperience, sectionsFrom,
+  withRenamedSection, type CvSection, type CvSectionKey, type CvStepId,
 } from '@mwalimu/core';
 import { CvVisibility } from '@mwalimu/types';
 import { colors, radius } from '@mwalimu/ui';
 import {
-  Button, Card, centredContent, Chip, ErrorBanner, ToggleRow, WhyDisabled,
+  Button, Card, centredContent, Chip, ErrorBanner, Tag, ToggleRow, WhyDisabled,
 } from '../../components/ui';
+import { Field, FieldGrid, ReadOnlyField } from '../../components/form';
 import { ListEditor } from '../../components/list-editor';
 import { LanguageEditor } from '../../components/language-editor';
-import { CollapsibleSection } from '../../components/collapsible-section';
+import { CvSectionCard } from '../../components/cv-section-card';
 import { CvReadinessCard } from '../../components/cv-checklist';
 import { useAuth, useTeacher } from '../../lib/auth';
 import {
   cvFactsFrom, deleteCvEntry, EMPTY_CV, fetchCv, fetchPhotoDataUri, removePhoto, saveCertificate,
   saveCvDetails, saveCvPhotoPath, saveEducation, saveExperience, saveLanguage, saveReferee,
-  saveSkills, uploadPhoto, type CertificateRow, type CvRecord, type EducationRow,
-  type ExperienceRow, type RefereeRow,
+  saveSectionOrder, saveSkills, uploadPhoto, type CertificateRow, type CvRecord,
+  type EducationRow, type ExperienceRow, type RefereeRow,
 } from '../../lib/cv';
 import { pickPhoto } from '../../lib/pick-photo';
 
 /**
  * The CV editor.
  *
- * It is one long form, and the thing that makes a long form bearable is
- * knowing why you are filling it in. The checklist at the top says how far
- * along the document is, what a school reads first, and what to do next; every
- * item on it opens the section that answers it. Below that the folds are in
- * the order a CV is written rather than the order the tables were built in,
- * and the ones that decide how the page *looks* have moved to the preview,
- * where you can see what they do.
+ * One card per section of the document, in the order the document prints them.
+ * That is the whole organising idea, and it replaces two things that used to
+ * fight each other: a form whose folds were named after database tables, and a
+ * separate "Sections" list where the headings and the order were really
+ * decided. A teacher who wanted "Employment" to say "Work Experience" had to
+ * find a list of section names that edited nothing else — now they tap the
+ * heading and type.
  *
- * One fold is open at a time. Nine open folds is the wall of inputs this
- * screen used to be, and the drafts live here rather than inside the folds, so
- * closing one to look at another never loses what was typed into it.
+ * The checklist at the top says how far along the document is and what a
+ * school reads first; each of its rows opens the card that answers it. One
+ * card is open at a time, and the drafts live on this screen rather than
+ * inside the cards, so closing one to look at another never loses what was
+ * typed into it.
  */
 
-const input = 'rounded-md border border-border bg-card px-3 py-2.5 text-[14px] text-foreground';
+/** What can be open: any section of the CV, plus the one card that is not one. */
+type OpenSection = CvSectionKey | 'privacy';
 
-/** Everything that can be open, including the one fold that is not a CV step. */
-type SectionId = CvStepId | 'privacy';
-
-function Field({
-  label, value, onChangeText, placeholder, keyboardType, multiline, maxLength, hint,
-}: {
-  label: string;
-  value: string;
-  onChangeText: (v: string) => void;
-  placeholder?: string;
-  keyboardType?: 'default' | 'number-pad' | 'email-address' | 'phone-pad';
-  multiline?: boolean;
-  maxLength?: number;
-  hint?: string;
-}) {
-  return (
-    <View className="gap-1.5">
-      <Text className="text-[11.5px] font-medium text-mutedForeground">{label}</Text>
-      <TextInput
-        value={value}
-        onChangeText={onChangeText}
-        placeholder={placeholder}
-        placeholderTextColor={colors.mutedForeground}
-        keyboardType={keyboardType ?? 'default'}
-        multiline={multiline ?? false}
-        maxLength={maxLength}
-        textAlignVertical={multiline === true ? 'top' : 'center'}
-        className={`${input} ${multiline === true ? 'min-h-[76px]' : 'h-11'}`}
-      />
-      {hint === undefined ? null : (
-        <Text className="text-[10.5px] leading-4 text-mutedForeground">{hint}</Text>
-      )}
-    </View>
-  );
-}
+/**
+ * The card a checklist row opens.
+ *
+ * Every step is a section of its own except the photograph, which is part of
+ * the personal details the templates print it beside.
+ */
+const cardFor = (step: CvStepId): CvSectionKey => (step === 'photo' ? 'personal' : step);
 
 /**
  * A saved entry: tap it to correct it, and the one destructive action asks.
@@ -106,8 +83,11 @@ function EntryRow({
 
   if (confirming) {
     return (
-      <View className="flex-row items-center gap-2 border-b border-border py-2">
-        <Text numberOfLines={1} className="min-w-0 flex-1 text-[11.5px] text-mutedForeground">
+      <View
+        style={{ borderRadius: radius.lg }}
+        className="flex-row items-center gap-2 bg-destructiveSurface px-3 py-1.5"
+      >
+        <Text numberOfLines={1} className="min-w-0 flex-1 text-[11.5px] text-foreground">
           {`Remove ${title}?`}
         </Text>
         <Pressable
@@ -131,7 +111,10 @@ function EntryRow({
   }
 
   return (
-    <View className="flex-row items-center gap-2 border-b border-border">
+    <View
+      style={{ borderRadius: radius.lg, borderWidth: 1, borderColor: editing ? colors.ring : 'transparent' }}
+      className={`flex-row items-center gap-2 px-3 ${editing ? 'bg-card' : 'bg-wash'}`}
+    >
       <Pressable
         accessibilityRole="button"
         accessibilityLabel={`Edit ${title}`}
@@ -139,9 +122,9 @@ function EntryRow({
         className="min-h-[44px] min-w-0 flex-1 flex-row items-center gap-2 py-2"
       >
         <View className="min-w-0 flex-1">
-          <Text className="text-[12.5px] font-medium text-foreground">{title}</Text>
+          <Text numberOfLines={1} className="text-[13px] font-medium text-foreground">{title}</Text>
           {subtitle === '' ? null : (
-            <Text className="text-[11.5px] text-mutedForeground">{subtitle}</Text>
+            <Text numberOfLines={1} className="text-[11.5px] text-mutedForeground">{subtitle}</Text>
           )}
         </View>
         {editing ? (
@@ -155,43 +138,10 @@ function EntryRow({
         accessibilityLabel={`Remove ${title}`}
         onPress={() => setConfirming(true)}
         hitSlop={8}
-        className="min-h-[44px] w-8 items-center justify-center"
+        className="min-h-[44px] w-7 items-center justify-center"
       >
         <Feather name="x" size={15} color={colors.mutedForeground} />
       </Pressable>
-    </View>
-  );
-}
-
-/**
- * One fold of the form, wearing the state of the step it collects.
- *
- * Defined outside the screen so that opening a section does not remount the
- * inputs inside it — a component declared in a render body is a new component
- * on every keystroke, and every field in it loses focus.
- */
-function StepSection({
-  step, summary, open, onOpenChange, onLayout, children,
-}: {
-  readonly step: CvStep;
-  readonly summary: string;
-  readonly open: boolean;
-  readonly onOpenChange: (next: boolean) => void;
-  readonly onLayout: (event: LayoutChangeEvent) => void;
-  readonly children: ReactNode;
-}) {
-  return (
-    <View onLayout={onLayout}>
-      <CollapsibleSection
-        title={step.label}
-        summary={summary}
-        why={step.why}
-        status={{ done: step.done, essential: step.essential }}
-        open={open}
-        onOpenChange={onOpenChange}
-      >
-        {children}
-      </CollapsibleSection>
     </View>
   );
 }
@@ -270,19 +220,20 @@ export default function CvScreen() {
   const insets = useSafeAreaInsets();
 
   const [cv, setCv] = useState<CvRecord>(EMPTY_CV);
+  const [sections, setSections] = useState<readonly CvSection[]>(() => sectionsFrom([]));
   const [photo, setPhoto] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
-  // Which fold is open. One at a time: the checklist points at a section, and
+  // Which card is open. One at a time: the checklist points at a section, and
   // pointing at something only works if the rest are out of the way.
-  const [openSection, setOpenSection] = useState<SectionId | null>(null);
+  const [openSection, setOpenSection] = useState<OpenSection | null>(null);
   const scroller = useRef<ScrollView>(null);
-  const offsets = useRef<Partial<Record<SectionId, number>>>({});
-  // The section waiting to be scrolled to once it has finished opening. A ref
+  const offsets = useRef<Partial<Record<OpenSection, number>>>({});
+  // The card waiting to be scrolled to once it has finished opening. A ref
   // rather than state: nothing renders differently because of it.
-  const pendingScroll = useRef<SectionId | null>(null);
+  const pendingScroll = useRef<OpenSection | null>(null);
 
   // Personal details.
   const [summary, setSummary] = useState('');
@@ -327,6 +278,7 @@ export default function CvScreen() {
     try {
       const record = await fetchCv();
       setCv(record);
+      setSections(sectionsFrom(record.sections.map((r) => ({ key: r.section, title: r.title }))));
       setSummary(record.details?.summary ?? '');
       setEmail(record.details?.email ?? '');
       setPhone(record.details?.phone ?? '');
@@ -398,6 +350,21 @@ export default function CvScreen() {
     }
   };
 
+  /**
+   * A rename or a move: shown at once, written behind it.
+   *
+   * Every row carries its position, so the whole list is written rather than
+   * the one row that moved — two sections claiming the same place would leave
+   * the order decided by whichever the database returned first.
+   */
+  const saveOrder = (next: readonly CvSection[]) => {
+    setSections(next);
+    void persist(
+      () => saveSectionOrder(teacher.id, next),
+      'Could not save that heading',
+    );
+  };
+
   /*
     Each list saves the moment it changes.
 
@@ -441,42 +408,33 @@ export default function CvScreen() {
   };
   const dobUnreadable = dob.trim() !== '' && isoDate(dob) === null;
 
+  const scrollTo = (y: number | undefined) => {
+    if (y === undefined) return;
+    scroller.current?.scrollTo({ y: Math.max(y - 12, 0), animated: true });
+  };
+
   /**
-   * Open a section and bring it into view.
+   * Open a card and bring it into view.
    *
-   * The scroll waits for the fold to finish opening: the section above it may
-   * be closing at the same moment, and a position measured before that lands
-   * a hundred points off. `onLayout` fires once the new geometry is settled,
-   * which is where the scroll is actually issued.
+   * The scroll waits for it to finish opening: the card above may be closing
+   * at the same moment, and a position measured before that lands a hundred
+   * points off. `onLayout` fires once the new geometry is settled, which is
+   * where the scroll is actually issued.
    */
-  const reveal = (id: SectionId) => {
+  const reveal = (id: OpenSection) => {
     const alreadyOpen = openSection === id;
     setOpenSection(id);
     if (alreadyOpen) scrollTo(offsets.current[id]);
     else pendingScroll.current = id;
   };
 
-  const scrollTo = (y: number | undefined) => {
-    if (y === undefined) return;
-    scroller.current?.scrollTo({ y: Math.max(y - 12, 0), animated: true });
-  };
-
-  const layout = (id: SectionId) => (event: LayoutChangeEvent) => {
+  const layout = (id: OpenSection) => (event: LayoutChangeEvent) => {
     const { y } = event.nativeEvent.layout;
     offsets.current[id] = y;
     if (pendingScroll.current !== id) return;
     pendingScroll.current = null;
     scrollTo(y);
   };
-
-  /** Everything a fold needs to know about itself, in one place. */
-  const foldProps = (id: CvStepId, summaryLine: string) => ({
-    step: readiness.byId[id],
-    summary: summaryLine,
-    open: openSection === id,
-    onOpenChange: (next: boolean) => setOpenSection(next ? id : null),
-    onLayout: layout(id),
-  });
 
   const choosePhoto = () => void run(async () => {
     const picked = await pickPhoto();
@@ -500,17 +458,20 @@ export default function CvScreen() {
     );
   }
 
+  const roles = cv.experience.filter((e) => !e.is_volunteer);
+  const volunteering = cv.experience.filter((e) => e.is_volunteer);
+
   /**
-   * What a closed section says about itself. Never a bare "0".
+   * What a closed card says about itself. Never a bare "0".
    *
    * The plural is given rather than guessed: appending "s" turned "entry" into
    * "4 entrys" on the first screen anyone looked at.
    */
   const counted = (n: number, one: string, many: string): string =>
-    (n === 0 ? 'Not filled in' : `${n} ${n === 1 ? one : many}`);
+    (n === 0 ? 'Empty' : `${n} ${n === 1 ? one : many}`);
   const filled = (...values: readonly string[]): string => {
     const done = values.filter((v) => v.trim() !== '').length;
-    return done === 0 ? 'Not filled in' : `${done} of ${values.length} filled in`;
+    return done === 0 ? 'Empty' : `${done} of ${values.length} filled in`;
   };
 
   /** Pull a saved role back into the form that wrote it. */
@@ -548,14 +509,14 @@ export default function CvScreen() {
     words: { role: string; where: string; rolePlaceholder: string; wherePlaceholder: string },
   ) => (
     <>
-      <Field label={words.role} value={draft.role} onChangeText={(v) => set({ ...draft, role: v })} placeholder={words.rolePlaceholder} />
-      <Field label={words.where} value={draft.organisation} onChangeText={(v) => set({ ...draft, organisation: v })} placeholder={words.wherePlaceholder} />
-      <View className="flex-row gap-2">
-        <View className="flex-1"><Field label="From" value={draft.start} onChangeText={(v) => set({ ...draft, start: v })} keyboardType="number-pad" placeholder="2019" /></View>
+      <FieldGrid>
+        <Field label={words.role} value={draft.role} onChangeText={(v) => set({ ...draft, role: v })} placeholder={words.rolePlaceholder} />
+        <Field label={words.where} value={draft.organisation} onChangeText={(v) => set({ ...draft, organisation: v })} placeholder={words.wherePlaceholder} />
+        <Field label="From" value={draft.start} onChangeText={(v) => set({ ...draft, start: v })} keyboardType="number-pad" placeholder="2019" />
         {draft.current ? null : (
-          <View className="flex-1"><Field label="To" value={draft.end} onChangeText={(v) => set({ ...draft, end: v })} keyboardType="number-pad" placeholder="2022" /></View>
+          <Field label="To" value={draft.end} onChangeText={(v) => set({ ...draft, end: v })} keyboardType="number-pad" placeholder="2022" />
         )}
-      </View>
+      </FieldGrid>
       <ToggleRow
         label="I am still doing this"
         value={draft.current}
@@ -585,7 +546,7 @@ export default function CvScreen() {
     <>
       <Button
         label={editing ? 'Save changes' : addLabel}
-        variant="secondary"
+        variant={editing ? 'primary' : 'secondary'}
         disabled={missing.length > 0}
         onPress={onSave}
       />
@@ -604,86 +565,149 @@ export default function CvScreen() {
     </>
   );
 
-  return (
-    <View className="flex-1 bg-background">
-      <Stack.Screen options={{ title: 'Your CV' }} />
-      <ScrollView
-        ref={scroller}
-        contentContainerStyle={{ padding: 16, gap: 10, paddingBottom: insets.bottom + 40, ...centredContent }}
-        keyboardShouldPersistTaps="handled"
-      >
-        {error !== null ? <ErrorBanner message={error} /> : null}
+  /** A section with nothing in it yet, said once rather than left blank. */
+  const nothingYet = (words: string) => (
+    <Text className="text-[11.5px] leading-4 text-disabledForeground">{words}</Text>
+  );
 
-        <CvReadinessCard
-          readiness={readiness}
-          onOpenStep={reveal}
-          onPreview={() => router.push('/profile/cv-preview')}
-        />
+  const summaryFor = (key: CvSectionKey): string => {
+    switch (key) {
+      case 'personal': return filled(phone, email, address, location);
+      case 'profile': return summary.trim() === '' ? 'Empty' : 'Written';
+      case 'employment': return counted(roles.length, 'role', 'roles');
+      case 'education': return counted(cv.education.length, 'qualification', 'qualifications');
+      case 'certificates': return counted(cv.certificates.length, 'certificate', 'certificates');
+      case 'skills': return counted(skills.length, 'skill', 'skills');
+      case 'languages': return counted(cv.languages.length, 'language', 'languages');
+      case 'hobbies': return counted(hobbies.length, 'hobby', 'hobbies');
+      case 'responsibilities': return counted(responsibilities.length, 'entry', 'entries');
+      case 'volunteer': return counted(volunteering.length, 'entry', 'entries');
+      case 'referees': return counted(cv.referees.length, 'referee', 'referees');
+      case 'subjects': return counted(teacher.subjects.length, 'subject', 'subjects');
+    }
+  };
 
-        {/* --------------------------------------------------- contact details */}
-        <StepSection {...foldProps('contact', filled(phone, email, address, location))}>
-          <Field label="Phone" value={phone} onChangeText={setPhone} keyboardType="phone-pad" placeholder="+254 712 345678" />
-          <Field label="Email" value={email} onChangeText={setEmail} keyboardType="email-address" placeholder="you@example.com" />
-          <Field label="Address" value={address} onChangeText={setAddress} placeholder="P.O. Box 132-50311" maxLength={200} />
-          <View className="flex-row gap-2">
-            <View className="flex-1"><Field label="Post code" value={postCode} onChangeText={setPostCode} placeholder="50311" maxLength={20} /></View>
-            <View className="flex-[2]"><Field label="City or town" value={location} onChangeText={setLocation} placeholder="Nairobi" /></View>
+  const bodyFor = (key: CvSectionKey): ReactNode => {
+    switch (key) {
+      case 'personal': return (
+        <>
+          <View className="flex-row gap-3">
+            {/*
+              The photograph sits where it prints: at the top of the personal
+              details, beside the name, rather than in a section of its own
+              three folds away from anything it relates to.
+            */}
+            <View className="gap-1.5">
+              {photo === null ? (
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel="Choose a photograph"
+                  onPress={choosePhoto}
+                  style={{ borderRadius: radius.lg }}
+                  className="h-[84px] w-[66px] items-center justify-center border border-dashed border-border bg-wash"
+                >
+                  <Feather name="camera" size={17} color={colors.mutedForeground} />
+                  <Text className="mt-1 text-[9.5px] text-mutedForeground">Photo</Text>
+                </Pressable>
+              ) : (
+                <Image
+                  source={{ uri: photo }}
+                  style={{ width: 66, height: 84, borderRadius: radius.lg }}
+                  accessibilityLabel="Your CV photograph"
+                />
+              )}
+              <Pressable
+                accessibilityRole="button"
+                onPress={photo === null ? choosePhoto : clearPhoto}
+                className="min-h-[24px] items-center justify-center"
+              >
+                <Text className="text-[10.5px] font-medium text-mutedForeground">
+                  {photo === null ? 'Add' : 'Remove'}
+                </Text>
+              </Pressable>
+            </View>
+
+            <View className="min-w-0 flex-1">
+              <FieldGrid>
+                <ReadOnlyField
+                  label="Full name"
+                  value={teacher.fullName}
+                  placeholder="From your profile"
+                  span="full"
+                  onPress={() => router.push('/profile/edit')}
+                />
+                <ReadOnlyField
+                  label="Headline"
+                  value={teacher.headline ?? ''}
+                  placeholder="Mathematics & Physics teacher"
+                  span="full"
+                  onPress={() => router.push('/profile/edit')}
+                />
+              </FieldGrid>
+            </View>
           </View>
+
+          <FieldGrid>
+            <Field label="Phone" value={phone} onChangeText={setPhone} keyboardType="phone-pad" placeholder="+254 712 345678" />
+            <Field label="Email" value={email} onChangeText={setEmail} keyboardType="email-address" placeholder="you@example.com" />
+            <Field label="Address" value={address} onChangeText={setAddress} placeholder="P.O. Box 132-50311" maxLength={200} span="full" />
+            <Field label="Post code" value={postCode} onChangeText={setPostCode} placeholder="50311" maxLength={20} />
+            <Field label="City or town" value={location} onChangeText={setLocation} placeholder="Nairobi" />
+            <Field
+              label="Date of birth"
+              value={dob}
+              onChangeText={setDob}
+              placeholder="23/12/1996"
+              invalid={dobUnreadable}
+              hint={dobUnreadable ? 'Write it as 23/12/1996 or 1996-12-23.' : undefined}
+            />
+            <Field label="Gender" value={gender} onChangeText={setGender} placeholder="Female" maxLength={40} />
+            <Field label="Nationality" value={nationality} onChangeText={setNationality} placeholder="Kenyan" maxLength={60} />
+          </FieldGrid>
+
           <Button
-            label="Save contact details"
+            label="Save personal details"
             variant="secondary"
+            disabled={dobUnreadable}
             onPress={() => void run(
               () => saveCvDetails(teacher.id, {
                 email: orNull(email), phone: orNull(phone), location: orNull(location),
                 address: orNull(address), post_code: orNull(postCode),
+                date_of_birth: isoDate(dob), gender: orNull(gender),
+                nationality: orNull(nationality),
               }),
-              'Could not save your contact details',
+              'Could not save your personal details',
             )}
           />
-        </StepSection>
+          <WhyDisabled missing={dobUnreadable ? ['a date it can read'] : []} />
+        </>
+      );
 
-        {/* ------------------------------------------------ personal statement */}
-        <StepSection {...foldProps('statement', summary.trim() === '' ? 'Not written yet' : 'Written')}>
+      case 'profile': return (
+        <>
           <Field
-            label="Personal statement"
+            label="Your profile"
             value={summary}
             onChangeText={setSummary}
             multiline
             maxLength={1200}
             placeholder="Two or three sentences: what you teach, how long, and what you are looking for."
           />
-          <Text className="text-[11px] font-medium text-mutedForeground">
-            The rest is optional, and some Kenyan employers still ask for it.
-          </Text>
-          <Field
-            label="Date of birth"
-            value={dob}
-            onChangeText={setDob}
-            placeholder="23/12/1996"
-            hint={dobUnreadable ? 'Write it as 23/12/1996 or 1996-12-23.' : undefined}
-          />
-          <View className="flex-row gap-2">
-            <View className="flex-1"><Field label="Gender" value={gender} onChangeText={setGender} placeholder="Female" maxLength={40} /></View>
-            <View className="flex-1"><Field label="Nationality" value={nationality} onChangeText={setNationality} placeholder="Kenyan" maxLength={60} /></View>
-          </View>
           <Button
-            label="Save"
+            label="Save profile"
             variant="secondary"
-            disabled={dobUnreadable}
             onPress={() => void run(
-              () => saveCvDetails(teacher.id, {
-                summary: orNull(summary), date_of_birth: isoDate(dob),
-                gender: orNull(gender), nationality: orNull(nationality),
-              }),
+              () => saveCvDetails(teacher.id, { summary: orNull(summary) }),
               'Could not save that',
             )}
           />
-          <WhyDisabled missing={dobUnreadable ? ['a date it can read'] : []} />
-        </StepSection>
+        </>
+      );
 
-        {/* ------------------------------------------------------- experience */}
-        <StepSection {...foldProps('experience', counted(readiness.byId.experience.count, 'role', 'roles'))}>
-          {orderExperience(cv.experience.filter((e) => !e.is_volunteer).map(asOrderable)).map(({ row }) => (
+      case 'employment': return (
+        <>
+          {roles.length === 0 ? nothingYet('No roles yet. The most recent one goes at the top of the printed CV.') : null}
+          {orderExperience(roles.map(asOrderableRole)).map(({ row }) => (
             <EntryRow
               key={row.id}
               title={row.role}
@@ -708,10 +732,12 @@ export default function CvScreen() {
             () => saveRole(exp, false, () => setExp(EMPTY_ROLE)),
             () => setExp(EMPTY_ROLE),
           )}
-        </StepSection>
+        </>
+      );
 
-        {/* -------------------------------------------------------- education */}
-        <StepSection {...foldProps('education', counted(readiness.byId.education.count, 'qualification', 'qualifications'))}>
+      case 'education': return (
+        <>
+          {cv.education.length === 0 ? nothingYet('No qualifications yet.') : null}
           {orderEducation(cv.education.map(asOrderableEducation)).map(({ row }) => (
             <EntryRow
               key={row.id}
@@ -733,14 +759,13 @@ export default function CvScreen() {
               }, 'Could not remove that')}
             />
           ))}
-
-          <Field label="Qualification" value={edu.qualification} onChangeText={(v) => setEdu({ ...edu, qualification: v })} placeholder="B.Ed (Science)" />
-          <Field label="Institution" value={edu.institution} onChangeText={(v) => setEdu({ ...edu, institution: v })} placeholder="University of Nairobi" />
-          <View className="flex-row gap-2">
-            <View className="flex-1"><Field label="From" value={edu.start} onChangeText={(v) => setEdu({ ...edu, start: v })} keyboardType="number-pad" placeholder="2012" /></View>
-            <View className="flex-1"><Field label="To" value={edu.end} onChangeText={(v) => setEdu({ ...edu, end: v })} keyboardType="number-pad" placeholder="2016" /></View>
-          </View>
-          <Field label="Grade (optional)" value={edu.grade} onChangeText={(v) => setEdu({ ...edu, grade: v })} placeholder="Second Class Upper" />
+          <FieldGrid>
+            <Field label="Qualification" value={edu.qualification} onChangeText={(v) => setEdu({ ...edu, qualification: v })} placeholder="B.Ed (Science)" />
+            <Field label="Institution" value={edu.institution} onChangeText={(v) => setEdu({ ...edu, institution: v })} placeholder="University of Nairobi" />
+            <Field label="From" value={edu.start} onChangeText={(v) => setEdu({ ...edu, start: v })} keyboardType="number-pad" placeholder="2012" />
+            <Field label="To" value={edu.end} onChangeText={(v) => setEdu({ ...edu, end: v })} keyboardType="number-pad" placeholder="2016" />
+            <Field label="Grade (optional)" value={edu.grade} onChangeText={(v) => setEdu({ ...edu, grade: v })} placeholder="Second Class Upper" span="full" />
+          </FieldGrid>
           {draftActions(
             edu.id !== null,
             'Add qualification',
@@ -758,10 +783,11 @@ export default function CvScreen() {
             }, 'Could not save that qualification'),
             () => setEdu(EMPTY_EDUCATION),
           )}
-        </StepSection>
+        </>
+      );
 
-        {/* ----------------------------------------------------- certificates */}
-        <StepSection {...foldProps('certificates', counted(readiness.byId.certificates.count, 'certificate', 'certificates'))}>
+      case 'certificates': return (
+        <>
           {cv.certificates.map((row: CertificateRow) => (
             <EntryRow
               key={row.id}
@@ -785,11 +811,13 @@ export default function CvScreen() {
               }, 'Could not remove that')}
             />
           ))}
-          <Field label="Certificate" value={cert.title} onChangeText={(v) => setCert({ ...cert, title: v })} placeholder="Certificate in computer packages" maxLength={160} />
+          <FieldGrid>
+            <Field label="Certificate" value={cert.title} onChangeText={(v) => setCert({ ...cert, title: v })} placeholder="Certificate in computer packages" maxLength={160} span="full" />
+            {cert.ongoing ? null : (
+              <Field label="Year (optional)" value={cert.year} onChangeText={(v) => setCert({ ...cert, year: v })} keyboardType="number-pad" placeholder="2016" />
+            )}
+          </FieldGrid>
           <Field label="Where (optional)" value={cert.description} onChangeText={(v) => setCert({ ...cert, description: v })} placeholder="Probation Community Resource & Training Centre, Webuye" maxLength={400} multiline />
-          {cert.ongoing ? null : (
-            <Field label="Year (optional)" value={cert.year} onChangeText={(v) => setCert({ ...cert, year: v })} keyboardType="number-pad" placeholder="2016" />
-          )}
           <ToggleRow
             label="Still studying for it"
             value={cert.ongoing}
@@ -813,40 +841,51 @@ export default function CvScreen() {
             }, 'Could not save that certificate'),
             () => setCert(EMPTY_CERTIFICATE),
           )}
-        </StepSection>
+        </>
+      );
 
-        {/* ------------------------------------------------ skills, languages */}
-        <StepSection {...foldProps('skills', counted(readiness.byId.skills.count + hobbies.length + responsibilities.length, 'entry', 'entries'))}>
+      case 'skills': return (
+        <>
           <ListEditor label="Skills" items={skills} onChange={editSkills} placeholder="Computer packages" />
-          <LanguageEditor
-            items={cv.languages}
-            onAdd={(name) => void run(
-              () => saveLanguage({ user_id: teacher.id, name }), 'Could not add that language')}
-            onLevel={(row, level) => void run(
-              () => saveLanguage({ ...row, level }), 'Could not save that')}
-            onRemove={(row) => void run(
-              () => deleteCvEntry('cv_languages', row.id), 'Could not remove that')}
-          />
-          <ListEditor
-            label="Hobbies"
-            items={hobbies}
-            onChange={editList('hobbies', setHobbies)}
-            placeholder="Reading novels"
-          />
-          <ListEditor
-            label="Positions of responsibility"
-            items={responsibilities}
-            onChange={editList('responsibilities', setResponsibilities)}
-            placeholder="Class teacher, Form 4G"
-          />
           <Text className="text-[10.5px] leading-4 text-mutedForeground">
-            These save as you add them.
+            These save as you add them, and they are the same skills the matcher reads.
           </Text>
-        </StepSection>
+        </>
+      );
 
-        {/* ----------------------------------------------------- volunteering */}
-        <StepSection {...foldProps('volunteer', counted(readiness.byId.volunteer.count, 'entry', 'entries'))}>
-          {orderExperience(cv.experience.filter((e) => e.is_volunteer).map(asOrderable)).map(({ row }) => (
+      case 'languages': return (
+        <LanguageEditor
+          items={cv.languages}
+          onAdd={(name) => void run(
+            () => saveLanguage({ user_id: teacher.id, name }), 'Could not add that language')}
+          onLevel={(row, level) => void run(
+            () => saveLanguage({ ...row, level }), 'Could not save that')}
+          onRemove={(row) => void run(
+            () => deleteCvEntry('cv_languages', row.id), 'Could not remove that')}
+        />
+      );
+
+      case 'hobbies': return (
+        <ListEditor
+          label="Hobbies"
+          items={hobbies}
+          onChange={editList('hobbies', setHobbies)}
+          placeholder="Reading novels"
+        />
+      );
+
+      case 'responsibilities': return (
+        <ListEditor
+          label="Positions of responsibility"
+          items={responsibilities}
+          onChange={editList('responsibilities', setResponsibilities)}
+          placeholder="Class teacher, Form 4G"
+        />
+      );
+
+      case 'volunteer': return (
+        <>
+          {orderExperience(volunteering.map(asOrderableRole)).map(({ row }) => (
             <EntryRow
               key={row.id}
               title={row.role}
@@ -871,13 +910,14 @@ export default function CvScreen() {
             () => saveRole(vol, true, () => setVol(EMPTY_ROLE)),
             () => setVol(EMPTY_ROLE),
           )}
-        </StepSection>
+        </>
+      );
 
-        {/* --------------------------------------------------------- referees */}
-        <StepSection {...foldProps('referees', counted(readiness.byId.referees.count, 'referee', 'referees'))}>
+      case 'referees': return (
+        <>
           <Text className="text-[11px] leading-4 text-mutedForeground">
-            Only the people you actually apply to ever see these, whatever the setting below says.
-            A referee agreed to vouch for you, not to be in a directory.
+            Only the people you actually apply to ever see these, whatever the visibility card
+            says. A referee agreed to vouch for you, not to be in a directory.
           </Text>
           {cv.referees.map((row: RefereeRow) => (
             <EntryRow
@@ -900,13 +940,13 @@ export default function CvScreen() {
               }, 'Could not remove that')}
             />
           ))}
-          <Field label="Name" value={ref.name} onChangeText={(v) => setRef({ ...ref, name: v })} placeholder="Jane Muthoni" />
-          <Field label="Title" value={ref.title} onChangeText={(v) => setRef({ ...ref, title: v })} placeholder="Head Teacher" />
-          <Field label="Organisation" value={ref.organisation} onChangeText={(v) => setRef({ ...ref, organisation: v })} placeholder="Greenfield Academy" />
-          <View className="flex-row gap-2">
-            <View className="flex-1"><Field label="Phone" value={ref.phone} onChangeText={(v) => setRef({ ...ref, phone: v })} keyboardType="phone-pad" /></View>
-            <View className="flex-1"><Field label="Email" value={ref.email} onChangeText={(v) => setRef({ ...ref, email: v })} keyboardType="email-address" /></View>
-          </View>
+          <FieldGrid>
+            <Field label="Name" value={ref.name} onChangeText={(v) => setRef({ ...ref, name: v })} placeholder="Jane Muthoni" />
+            <Field label="Title" value={ref.title} onChangeText={(v) => setRef({ ...ref, title: v })} placeholder="Head Teacher" />
+            <Field label="Organisation" value={ref.organisation} onChangeText={(v) => setRef({ ...ref, organisation: v })} placeholder="Greenfield Academy" span="full" />
+            <Field label="Phone" value={ref.phone} onChangeText={(v) => setRef({ ...ref, phone: v })} keyboardType="phone-pad" placeholder="+254 712 345678" />
+            <Field label="Email" value={ref.email} onChangeText={(v) => setRef({ ...ref, email: v })} keyboardType="email-address" placeholder="jane@example.com" />
+          </FieldGrid>
           {draftActions(
             ref.id !== null,
             'Add referee',
@@ -924,45 +964,90 @@ export default function CvScreen() {
             }, 'Could not save that referee'),
             () => setRef(EMPTY_REFEREE),
           )}
-        </StepSection>
+        </>
+      );
 
-        {/* -------------------------------------------------------- the photo */}
-        <StepSection {...foldProps('photo', photo === null ? 'Not added' : 'Added')}>
-          <View className="flex-row items-center gap-3">
-            {photo === null ? (
-              <View className="h-[76px] w-[60px] items-center justify-center rounded-md border border-dashed border-border bg-wash">
-                <Feather name="user" size={20} color={colors.mutedForeground} />
+      case 'subjects': return (
+        <>
+          {teacher.subjects.length === 0
+            ? nothingYet('No subjects on your profile yet.')
+            : (
+              <View className="flex-row flex-wrap gap-1.5">
+                {teacher.subjects.map((s) => <Tag key={s} label={formatLabel(s)} />)}
               </View>
-            ) : (
-              <Image
-                source={{ uri: photo }}
-                style={{ width: 60, height: 76, borderRadius: radius.sm }}
-                accessibilityLabel="Your CV photograph"
-              />
             )}
-            <View className="min-w-0 flex-1 gap-1.5">
-              <Button
-                label={photo === null ? 'Choose a photograph' : 'Replace'}
-                variant="secondary"
-                onPress={choosePhoto}
-              />
-              {photo === null ? null : (
-                <Pressable accessibilityRole="button" onPress={clearPhoto} className="py-1">
-                  <Text className="text-[11.5px] font-medium text-mutedForeground">Remove</Text>
-                </Pressable>
-              )}
-            </View>
-          </View>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Edit your subjects on your profile"
+            onPress={() => router.push('/profile/edit')}
+            className="min-h-[44px] flex-row items-center gap-1.5"
+          >
+            <Feather name="edit-2" size={12} color={colors.primary} />
+            <Text className="text-[12px] font-medium text-primary">Edit on your profile</Text>
+          </Pressable>
           <Text className="text-[10.5px] leading-4 text-mutedForeground">
-            Only ever on the CV. Nobody who cannot read your CV can see it, and it travels inside
-            the file you download rather than as a link that expires.
+            Your subjects and TSC number print here and drive your match scores, so they live
+            on your profile and cannot disagree with it.
           </Text>
-        </StepSection>
+        </>
+      );
+    }
+  };
 
-        {/* ------------------------------------------------------- visibility */}
+  return (
+    <View className="flex-1 bg-background">
+      <Stack.Screen options={{ title: 'Your CV' }} />
+      <ScrollView
+        ref={scroller}
+        contentContainerStyle={{ padding: 16, gap: 10, paddingBottom: insets.bottom + 40, ...centredContent }}
+        keyboardShouldPersistTaps="handled"
+      >
+        {error !== null ? <ErrorBanner message={error} /> : null}
+
+        <CvReadinessCard
+          readiness={readiness}
+          onOpenStep={(step) => reveal(cardFor(step))}
+          onPreview={() => router.push('/profile/cv-preview')}
+        />
+
+        {/*
+          One card per section of the document, in the order it prints. The
+          order is the teacher's, so this list is theirs to rearrange rather
+          than a fixed sequence with a separate list of names beside it.
+        */}
+        {sections.map((section, index) => {
+          const step = isCvStep(section.key) ? readiness.byId[section.key] : undefined;
+          return (
+            <View key={section.key} onLayout={layout(section.key)}>
+              <CvSectionCard
+                title={section.title}
+                defaultTitle={CV_SECTIONS[section.key]}
+                summary={summaryFor(section.key)}
+                why={step?.why}
+                status={step === undefined
+                  ? undefined
+                  : { done: step.done, essential: step.essential }}
+                open={openSection === section.key}
+                onOpenChange={(next) => setOpenSection(next ? section.key : null)}
+                onRename={(title) => saveOrder(withRenamedSection(sections, section.key, title))}
+                onMove={(delta) => saveOrder(movedSection(sections, section.key, delta))}
+                canMoveUp={index > 0}
+                canMoveDown={index < sections.length - 1}
+              >
+                {bodyFor(section.key)}
+              </CvSectionCard>
+            </View>
+          );
+        })}
+
+        {/*
+          Not a section of the document, so it carries no heading to rename and
+          no place in the order — it decides who may open the CV inside the app.
+        */}
         <View onLayout={layout('privacy')}>
-          <CollapsibleSection
+          <CvSectionCard
             title="Who can read it"
+            defaultTitle="Who can read it"
             summary={CV_VISIBILITY_LABEL[visibility]}
             why="This decides who may open your CV inside the app. It has no bearing on a file you download and send yourself."
             open={openSection === 'privacy'}
@@ -984,7 +1069,7 @@ export default function CvScreen() {
             <Text className="text-[11px] leading-4 text-mutedForeground">
               {CV_VISIBILITY_HINT[visibility]}
             </Text>
-          </CollapsibleSection>
+          </CvSectionCard>
         </View>
 
         {/*
@@ -995,31 +1080,8 @@ export default function CvScreen() {
         <Button
           label="Preview and download"
           onPress={() => router.push('/profile/cv-preview')}
+          className="mt-1"
         />
-
-        {/*
-          The fields this screen deliberately does not own, and the way to
-          reach them. It used to be a notice at the top saying where they came
-          from, which is the same sentence without the door.
-        */}
-        <Pressable
-          accessibilityRole="link"
-          accessibilityLabel="Edit your profile"
-          onPress={() => router.push('/profile/edit')}
-        >
-          <Card className="flex-row items-center gap-3 p-3.5">
-            <View className="min-w-0 flex-1">
-              <Text className="text-[12.5px] font-medium text-foreground">
-                Name, subjects and TSC number
-              </Text>
-              <Text className="mt-0.5 text-[11px] leading-4 text-mutedForeground">
-                These print on your CV and drive your match scores, so they live on your profile
-                and cannot disagree with it. Edit them there.
-              </Text>
-            </View>
-            <Feather name="chevron-right" size={16} color={colors.mutedForeground} />
-          </Card>
-        </Pressable>
 
         {busy ? <ActivityIndicator color={colors.mutedForeground} className="py-2" /> : null}
       </ScrollView>
@@ -1030,11 +1092,11 @@ export default function CvScreen() {
 /**
  * A row in the shape `orderExperience` sorts by, carrying the row itself.
  *
- * The ordering functions are generic over anything that has the fields they
- * read, so the editor sorts the real rows — ids and all — instead of sorting a
- * copy and then trying to find each original again by its title.
+ * The ordering functions are generic over the entry, so the editor sorts the
+ * real rows — ids and all — instead of sorting a copy and then trying to find
+ * each original again by its title.
  */
-function asOrderable(row: ExperienceRow) {
+function asOrderableRole(row: ExperienceRow) {
   return {
     organisation: row.organisation,
     role: row.role,
