@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { parseJob, parseJobsWithSchools, type JobRowWithSchool } from './mappers';
+import { parseAccount, parseJob, parseJobsWithSchools, type JobRowWithSchool } from './mappers';
 import type { Tables } from '@mwalimu/types';
 
 const row = (over: Partial<Tables<'jobs'>> = {}): Tables<'jobs'> => ({
@@ -145,5 +145,57 @@ describe('parseJobsWithSchools — verification reaches the job', () => {
       joined({ schools: null, school_id: null, poster_kind: 'individual' }),
     ]);
     expect(jobs[0]?.schoolVerification).toBeNull();
+  });
+});
+
+/** A profile row as the database hands it over, teacher by default. */
+const profileRow = (over: Partial<Tables<'profiles'>> = {}): Tables<'profiles'> => ({
+  id: '44444444-4444-4444-8444-444444444444',
+  full_name: 'Maryline Endeheli',
+  headline: null,
+  county: 'nairobi',
+  role: 'teacher',
+  subjects: ['mathematics'],
+  curricula: [],
+  experience_years: 4,
+  has_degree: true,
+  tsc_number: null,
+  tsc_verified: false,
+  open_to_opportunities: true,
+  notification_sound: false,
+  skills: [],
+  created_at: '2026-09-01T08:00:00Z',
+  updated_at: '2026-09-01T08:00:00Z',
+  ...over,
+});
+
+describe('parseAccount', () => {
+  it('reads a teacher as a teacher, with their subjects intact', () => {
+    const account = parseAccount(profileRow());
+    expect(account.ok).toBe(true);
+    if (!account.ok || account.value.role !== 'teacher') throw new Error('expected a teacher');
+    expect(account.value.teacher.subjects).toEqual(['mathematics']);
+  });
+
+  it('reads a parent who teaches nothing', () => {
+    // The whole point of the role: this row would fail TeacherProfile, which
+    // requires at least one subject, and the person would be told their
+    // profile is corrupt rather than shown the app.
+    const account = parseAccount(profileRow({ role: 'parent', subjects: [], experience_years: 0 }));
+    expect(account.ok).toBe(true);
+    if (!account.ok || account.value.role !== 'parent') throw new Error('expected a parent');
+    expect(account.value.parent.fullName).toBe('Maryline Endeheli');
+  });
+
+  it('still refuses a teacher row that teaches nothing', () => {
+    const account = parseAccount(profileRow({ subjects: [] }));
+    expect(account.ok).toBe(false);
+  });
+
+  it('reports an unreadable parent row rather than guessing at it', () => {
+    const account = parseAccount(profileRow({ role: 'parent', full_name: 'x' }));
+    expect(account.ok).toBe(false);
+    if (account.ok) throw new Error('expected a failure');
+    expect(account.reason).toContain(profileRow().id);
   });
 });

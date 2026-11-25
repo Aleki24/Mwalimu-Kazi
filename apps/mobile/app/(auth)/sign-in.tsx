@@ -3,15 +3,46 @@ import { ActivityIndicator, Pressable, ScrollView, Text, TextInput, View } from 
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Link } from 'expo-router';
 import Feather from '@expo/vector-icons/Feather';
-import { colors, radius } from '@mwalimu/ui';
-import { Button, centredContent, ErrorBanner, NoticeStrip } from '../../components/ui';
+import { colors, radius, shadow } from '@mwalimu/ui';
+import { Button, Card, centredContent, ErrorBanner, NoticeStrip } from '../../components/ui';
+import { useWideLayout, widePage } from '../../components/web-nav';
 import { useAuth } from '../../lib/auth';
 import { RECOVERY_LINK_ERROR } from '../../lib/supabase';
 
+/**
+ * The front door, and on the web the whole shop window.
+ *
+ * On a phone this is a sign-in screen, because someone who downloaded an app
+ * has already been sold. In a browser it is the first page anyone sees, and a
+ * bare email box on an empty canvas tells a visitor nothing about what this
+ * is or whether it is for them — so above the breakpoint the same screen lays
+ * itself out as a landing page, with the form as the panel on the right.
+ *
+ * It speaks to both halves of the product. Parents can hold an account of
+ * their own now, and a page that only talks about teaching careers would send
+ * every one of them away before they reached the button.
+ */
+
 type Mode = 'sign-in' | 'sign-up';
+
+/** Claims, each one something the product genuinely does. */
+const FOR_TEACHERS = [
+  'Roles matched to your subjects, county and TSC status',
+  'What other teachers say about a school, before you apply',
+  'One CV, built here, downloaded as PDF or Word',
+] as const;
+
+const FOR_PARENTS = [
+  'Browse teachers who tutor near you',
+  'Or post what your child needs and let teachers answer',
+  'Talk in the app — your number stays yours until you give it',
+] as const;
+
+const input = 'h-12 rounded-lg border border-border bg-card px-3.5 text-[15px] text-foreground';
 
 export default function SignInScreen() {
   const insets = useSafeAreaInsets();
+  const wide = useWideLayout();
   const { signIn, signUp } = useAuth();
 
   const [mode, setMode] = useState<Mode>('sign-in');
@@ -63,10 +94,143 @@ export default function SignInScreen() {
     );
   }
 
+  const form = (
+    <View className="gap-4">
+      <View className="gap-1">
+        <Text className="text-[17px] font-medium tracking-tight text-foreground">
+          {mode === 'sign-in' ? 'Sign in' : 'Create your account'}
+        </Text>
+        <Text className="text-[12.5px] leading-[18px] text-mutedForeground">
+          {mode === 'sign-in'
+            ? 'Welcome back.'
+            : 'You choose whether you are a teacher or a parent on the next screen.'}
+        </Text>
+      </View>
+
+      <View className="gap-2">
+        <Text className="text-[13px] font-medium text-foreground">Email</Text>
+        <TextInput
+          value={email}
+          onChangeText={setEmail}
+          placeholder="you@example.com"
+          placeholderTextColor={colors.disabledForeground}
+          autoCapitalize="none"
+          autoCorrect={false}
+          autoComplete="email"
+          keyboardType="email-address"
+          inputMode="email"
+          className={input}
+        />
+      </View>
+
+      <View className="gap-2">
+        <Text className="text-[13px] font-medium text-foreground">Password</Text>
+        <TextInput
+          value={password}
+          onChangeText={setPassword}
+          placeholder={mode === 'sign-up' ? 'At least 6 characters' : 'Your password'}
+          placeholderTextColor={colors.disabledForeground}
+          secureTextEntry
+          autoCapitalize="none"
+          autoComplete={mode === 'sign-up' ? 'new-password' : 'current-password'}
+          onSubmitEditing={() => { if (ready) void submit(); }}
+          className={input}
+        />
+      </View>
+
+      {error !== null ? <ErrorBanner message={error} /> : null}
+
+      {busy ? (
+        <ActivityIndicator color={colors.mutedForeground} className="py-3" />
+      ) : (
+        <Button
+          label={mode === 'sign-in' ? 'Sign in' : 'Create account'}
+          disabled={!ready}
+          onPress={() => void submit()}
+        />
+      )}
+
+      {mode === 'sign-in' ? (
+        <Link href="/forgot-password" asChild>
+          <Pressable accessibilityRole="link" className="items-center py-1">
+            <Text className="text-[12.5px] text-mutedForeground">Forgot your password?</Text>
+          </Pressable>
+        </Link>
+      ) : null}
+
+      <Pressable
+        accessibilityRole="button"
+        onPress={() => { setMode(mode === 'sign-in' ? 'sign-up' : 'sign-in'); setError(null); }}
+        className="items-center py-2"
+      >
+        <Text className="text-[13px] text-primary">
+          {mode === 'sign-in' ? 'New here? Create an account' : 'Already have an account? Sign in'}
+        </Text>
+      </Pressable>
+    </View>
+  );
+
+  if (wide) {
+    return (
+      <View className="flex-1 bg-background">
+        <View className="w-full border-b border-border bg-card">
+          <View style={widePage} className="flex-row items-center justify-between px-6 py-3">
+            <Wordmark />
+            <Pressable
+              accessibilityRole="button"
+              onPress={() => { setMode('sign-in'); setError(null); }}
+              style={{ borderRadius: radius.pill, minHeight: 36 }}
+              className="justify-center px-4"
+            >
+              <Text className="text-[13px] font-medium text-primary">Sign in</Text>
+            </Pressable>
+          </View>
+        </View>
+
+        <ScrollView contentContainerStyle={{ padding: 32, ...widePage }}>
+          <View className="flex-row items-start gap-10">
+            <View className="min-w-0 flex-[1.2] gap-5 pt-6">
+              <Text className="text-[13px] font-medium uppercase tracking-wider text-primary">
+                Teaching work in Kenya
+              </Text>
+              <Text className="text-[44px] font-medium leading-[52px] tracking-tight text-foreground">
+                Find teaching work.{'\n'}Or find a teacher.
+              </Text>
+              <Text className="max-w-[560px] text-[16px] leading-7 text-mutedForeground">
+                Vacancies circulate on WhatsApp, and by the time most teachers hear about one the
+                shortlist is closed. Mwalimu Kazi puts the roles, the schools behind them and the
+                teachers who tutor in one place — for the people looking for work, and for the
+                parents looking for someone to teach their child.
+              </Text>
+
+              <View className="mt-2 flex-row flex-wrap gap-3">
+                <Audience icon="briefcase" title="For teachers" lines={FOR_TEACHERS} />
+                <Audience icon="home" title="For parents" lines={FOR_PARENTS} />
+              </View>
+
+              <Text className="mt-1 text-[12px] leading-5 text-mutedForeground">
+                Free for teachers and for parents. Your email is never shown to a school.
+              </Text>
+            </View>
+
+            <View style={{ flexBasis: 400, flexGrow: 0, minWidth: 0 }}>
+              <View
+                style={[{ borderRadius: radius.xl3, borderCurve: 'continuous' }, shadow.floating]}
+                className="border border-border bg-card p-6"
+              >
+                {form}
+              </View>
+            </View>
+          </View>
+        </ScrollView>
+      </View>
+    );
+  }
+
   return (
     <View className="flex-1 bg-background">
       <ScrollView
-        contentContainerStyle={{ padding: 24, paddingTop: insets.top + 48, gap: 20, ...centredContent }}
+        contentContainerStyle={{ padding: 24, paddingTop: insets.top + 40, gap: 20, ...centredContent }}
         keyboardShouldPersistTaps="handled"
       >
         {/*
@@ -76,38 +240,22 @@ export default function SignInScreen() {
           teacher sees. Type and the one accent carry it instead.
         */}
         <View className="gap-3">
-          <View className="flex-row items-center gap-2">
-            <View
-              style={{ width: 26, height: 26, borderRadius: radius.sm, borderCurve: 'continuous' }}
-              className="items-center justify-center bg-primary"
-            >
-              <Text className="text-[13px] font-medium text-primaryForeground">M</Text>
-            </View>
-            <Text className="text-[13px] font-medium tracking-tight text-foreground">
-              Mwalimu Kazi
-            </Text>
-          </View>
+          <Wordmark />
 
           <Text className="text-[30px] font-medium leading-9 tracking-tight text-foreground">
-            Your teaching career{'\n'}starts here.
+            Find teaching work.{'\n'}Or find a teacher.
           </Text>
 
           <Text className="text-[14px] leading-6 text-mutedForeground">
-            {mode === 'sign-in'
-              ? 'Roles matched to what you actually teach — with what other teachers say about the school before you apply.'
-              : 'One account for jobs, schools, your CV and the staffroom. It takes a minute.'}
+            Roles matched to what you actually teach, the schools behind them, and the teachers
+            who tutor — whichever side of that you are on.
           </Text>
 
-          {/*
-            Three claims, each one something the app genuinely does. Anything
-            here that the product cannot back up would be found out on the very
-            next screen.
-          */}
           <View className="mt-1 gap-2">
             {[
-              ['target', 'Matched to your subjects, county and TSC status'],
-              ['shield', 'School reviews and red flags, written by teachers'],
-              ['file-text', 'A CV you build once and download as PDF or Word'],
+              ['target', 'Teachers: roles matched to your subjects and county'],
+              ['shield', 'Teachers: school reviews, written by teachers'],
+              ['home', 'Parents: find a tutor, or post what your child needs'],
             ].map(([icon, line]) => (
               <View key={line} className="flex-row items-center gap-2.5">
                 <Feather
@@ -121,66 +269,7 @@ export default function SignInScreen() {
           </View>
         </View>
 
-        <View className="gap-2">
-          <Text className="text-[13px] font-medium text-foreground">Email</Text>
-          <TextInput
-            value={email}
-            onChangeText={setEmail}
-            placeholder="you@example.com"
-            placeholderTextColor={colors.mutedForeground}
-            autoCapitalize="none"
-            autoCorrect={false}
-            autoComplete="email"
-            keyboardType="email-address"
-            inputMode="email"
-            className="h-12 rounded-md border border-border bg-card px-3.5 text-[15px] text-foreground"
-          />
-        </View>
-
-        <View className="gap-2">
-          <Text className="text-[13px] font-medium text-foreground">Password</Text>
-          <TextInput
-            value={password}
-            onChangeText={setPassword}
-            placeholder={mode === 'sign-up' ? 'At least 6 characters' : 'Your password'}
-            placeholderTextColor={colors.mutedForeground}
-            secureTextEntry
-            autoCapitalize="none"
-            autoComplete={mode === 'sign-up' ? 'new-password' : 'current-password'}
-            onSubmitEditing={() => { if (ready) void submit(); }}
-            className="h-12 rounded-md border border-border bg-card px-3.5 text-[15px] text-foreground"
-          />
-        </View>
-
-        {error !== null ? <ErrorBanner message={error} /> : null}
-
-        {busy ? (
-          <ActivityIndicator color={colors.mutedForeground} className="py-3" />
-        ) : (
-          <Button
-            label={mode === 'sign-in' ? 'Sign in' : 'Create account'}
-            disabled={!ready}
-            onPress={() => void submit()}
-          />
-        )}
-
-        {mode === 'sign-in' ? (
-          <Link href="/forgot-password" asChild>
-            <Pressable accessibilityRole="link" className="items-center py-1">
-              <Text className="text-[12.5px] text-mutedForeground">Forgot your password?</Text>
-            </Pressable>
-          </Link>
-        ) : null}
-
-        <Pressable
-          accessibilityRole="button"
-          onPress={() => { setMode(mode === 'sign-in' ? 'sign-up' : 'sign-in'); setError(null); }}
-          className="items-center py-2"
-        >
-          <Text className="text-[13px] text-primary">
-            {mode === 'sign-in' ? 'New here? Create an account' : 'Already have an account? Sign in'}
-          </Text>
-        </Pressable>
+        {form}
 
         <NoticeStrip>
           <Text className="text-[11.5px] leading-4 text-mutedForeground">
@@ -189,6 +278,53 @@ export default function SignInScreen() {
           </Text>
         </NoticeStrip>
       </ScrollView>
+    </View>
+  );
+}
+
+function Wordmark() {
+  return (
+    <View className="flex-row items-center gap-2">
+      <View
+        style={{ width: 26, height: 26, borderRadius: radius.sm, borderCurve: 'continuous' }}
+        className="items-center justify-center bg-primary"
+      >
+        <Text className="text-[13px] font-medium text-primaryForeground">M</Text>
+      </View>
+      <Text className="text-[13px] font-medium tracking-tight text-foreground">
+        Mwalimu Kazi
+      </Text>
+    </View>
+  );
+}
+
+/** One half of the product, said in three lines it can back up. */
+function Audience({
+  icon, title, lines,
+}: {
+  readonly icon: React.ComponentProps<typeof Feather>['name'];
+  readonly title: string;
+  readonly lines: readonly string[];
+}) {
+  return (
+    <View style={{ flexBasis: 260, flexGrow: 1, minWidth: 0 }}>
+      <Card className="h-full gap-2.5 p-4">
+        <View className="flex-row items-center gap-2">
+          <View
+            style={{ borderRadius: radius.lg }}
+            className="h-8 w-8 items-center justify-center bg-primarySurface"
+          >
+            <Feather name={icon} size={15} color={colors.primary} />
+          </View>
+          <Text className="text-[14px] font-medium tracking-tight text-foreground">{title}</Text>
+        </View>
+        {lines.map((line) => (
+          <View key={line} className="flex-row items-start gap-2">
+            <Feather name="check" size={12} color={colors.success} style={{ marginTop: 3 }} />
+            <Text className="flex-1 text-[12.5px] leading-[18px] text-mutedForeground">{line}</Text>
+          </View>
+        ))}
+      </Card>
     </View>
   );
 }

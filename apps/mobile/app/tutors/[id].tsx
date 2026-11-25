@@ -12,7 +12,7 @@ import {
 import { MeetingList } from '../../components/meeting-icons';
 import { fetchTutor, inviteTutor, type Tutor } from '../../lib/tutors';
 import { fetchMyPostings } from '../../lib/recruiter';
-import { useTeacher } from '../../lib/auth';
+import { useViewer } from '../../lib/auth';
 
 /**
  * One tutor, and the way to reach them.
@@ -35,7 +35,7 @@ function Fact({ label, value }: { label: string; value: string | null }) {
 
 export default function TutorScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const teacher = useTeacher();
+  const viewer = useViewer();
   const insets = useSafeAreaInsets();
 
   const [tutor, setTutor] = useState<Tutor | null>(null);
@@ -51,7 +51,7 @@ export default function TutorScreen() {
       try {
         const [found, mine] = await Promise.all([
           fetchTutor(id),
-          fetchMyPostings(teacher.id),
+          fetchMyPostings(viewer.id),
         ]);
         if (cancelled) return;
         setTutor(found);
@@ -63,7 +63,7 @@ export default function TutorScreen() {
       }
     })();
     return () => { cancelled = true; };
-  }, [id, teacher.id]);
+  }, [id, viewer.id]);
 
   const invite = async (jobId: string) => {
     setBusy(true);
@@ -107,7 +107,7 @@ export default function TutorScreen() {
     },
     tutor.ratePeriod,
   );
-  const mine = tutor.userId === teacher.id;
+  const mine = tutor.userId === viewer.id;
 
   return (
     <View className="flex-1 bg-background">

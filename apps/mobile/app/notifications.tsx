@@ -6,7 +6,7 @@ import { colors } from '@mwalimu/ui';
 import type { Tables } from '@mwalimu/types';
 import { Card, centredContent, EmptyState, ErrorBanner } from '../components/ui';
 import { fetchNotifications, jobIdOf, markAllRead, threadIdOf } from '../lib/notifications';
-import { useTeacher } from '../lib/auth';
+import { useAccount } from '../lib/auth';
 import { playNotificationSound } from '../lib/sound';
 
 type Kind = Tables<'notifications'>['kind'];
@@ -43,7 +43,14 @@ const SCORE_COLOUR = {
 } as const;
 
 export default function NotificationsScreen() {
-  const teacher = useTeacher();
+  const account = useAccount();
+  /*
+    A match score is a teacher's number: how well a vacancy fits the subjects
+    they teach. A parent's notifications are answers to a request they posted
+    and messages about them, so there is nothing to score and the badge is not
+    drawn rather than drawn as zero.
+  */
+  const viewer = account.role === 'teacher' ? account.teacher : account.parent;
   const [items, setItems] = useState<readonly Tables<'notifications'>[]>([]);
   const [jobs, setJobs] = useState<ReadonlyMap<string, JobWithSchool>>(new Map());
   const [error, setError] = useState<string | null>(null);
@@ -59,7 +66,7 @@ export default function NotificationsScreen() {
       setItems((prev) => {
         const known = new Set(prev.map((n) => n.id));
         const arrived = feed.items.filter((n) => !known.has(n.id) && n.read_at === null);
-        if (prev.length > 0 && arrived.length > 0) void playNotificationSound(teacher.notificationSound);
+        if (prev.length > 0 && arrived.length > 0) void playNotificationSound(viewer.notificationSound);
         return feed.items;
       });
       setJobs(feed.jobs);
@@ -69,7 +76,7 @@ export default function NotificationsScreen() {
     } finally {
       setLoading(false);
     }
-  }, [teacher.notificationSound]);
+  }, [viewer.notificationSound]);
 
   useEffect(() => { void load(); }, [load]);
 
@@ -136,7 +143,9 @@ export default function NotificationsScreen() {
             // current profile rather than whatever it was when the job posted.
             const jobId = jobIdOf(item);
             const entry = jobId === null ? undefined : jobs.get(jobId);
-            const match = entry === undefined ? null : matchScore(entry.job, teacher).score;
+            const match = entry === undefined || account.role !== 'teacher'
+              ? null
+              : matchScore(entry.job, account.teacher).score;
             // Unread is a card lift plus a dot, never a tinted fill. An
             // opacity modifier on a token that is already an ink mix
             // (`bg-wash/40`) rewrites its alpha to 0.4 rather than scaling it,

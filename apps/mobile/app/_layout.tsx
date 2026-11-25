@@ -23,7 +23,21 @@ void SplashScreen.preventAutoHideAsync();
  * navigation landed.
  */
 function RootNavigator() {
-  const { status, profileFault, signOut } = useAuth();
+  const { status, account, profileFault, signOut } = useAuth();
+
+  /*
+    Three sets of screens, and the order they are declared in is load-bearing.
+
+    Expo Router sends anyone who reaches an unavailable screen to "the anchor
+    route or the first available screen" (there is no `redirectTo` before SDK
+    58). A teacher signing in lands on "/", which is `(tabs)` and is first. A
+    parent has no `(tabs)`, so the first screen available to them is what they
+    land on instead — which is why the parent's own home is declared before
+    everything the two roles share.
+  */
+  const ready = status === 'ready';
+  const teacher = ready && account?.role === 'teacher';
+  const parent = ready && account?.role === 'parent';
 
   if (status === 'loading') {
     return (
@@ -81,22 +95,15 @@ function RootNavigator() {
         contentStyle: { backgroundColor: colors.background },
       }}
     >
-      <Stack.Protected guard={status === 'ready'}>
+      <Stack.Protected guard={teacher}>
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen name="job/[id]" options={{ title: 'Job' }} />
         <Stack.Screen name="school/[slug]" options={{ title: 'School' }} />
-        <Stack.Screen name="notifications" options={{ title: 'Notifications' }} />
         <Stack.Screen name="saved" options={{ title: 'Saved' }} />
         <Stack.Screen name="applications" options={{ title: 'Applications' }} />
         <Stack.Screen name="review/new" options={{ title: 'Write a review' }} />
-        <Stack.Screen name="post/new" options={{ title: 'Post a role' }} />
         <Stack.Screen name="feed" options={{ title: 'Staffroom' }} />
         <Stack.Screen name="auto-apply" options={{ title: 'Auto-Apply' }} />
-        <Stack.Screen name="messages/index" options={{ title: 'Messages' }} />
-        <Stack.Screen name="messages/[threadId]" options={{ title: 'Conversation' }} />
-        <Stack.Screen name="requests/index" options={{ title: 'Your requests' }} />
-        <Stack.Screen name="tutors/index" options={{ title: 'Find a tutor' }} />
-        <Stack.Screen name="tutors/[id]" options={{ title: 'Tutor' }} />
         <Stack.Screen name="profile/tutoring" options={{ title: 'Offer tuition' }} />
         <Stack.Screen name="recruiter/index" options={{ title: 'For schools' }} />
         <Stack.Screen name="recruiter/[schoolId]" options={{ title: 'Applicants' }} />
@@ -107,6 +114,32 @@ function RootNavigator() {
         <Stack.Screen name="applicant/[id]/cv" options={{ title: 'CV' }} />
         <Stack.Screen name="admin/index" options={{ title: 'Moderation' }} />
         <Stack.Screen name="admin/news" options={{ title: 'Publish an update' }} />
+      </Stack.Protected>
+
+      {/*
+        A parent's two screens. Declared before the shared ones so that a
+        parent who lands on a teacher's route falls back to their own home
+        rather than to whichever shared screen happened to be first.
+      */}
+      <Stack.Protected guard={parent}>
+        <Stack.Screen name="parent/index" options={{ headerShown: false }} />
+        <Stack.Screen name="parent/profile" options={{ title: 'Your details' }} />
+      </Stack.Protected>
+
+      {/*
+        The same screens for both roles. A conversation, a notification, a
+        tutor's page and a request someone posted do not change shape
+        depending on who is reading them — and when they did, it was only
+        because they asked the auth context for a teacher.
+      */}
+      <Stack.Protected guard={ready}>
+        <Stack.Screen name="notifications" options={{ title: 'Notifications' }} />
+        <Stack.Screen name="messages/index" options={{ title: 'Messages' }} />
+        <Stack.Screen name="messages/[threadId]" options={{ title: 'Conversation' }} />
+        <Stack.Screen name="requests/index" options={{ title: 'Your requests' }} />
+        <Stack.Screen name="tutors/index" options={{ title: 'Find a tutor' }} />
+        <Stack.Screen name="tutors/[id]" options={{ title: 'Tutor' }} />
+        <Stack.Screen name="post/new" options={{ title: 'Post a role' }} />
         <Stack.Screen name="news/[id]" options={{ title: 'Update' }} />
       </Stack.Protected>
 

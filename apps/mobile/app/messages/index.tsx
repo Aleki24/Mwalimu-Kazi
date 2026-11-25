@@ -5,11 +5,11 @@ import { Link, Stack } from 'expo-router';
 import { formatPostedAge } from '@mwalimu/core';
 import { colors } from '@mwalimu/ui';
 import { Card, centredContent, EmptyState, ErrorBanner, SchoolMark } from '../../components/ui';
-import { useTeacher } from '../../lib/auth';
+import { useViewer } from '../../lib/auth';
 import { fetchThreads, type ThreadSummary } from '../../lib/messages';
 
 export default function MessagesScreen() {
-  const teacher = useTeacher();
+  const viewer = useViewer();
   const insets = useSafeAreaInsets();
   const [threads, setThreads] = useState<readonly ThreadSummary[]>([]);
   const [loading, setLoading] = useState(true);
@@ -18,14 +18,14 @@ export default function MessagesScreen() {
 
   const load = useCallback(async () => {
     try {
-      setThreads(await fetchThreads(teacher.id));
+      setThreads(await fetchThreads(viewer.id));
       setError(null);
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : 'Could not load your messages');
     } finally {
       setLoading(false);
     }
-  }, [teacher.id]);
+  }, [viewer.id]);
 
   useEffect(() => { void load(); }, [load]);
 

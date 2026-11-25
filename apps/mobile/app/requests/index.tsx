@@ -16,7 +16,7 @@ import {
   fetchApplicants, fetchMyPostings, setApplicationStage, type Applicant, type Decision,
 } from '../../lib/recruiter';
 import { openThread } from '../../lib/messages';
-import { useTeacher } from '../../lib/auth';
+import { useViewer } from '../../lib/auth';
 
 type Stage = Tables<'applications'>['stage'];
 
@@ -55,7 +55,7 @@ const patchOf = (decision?: Decision) => {
 };
 
 export default function MyRequestsScreen() {
-  const teacher = useTeacher();
+  const viewer = useViewer();
   const [postings, setPostings] = useState<readonly Tables<'jobs'>[]>([]);
   const [selected, setSelected] = useState<Tables<'jobs'> | null>(null);
   const [applicants, setApplicants] = useState<readonly Applicant[]>([]);
@@ -66,7 +66,7 @@ export default function MyRequestsScreen() {
 
   const load = useCallback(async () => {
     try {
-      const mine = await fetchMyPostings(teacher.id);
+      const mine = await fetchMyPostings(viewer.id);
       setPostings(mine);
       setSelected((prev) => prev ?? mine[0] ?? null);
       setError(null);
@@ -75,7 +75,7 @@ export default function MyRequestsScreen() {
     } finally {
       setLoading(false);
     }
-  }, [teacher.id]);
+  }, [viewer.id]);
 
   useEffect(() => { void load(); }, [load]);
 

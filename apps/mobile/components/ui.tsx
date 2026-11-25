@@ -141,11 +141,24 @@ export function DeadlineChip({ label, urgent }: { label: string; urgent: boolean
  */
 export const CONTENT_MAX_WIDTH = 620;
 
+/**
+ * A column of content, centred in whatever it is given.
+ *
+ * Named as a type because there are two of them — the reading column here and
+ * the wider page the web build uses — and a component that lays itself out
+ * inside one has to accept either.
+ */
+export interface ContentWidth {
+  readonly width: '100%';
+  readonly maxWidth: number;
+  readonly alignSelf: 'center';
+}
+
 export const centredContent = {
   width: '100%',
   maxWidth: CONTENT_MAX_WIDTH,
   alignSelf: 'center',
-} as const;
+} as const satisfies ContentWidth;
 
 /** A quiet metadata tag: flat grey, no border, no colour. */
 export function Tag({ label }: { label: string }) {
@@ -317,15 +330,25 @@ export function Avatar({
   );
 }
 
-/** Chrome renders instantly: the title never waits for data. */
-export function ScreenHeader({ title, subtitle }: { title: string; subtitle?: string }) {
+/**
+ * Chrome renders instantly: the title never waits for data.
+ *
+ * `width` is the page's, not the header's: a title capped at the reading
+ * column above a list that spans the window reads as a different page's title
+ * that happened to land there.
+ */
+export function ScreenHeader({ title, subtitle, width }: {
+  title: string;
+  subtitle?: string;
+  readonly width?: ContentWidth;
+}) {
   return (
     // The bar is full-bleed and its content is not. Capping only the list
     // below left a title and a search row stretched across 1440px above a
     // narrow column of cards, which reads as a broken page rather than a wide
     // one — the header has to sit in the same column as what it heads.
     <View className="bg-card">
-      <View style={centredContent} className="px-5 pb-4 pt-2">
+      <View style={width ?? centredContent} className="px-5 pb-4 pt-2">
         <Text className="text-2xl font-medium tracking-tight text-foreground">{title}</Text>
         {subtitle !== undefined ? (
           <Text className="mt-1 text-sm text-mutedForeground">{subtitle}</Text>

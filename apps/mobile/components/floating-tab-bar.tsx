@@ -3,6 +3,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Tabs } from 'expo-router';
 import { colors, radius, shadow, HIT_TARGET_MIN } from '@mwalimu/ui';
 import { centredContent } from './ui';
+import { useWideLayout } from './web-nav';
 
 /**
  * expo-router 57 vendors react-navigation rather than depending on it, so
@@ -38,6 +39,10 @@ const EDGE_GAP = TAB_BAR_EDGE_GAP;
  */
 export function useTabBarClearance(): number {
   const insets = useSafeAreaInsets();
+  const wide = useWideLayout();
+  // A wide window draws no floating plate, so reserving a plate's height at
+  // the foot of every list leaves 90 points of empty canvas under the last row.
+  if (wide) return 24;
   return TAB_BAR_HEIGHT + Math.max(insets.bottom, EDGE_GAP) + EDGE_GAP + 12;
 }
 

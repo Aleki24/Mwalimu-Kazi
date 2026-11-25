@@ -4,6 +4,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { filterJobs, rankJobs, type JobFilters, type JobWithSchool } from '@mwalimu/core';
 import { colors } from '@mwalimu/ui';
 import { centredContent, Chip, EmptyState, ErrorBanner, ScreenHeader, SearchBar } from '../../components/ui';
+import { useWideLayout, widePage } from '../../components/web-nav';
 import { useTabBarClearance } from '../../components/floating-tab-bar';
 import { JobCard } from '../../components/job-card';
 import { fetchJobsPage, type JobsCursor } from '../../lib/jobs';
@@ -17,6 +18,9 @@ interface QuickFilter {
 }
 
 export default function JobsScreen() {
+  const wide = useWideLayout();
+  /** The page's own width: a reading column on a phone, the window on a desktop. */
+  const column = wide ? widePage : centredContent;
   const tabBarClearance = useTabBarClearance();
   const insets = useSafeAreaInsets();
   const teacher = useTeacher();
@@ -157,9 +161,10 @@ export default function JobsScreen() {
         <ScreenHeader
           title="Jobs"
           subtitle={loading ? 'Loading…' : `${results.length} of ${all.length} open roles`}
+          width={column}
         />
 
-        <View style={centredContent} className="px-4 pb-3">
+        <View style={column} className="px-4 pb-3">
           <SearchBar
             value={query}
             onChangeText={setQuery}
@@ -172,7 +177,7 @@ export default function JobsScreen() {
           maxWidth on a horizontal scroller's contentContainerStyle constrains
           the scrollable row itself and clips the chips off the end.
         */}
-        <View style={centredContent} className="w-full">
+        <View style={column} className="w-full">
           <ScrollView
             horizontal
             showsHorizontalScrollIndicator={false}
@@ -196,7 +201,18 @@ export default function JobsScreen() {
         <FlatList
           data={results}
           keyExtractor={(entry) => entry.job.id}
-          contentContainerStyle={{ padding: 16, gap: 12, paddingBottom: tabBarClearance, ...centredContent }}
+          /*
+            Two abreast on a desktop. `numColumns` is baked into the list's
+            layout, so React Native insists on a new key when it changes —
+            without one, resizing a browser window past the breakpoint leaves
+            the old column count rendered over the new one.
+          */
+          key={wide ? 'grid' : 'list'}
+          numColumns={wide ? 2 : 1}
+          columnWrapperStyle={wide ? { gap: 12 } : undefined}
+          contentContainerStyle={{
+            padding: 16, gap: 12, paddingBottom: tabBarClearance, ...column,
+          }}
           keyboardDismissMode="on-drag"
           keyboardShouldPersistTaps="handled"
           onEndReachedThreshold={0.6}
@@ -210,12 +226,16 @@ export default function JobsScreen() {
               : null
           }
           renderItem={({ item }) => (
-            <JobCard
-              entry={item}
-              now={now}
-              saved={savedIds.has(item.job.id)}
-              onToggleSave={(jobId) => void toggleSave(jobId)}
-            />
+            // In a grid the cell has to claim its half of the row, or two
+            // cards of different heights sit at two different widths.
+            <View style={wide ? { flex: 1, minWidth: 0 } : undefined}>
+              <JobCard
+                entry={item}
+                now={now}
+                saved={savedIds.has(item.job.id)}
+                onToggleSave={(jobId) => void toggleSave(jobId)}
+              />
+            </View>
           )}
           ListHeaderComponent={
             <View className="gap-3">

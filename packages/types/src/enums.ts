@@ -6,6 +6,17 @@ import { z } from 'zod';
  * migration, never in one place only.
  */
 
+/**
+ * What an account is for.
+ *
+ * Every account used to be a teacher's, so a parent looking for a tutor had to
+ * claim to teach — subjects, years in a classroom, a TSC number — to reach the
+ * one screen they came for. The two roles want opposite things from this
+ * product: one is looking to be hired, the other is looking to hire.
+ */
+export const AccountRole = z.enum(['teacher', 'parent']);
+export type AccountRole = z.infer<typeof AccountRole>;
+
 export const Curriculum = z.enum(['cbc', '8-4-4', 'igcse', 'ib', 'montessori']);
 export type Curriculum = z.infer<typeof Curriculum>;
 

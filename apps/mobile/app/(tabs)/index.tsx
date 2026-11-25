@@ -11,6 +11,7 @@ import { colors } from '@mwalimu/ui';
 import {
   Avatar, Card, centredContent, EmptyState, ErrorBanner, NoticeStrip, tabularNums,
 } from '../../components/ui';
+import { useWideLayout, widePage } from '../../components/web-nav';
 import { HeroCard, HeroAction } from '../../components/hero-card';
 import { ProgressRing } from '../../components/progress-ring';
 import { PIPELINE_STAGES, pipelineProgress } from '../../components/pipeline';
@@ -71,6 +72,7 @@ const STRENGTH_ROUTE = {
 } as const satisfies Readonly<Record<StrengthTarget, string>>;
 
 export default function HomeScreen() {
+  const wide = useWideLayout();
   const tabBarClearance = useTabBarClearance();
   const insets = useSafeAreaInsets();
   const teacher = useTeacher();
@@ -122,7 +124,10 @@ export default function HomeScreen() {
         greeting and made the screen read as two surfaces stacked; the header is
         part of the page, so it sits on the page.
       */}
-      <View className="flex-row items-center gap-1 px-5 pb-4 pt-2">
+      <View
+        style={wide ? widePage : undefined}
+        className="w-full flex-row items-center gap-1 px-5 pb-4 pt-2"
+      >
         <View className="min-w-0 flex-1">
           <Text numberOfLines={1} className="text-2xl font-medium tracking-tight text-foreground">
             {`Hi, ${teacher.fullName.split(' ')[0] ?? teacher.fullName}`}
@@ -130,17 +135,29 @@ export default function HomeScreen() {
           <Text className="mt-1 text-sm text-mutedForeground">Your career dashboard</Text>
         </View>
 
-        <HeaderIcon href="/saved" icon="bookmark" label="Saved jobs" />
-        <HeaderIcon href="/messages" icon="mail" label="Messages" />
-        <HeaderIcon href="/notifications" icon="bell" label="Alerts" />
-        <View className="pl-1.5">
-          {/* Profile has no tab of its own; this is the way in. */}
-          <Avatar name={teacher.fullName} size={40} onPress={() => router.push('/profile')} label="Your profile" />
-        </View>
+        {/*
+          Saved, messages, alerts and the avatar live in the bar across the top
+          on a wide window. Drawing them here as well would be the same four
+          controls twice, forty pixels apart.
+        */}
+        {wide ? null : (
+          <>
+            <HeaderIcon href="/saved" icon="bookmark" label="Saved jobs" />
+            <HeaderIcon href="/messages" icon="mail" label="Messages" />
+            <HeaderIcon href="/notifications" icon="bell" label="Alerts" />
+            <View className="pl-1.5">
+              {/* Profile has no tab of its own; this is the way in. */}
+              <Avatar name={teacher.fullName} size={40} onPress={() => router.push('/profile')} label="Your profile" />
+            </View>
+          </>
+        )}
       </View>
 
       <ScrollView
-        contentContainerStyle={{ padding: 16, gap: 12, paddingBottom: tabBarClearance, ...centredContent }}
+        contentContainerStyle={{
+          padding: 16, gap: 12, paddingBottom: tabBarClearance,
+          ...(wide ? widePage : centredContent),
+        }}
         refreshControl={
           <RefreshControl
             refreshing={refreshing}

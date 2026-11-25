@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { Constants } from './database.generated';
 import {
-  ApplicationSource, ApplicationStage, Curriculum, CvAccent, CvBackground, CvFont, CvSection,
+  AccountRole, ApplicationSource, ApplicationStage, Curriculum, CvAccent, CvBackground, CvFont, CvSection,
   CvTemplate, CvVisibility, EngagementKind, JobPosterKind, JobType,
   ModerationStatus, NewsTopic, NotificationKind, RatePeriod, RedFlagKind, ResourceKind,
   GenderPreference, PosterRole, ReviewCategory, SchoolRole, SchoolType, TeachingLevel,
@@ -16,6 +16,7 @@ import {
  */
 describe('database and Zod enums agree', () => {
   const cases: ReadonlyArray<readonly [string, readonly string[], readonly string[]]> = [
+    ['account_role', Constants.public.Enums.account_role, AccountRole.options],
     ['curriculum', Constants.public.Enums.curriculum, Curriculum.options],
     ['job_type', Constants.public.Enums.job_type, JobType.options],
     ['job_poster_kind', Constants.public.Enums.job_poster_kind, JobPosterKind.options],

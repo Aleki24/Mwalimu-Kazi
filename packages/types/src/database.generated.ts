@@ -10,7 +10,7 @@ export type Database = {
   // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
-    PostgrestVersion: "14.5"
+    PostgrestVersion: "14.1"
   }
   public: {
     Tables: {
@@ -920,6 +920,7 @@ export type Database = {
           id: string
           notification_sound: boolean
           open_to_opportunities: boolean
+          role: Database["public"]["Enums"]["account_role"]
           skills: string[]
           subjects: string[]
           tsc_number: string | null
@@ -937,6 +938,7 @@ export type Database = {
           id: string
           notification_sound?: boolean
           open_to_opportunities?: boolean
+          role?: Database["public"]["Enums"]["account_role"]
           skills?: string[]
           subjects?: string[]
           tsc_number?: string | null
@@ -954,6 +956,7 @@ export type Database = {
           id?: string
           notification_sound?: boolean
           open_to_opportunities?: boolean
+          role?: Database["public"]["Enums"]["account_role"]
           skills?: string[]
           subjects?: string[]
           tsc_number?: string | null
@@ -1365,6 +1368,7 @@ export type Database = {
       }
     }
     Enums: {
+      account_role: "teacher" | "parent"
       application_source: "manual" | "auto_apply" | "invited"
       application_stage:
         | "saved"
@@ -1610,6 +1614,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      account_role: ["teacher", "parent"],
       application_source: ["manual", "auto_apply", "invited"],
       application_stage: [
         "saved",

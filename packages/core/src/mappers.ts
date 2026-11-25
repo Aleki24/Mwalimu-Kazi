@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import {
-  Curriculum, Job, JobRequirement, School, SchoolType, TeacherProfile, type Tables,
+  Curriculum, Job, JobRequirement, ParentProfile, School, SchoolType, TeacherProfile,
+  type Account, type Tables,
 } from '@mwalimu/types';
 import type { JobWithSchool } from './job-query';
 
@@ -109,6 +110,33 @@ export function parseTeacherProfile(row: Tables<'profiles'>): ParseResult<Teache
   return profile.success
     ? { ok: true, value: profile.data }
     : { ok: false, reason: `profile ${row.id}: ${profile.error.issues[0]?.message ?? 'invalid'}` };
+}
+
+/**
+ * One profile row, read as whichever kind of account it is.
+ *
+ * The role decides the schema, and it has to: a parent's row carries no
+ * subjects, and `TeacherProfile` requires at least one, so parsing every row
+ * as a teacher would report every parent in the product as a corrupt profile
+ * and strand them on the "we can't read your profile" screen.
+ */
+export function parseAccount(row: Tables<'profiles'>): ParseResult<Account> {
+  if (row.role === 'parent') {
+    const parent = ParentProfile.safeParse({
+      id: row.id,
+      fullName: row.full_name,
+      county: row.county,
+      notificationSound: row.notification_sound,
+    });
+    return parent.success
+      ? { ok: true, value: { role: 'parent', parent: parent.data } }
+      : { ok: false, reason: `profile ${row.id}: ${parent.error.issues[0]?.message ?? 'invalid'}` };
+  }
+
+  const teacher = parseTeacherProfile(row);
+  return teacher.ok
+    ? { ok: true, value: { role: 'teacher', teacher: teacher.value } }
+    : teacher;
 }
 
 /** A job row joined to its school, as the jobs list selects it. */

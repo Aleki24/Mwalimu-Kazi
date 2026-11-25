@@ -49,6 +49,39 @@ export const TeacherProfile = z.object({
 });
 export type TeacherProfile = z.infer<typeof TeacherProfile>;
 
+/**
+ * A parent or guardian: an account that hires a teacher rather than one that
+ * is hired.
+ *
+ * Deliberately four fields. Everything `TeacherProfile` asks for past this
+ * point — subjects, years taught, a degree, a TSC number — is a question about
+ * being employable, and asking it of someone looking for a maths tutor for
+ * their daughter is how an app teaches a person it is not for them. County is
+ * kept because a tutor two counties away is not a tutor.
+ *
+ * It is a separate schema rather than a loosening of the teacher one, so that
+ * `matchScore` and everything else downstream keeps the guarantee it has
+ * always had: a profile it is handed teaches at least one subject.
+ */
+export const ParentProfile = z.object({
+  id: Uuid,
+  fullName: z.string().min(2).max(120),
+  county: County,
+  notificationSound: z.boolean().default(false),
+});
+export type ParentProfile = z.infer<typeof ParentProfile>;
+
+/**
+ * One signed-in person, whichever half of the product they are here for.
+ *
+ * A tagged union rather than one profile with optional fields: a screen that
+ * reads `account.teacher` has proved the account is a teacher's, and the
+ * compiler will not let a parent reach a screen about applying for jobs.
+ */
+export type Account =
+  | { readonly role: 'teacher'; readonly teacher: TeacherProfile }
+  | { readonly role: 'parent'; readonly parent: ParentProfile };
+
 // --- School & jobs -------------------------------------------------------
 
 export const School = z.object({

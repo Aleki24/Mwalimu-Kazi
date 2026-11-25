@@ -3,8 +3,8 @@ import {
   type ReactNode,
 } from 'react';
 import type { Session } from '@supabase/supabase-js';
-import { parseTeacherProfile } from '@mwalimu/core';
-import type { TeacherProfile } from '@mwalimu/types';
+import { parseAccount } from '@mwalimu/core';
+import type { Account, ParentProfile, TeacherProfile } from '@mwalimu/types';
 import { Platform } from 'react-native';
 import * as Linking from 'expo-linking';
 import { OPENED_FROM_RECOVERY_LINK, supabase } from './supabase';
@@ -14,7 +14,7 @@ import { OPENED_FROM_RECOVERY_LINK, supabase } from './supabase';
  *
  * `status` is deliberately a single discriminated value rather than a handful of
  * booleans: "signed in but no profile row yet" is a real state the router has to
- * handle, and a `loading`/`session`/`profile` trio lets the caller forget it.
+ * handle, and a `loading`/`session`/`account` trio lets the caller forget it.
  */
 /**
  * `recovering` is its own state, not a flag on top of the others.
@@ -64,8 +64,11 @@ function passwordResetRedirect(): string {
 export interface AuthValue {
   readonly status: AuthStatus;
   readonly session: Session | null;
-  /** Non-null exactly when status is 'ready'. */
-  readonly profile: TeacherProfile | null;
+  /**
+   * Who is signed in, and which half of the product they are here for.
+   * Non-null exactly when status is 'ready'.
+   */
+  readonly account: Account | null;
   /** Why the profile row would not parse, when status is 'profile-unreadable'. */
   readonly profileFault: string | null;
   readonly signIn: (email: string, password: string) => Promise<AuthOutcome>;
@@ -89,16 +92,52 @@ export function useAuth(): AuthValue {
   return value;
 }
 
-/** The signed-in teacher, for screens that only render when status is 'ready'. */
+/**
+ * The signed-in teacher, for screens the router only mounts for one.
+ *
+ * It throws for a parent rather than returning null, and that is the point:
+ * every screen about applying for work reads this, so a parent reaching one is
+ * a routing bug that fails loudly here instead of rendering a dashboard about
+ * a career they do not have.
+ */
 export function useTeacher(): TeacherProfile {
-  const { profile } = useAuth();
-  if (profile === null) throw new Error('useTeacher used outside a signed-in screen');
-  return profile;
+  const { account } = useAuth();
+  if (account === null) throw new Error('useTeacher used outside a signed-in screen');
+  if (account.role !== 'teacher') throw new Error('useTeacher used on a screen a parent can reach');
+  return account.teacher;
+}
+
+/** The signed-in parent, for the screens only they are routed to. */
+export function useParent(): ParentProfile {
+  const { account } = useAuth();
+  if (account === null) throw new Error('useParent used outside a signed-in screen');
+  if (account.role !== 'parent') throw new Error('useParent used on a screen a teacher can reach');
+  return account.parent;
+}
+
+export function useAccount(): Account {
+  const { account } = useAuth();
+  if (account === null) throw new Error('useAccount used outside a signed-in screen');
+  return account;
+}
+
+/**
+ * The four things both kinds of account carry.
+ *
+ * Messages, notifications, the tutor directory and the request list are the
+ * same screens for a teacher and for a parent, and all any of them wanted from
+ * the profile was an id, a name, a county and whether to make a sound. Reading
+ * `useTeacher()` for that is what made those screens teacher-only, and it is
+ * the reason a parent had to own a teaching profile to use them.
+ */
+export function useViewer(): ParentProfile {
+  const account = useAccount();
+  return account.role === 'teacher' ? account.teacher : account.parent;
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
-  const [profile, setProfile] = useState<TeacherProfile | null>(null);
+  const [account, setAccount] = useState<Account | null>(null);
   const [profileFault, setProfileFault] = useState<string | null>(null);
   const [sessionResolved, setSessionResolved] = useState(false);
   const [profileResolved, setProfileResolved] = useState(false);
@@ -111,7 +150,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const loadProfile = useCallback(async (userId: string | undefined) => {
     if (userId === undefined) {
-      setProfile(null);
+      setAccount(null);
       setProfileResolved(true);
       return;
     }
@@ -125,13 +164,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     if (error !== null || data === null) {
       // No row yet is the normal first-sign-in case, not a failure.
-      setProfile(null);
+      setAccount(null);
       setProfileFault(null);
       setProfileResolved(true);
       return;
     }
-    const parsed = parseTeacherProfile(data);
-    setProfile(parsed.ok ? parsed.value : null);
+    const parsed = parseAccount(data);
+    setAccount(parsed.ok ? parsed.value : null);
     setProfileFault(parsed.ok ? null : parsed.reason);
     setProfileResolved(true);
   }, []);
@@ -223,7 +262,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signOut = useCallback(async () => {
     await supabase.auth.signOut();
-    setProfile(null);
+    setAccount(null);
     setRecovering(false);
   }, []);
 
@@ -234,16 +273,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // reset screen whether or not they have finished onboarding.
     if (recovering) return 'recovering';
     if (!profileResolved) return 'loading';
-    if (profile !== null) return 'ready';
+    if (account !== null) return 'ready';
     return profileFault === null ? 'needs-onboarding' : 'profile-unreadable';
-  }, [sessionResolved, session, profileResolved, profile, profileFault, recovering]);
+  }, [sessionResolved, session, profileResolved, account, profileFault, recovering]);
 
   const value = useMemo<AuthValue>(
     () => ({
-      status, session, profile, profileFault,
+      status, session, account, profileFault,
       signIn, signUp, requestPasswordReset, updatePassword, refreshProfile, signOut,
     }),
-    [status, session, profile, signIn, signUp, requestPasswordReset, updatePassword, refreshProfile, signOut],
+    [status, session, account, signIn, signUp, requestPasswordReset, updatePassword, refreshProfile, signOut],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

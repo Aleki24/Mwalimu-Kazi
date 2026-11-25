@@ -14,7 +14,7 @@ import {
   Button, Card, centredContent, Chip, ErrorBanner, NoticeStrip, WhyDisabled,
   ToggleRow,
 } from '../../components/ui';
-import { useTeacher } from '../../lib/auth';
+import { useViewer } from '../../lib/auth';
 import { fetchPostableSchools, postJob } from '../../lib/post-job';
 
 /**
@@ -26,7 +26,7 @@ import { fetchPostableSchools, postJob } from '../../lib/post-job';
  * it in a WhatsApp group instead.
  */
 export default function NewJobScreen() {
-  const teacher = useTeacher();
+  const viewer = useViewer();
   const insets = useSafeAreaInsets();
   const params = useLocalSearchParams<{ schoolId?: string }>();
 
@@ -49,7 +49,7 @@ export default function NewJobScreen() {
   }, []);
 
   const [title, setTitle] = useState('');
-  const [county, setCounty] = useState<County>(teacher.county);
+  const [county, setCounty] = useState<County>(viewer.county);
   const [subjects, setSubjects] = useState('');
   const [jobType, setJobType] = useState<JobType>('full_time');
   const [salaryMin, setSalaryMin] = useState('');
